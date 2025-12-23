@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Shop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .message-box {
+            animation: fade-in-up 0.3s ease-out forwards;
+        }
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center py-4 mb-6 sticky top-0 bg-white dark:bg-gray-800 rounded-2xl shadow-lg z-10 p-4">
+        <h1 class="text-2xl font-bold">My Awesome Shop</h1>
+        <div class="relative">
+            <!-- Shopping Cart Icon -->
+            <svg class="w-8 h-8 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.182 1.703.707 1.703H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <span id="cart-count" class="absolute top-0 right-[-8px] inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full transform translate-x-1/2 -translate-y-1/2">
+                0
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Content Area for Products -->
+    <main id="products-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></main>
+
+    <!-- Message Box (Hidden by default) -->
+    <div id="message-box" class="message-box fixed inset-x-0 bottom-4 flex justify-center z-50 hidden">
+        <div class="bg-green-500 text-white text-center p-3 rounded-xl shadow-lg">
+            Item added to cart!
+        </div>
+    </div>
+
+    <!-- Firebase Scripts (Loaded from CDN) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the platform
+        const firebaseConfig = typeof _firebase_config !== 'undefined' ? JSON.parse(_firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        let db, auth, userId;
+        const cart = [];
+
+        // UI elements
+        const productsContainer = document.getElementById('products-container');
+        const messageBox = document.getElementById('message-box');
+        const cartCount = document.getElementById('cart-count');
+
+        // Function to display a temporary message
+        function showMessage(msg) {
+            messageBox.innerHTML = <div class="bg-green-500 text-white text-center p-3 rounded-xl shadow-lg">${msg}</div>;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 2000);
+        }
+
+        // Function to update the cart count
+        function updateCartCount() {
+            const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+            cartCount.textContent = totalItems;
+        }
+
+        // Function to render products
+        function renderProducts(products) {
+            productsContainer.innerHTML = ''; // Clear existing products
+            if (products.length === 0) {
+                productsContainer.innerHTML = `
+                    <div class="col-span-full flex items-center justify-center text-gray-500 dark:text-gray-400 py-10">
+                        <p>No products available yet. Check back later!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            products.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden flex flex-col transition-transform duration-300 hover:scale-105';
+                
+                productCard.innerHTML = `
+                    <img src="${product.imageUrl || 'https://placehold.co/400x300/e2e8f0/4a5568?text=No+Image'}" alt="${product.name}" class="w-full h-48 object-cover object-center" onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/4a5568?text=No+Image';">
+                    <div class="p-5 flex-grow">
+                        <h2 class="text-xl font-semibold mb-2 line-clamp-2">${product.name || 'Untitled Product'}</h2>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm line-clamp-3 mb-3">${product.description || ''}</p>
+                        <div class="flex items-center justify-between mt-auto">
+                            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">$${(product.price || 0).toFixed(2)}</span>
+                            <button class="add-to-cart-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors duration-200 text-sm font-semibold shadow-md" data-product-id="${product.id}">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                `;
+                productsContainer.appendChild(productCard);
+            });
+
+            // Add event listeners to "Add to Cart" buttons
+            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const productId = event.target.dataset.productId;
+                    const product = products.find(p => p.id === productId);
+                    if (product) {
+                        const existingItem = cart.find(item => item.id === product.id);
+                        if (existingItem) {
+                            existingItem.quantity += 1;
+                        } else {
+                            cart.push({ ...product, quantity: 1 });
+                        }
+                        updateCartCount();
+                        showMessage(${product.name} added to cart!);
+                    }
+                });
+            });
+        }
+
+        // Main App Logic
+        window.onload = () => {
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error('Firebase config not available.');
+                productsContainer.innerHTML = '<div class="col-span-full text-center text-red-500 mt-10">Firebase configuration is missing. Cannot load data.</div>';
+                return;
+            }
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (!user) {
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (error) {
+                            console.error('Authentication failed:', error);
+                            showMessage('Authentication failed.');
+                        }
+                    }
+                    userId = user ? user.uid : 'anonymous';
+                    
+                    // Set up real-time product listener after authentication
+                    const productsPath = /artifacts/${appId}/public/data/products;
+                    const q = query(collection(db, productsPath));
+                    
+                    onSnapshot(q, (querySnapshot) => {
+                        const productData = [];
+                        querySnapshot.forEach((doc) => {
+                            productData.push({ id: doc.id, ...doc.data() });
+                        });
+                        renderProducts(productData);
+                    }, (error) => {
+                        console.error('Error fetching products:', error);
+                        productsContainer.innerHTML = '<div class="col-span-full text-center text-red-500 mt-10">Failed to load products. Please check the console for errors.</div>';
+                    });
+                });
+            } catch (e) {
+                console.error('Firebase initialization error:', e);
+                productsContainer.innerHTML = '<div class="col-span-full text-center text-red-500 mt-10">Error initializing Firebase. Please check your configuration.</div>';
+            }
+        };
+    </script>
+</body>
+</html>

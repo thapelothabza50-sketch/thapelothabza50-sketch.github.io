@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mashimula - Residence Accommodation Details</title>
+     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <style>
+         .navbar {
+            background-color: #23569d;
+            color: #fff;
+            padding: 1em;
+            text-align: center;
+        }
+        
+        .navbar ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .navbar li {
+            display: inline-block;
+            margin-right: 20px;
+        }
+        
+        .navbar a {
+            color: #fff;
+            text-decoration: none;
+        }
+        :root {
+            /* Define a primary color for the Res theme */
+            --primary-color: #004d99; /* Deep Blue */
+            --accent-color: #ffcc00; /* Yellow/Gold */
+            --text-color: #333;
+            --bg-color: #f4f7f9;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* --- Header/Hero Section --- */
+        .res-header {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 40px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 0 0 15px 15px;
+        }
+
+        .res-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+
+        .res-header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        /* --- Main Content Sections --- */
+        .section {
+            background-color: #fff;
+            padding: 30px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* --- Gallery Section --- */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .gallery-item {
+            overflow: hidden;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover; /* Ensures images fill the space without distortion */
+            display: block;
+        }
+        
+        /* Optional: Floor Plan Image Styling */
+        .floor-plan img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            display: block;
+            margin: 20px auto; /* Center the floor plan image */
+        }
+        
+        /* --- Modal for Larger Image View --- */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 100; 
+            padding-top: 60px; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.9); 
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 700px;
+        }
+
+        .modal-content, .caption { 
+            animation-name: zoom;
+            animation-duration: 0.6s;
+        }
+
+        @keyframes zoom {
+            from {transform:scale(0)} 
+            to {transform:scale(1)}
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+         footer {
+            background-color: #1a4178; 
+            color: #fff;
+            padding: 30px 20px;
+            margin-top: 0; /* FIX: Remove the margin-top here */
+            font-size: 0.9em;
+            line-height: 1.6;
+
+            /* FIX: Removed position: absolute; bottom: 0; to make it flow naturally after content */
+            width: 100%;
+        }
+
+        .footer-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap; 
+        }
+
+        .footer-section {
+            padding: 10px;
+            min-width: 200px;
+            margin-bottom: 20px;
+        }
+
+        .footer-section h4 {
+            color: #ff6600; 
+            margin-bottom: 15px;
+            border-bottom: 1px solid #3b669e; 
+            padding-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .footer-section p, .footer-section a {
+            color: #ccc;
+            text-decoration: none;
+            display: block; 
+            margin-bottom: 5px;
+        }
+
+        .footer-section a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #3b669e;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<header> <nav class="navbar">
+         
+            <ul>
+                <li><a href="home.html">Home</a></li>
+                <li><a href="apply at uni.html">Apply@Universities</a></li>
+                <li><a href="czra more about us.html">About Us</a></li>
+                <li><a href="czra contact.html">Contact</a></li>
+                <li><a href="choose login.html">Login</a></li>
+                <li><a href="campus shop.html">Campus Store</a></li>
+                <li><a href="Learn More.html">Accomodations</a></li>
+            </ul>
+        </nav>
+    </header>
+
+<body>
+    <div class="res-header">
+        <h1>Welcome to Mashimula</h1>
+        <p>Your home away from home on campus. </p>
+    </div>
+    <a href="Learn More.html" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-600 font-medium mb-4 inline-block">
+                &larr; Back to Accomodations
+            </a>
+
+    <div class="container">
+        
+        <div class="section" id="info">
+            <h2>Residence Information</h2>
+            <p>Mashimula offers modern, secure, and fully catered living spaces tailored for first-year students. We focus on a supportive community environment, ensuring a smooth transition into university life. </p>
+            <ul>
+                <li><strong>Room Types:</strong> Shared Rooms available.</li>
+                <li><strong>Location:</strong> Likazi and Entokozweni</li>
+                <li><strong>Facilities:</strong> High-speed Wi-Fi, laundry facilities, common study areas, and a recreation lounge.</li>
+                <li><strong>Security:</strong> 24-hour security.</li>
+                <li><strong>Distance from Campus:</strong> </li>
+            </ul>
+        </div>
+        
+        <div class="section" id="gallery">
+            <h2>Entokozweni Blocks & Rooms (Select to View)</h2>
+            <p>Click on any image below to view a larger picture of our blocks, common areas, and typical room layouts.</p>
+            <div class="gallery-grid">
+                <div class="gallery-item" onclick="openModal('Images/Mash frnt.jpg')">
+                    <img src="Images/Mash frnt.jpg" alt="Mashimula Block A Exterior" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/mash.jpg')">
+                    <img src="Images/mash.jpg" alt="Student Room" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/Mash bed.jpg')">
+                    <img src="Images/Mash bed.jpg" alt="bed room" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/mashimula cover .jpg')">
+                    <img src="Images/mashimula cover .jpg" alt="mashimula Dining Hall Interior" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/mash kitch en.jpg')">
+                    <img src="Images/mash kitch en.jpg" alt=" Security Gate" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/mash side.jpg')">
+                    <img src="Images/mash side.jpg" alt=" Student Room" loading="lazy">
+                </div>
+            </div>
+        </div>
+        
+        <div class="section" id="gallery">
+            <h2>Likazi Blocks & Rooms (Select to View)</h2>
+            <p>Click on any image below to view a larger picture of our blocks, common areas, and typical room layouts.</p>
+            <div class="gallery-grid">
+                <div class="gallery-item" onclick="openModal('Images/mash(likaz).jpg')">
+                    <img src="Images/mash(likaz).jpg" alt="Mashimuka 2 Exterior" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/mash(likazi).jpg')">
+                    <img src="Images/mash(likazi).jpg" alt="Typical Shared Student Room" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/mash kitc.jpg')">
+                    <img src="Images/mash kitc.jpg" alt="Communal Study Lounge" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/mash likazi bath.jpg')">
+                    <img src="Images/mash likazi bath.jpg" alt="Mashimula" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/mash likazi room table.jpg')">
+                    <img src="Images/mash likazi room table.jpg" alt="Mashimula" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/Mash likazi room.jpg')">
+                    <img src="Images/Mash likazi room.jpg" alt="Typical Single Student Room" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/mash likazi bath.jpg')">
+                    <img src="Images/mash likazi bath.jpg" alt="Mashimula bathroom1" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Images/mash likza bath2.jpg')">
+                    <img src="Images/mash likza bath2.jpg" alt="Mashimula bathroom2" loading="lazy">
+                </div>
+            </div>
+        </div>
+        
+       <div class="section floor-plan" id="layout">
+            <h2>Want to save yourself a room?</h2>
+            <p>If you like what you see, then don't hesitate to click  <a href="https://wa.me/27774377288?text=Hi%20I%20would%20like%20to%20apply%20at%20Boniville%2C%20please%20tell%20me%20the%20next%20steps%20to%20continue%20my%20application%2C%20and%20move%20in." 
+           target="_blank">
+           <button>Apply</button>
+        </a>  </p>
+            
+            <p style="text-align: center; font-style: italic; margin-top: 15px;">**Note:** Self funded student can move in at anytime, but NSFAS funded should wait for moving in cycle to be open by NSFAS.</p>
+        </div>
+    </div>
+    
+    <div id="myModal" class="modal">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <img class="modal-content" id="img01">
+    </div>
+
+    <script>
+        // Get the modal and the image element inside it
+        var modal = document.getElementById("myModal");
+        var modalImg = document.getElementById("img01");
+
+        // Function to open the modal
+        function openModal(imageSrc) {
+          modal.style.display = "block";
+          modalImg.src = imageSrc;
+        }
+
+        // Function to close the modal
+        function closeModal() {
+          modal.style.display = "none";
+        }
+    </script>
+</body>
+<footer>
+
+    <div class="footer-bottom">
+        &copy; 2025 Campus Collective. All rights reserved. | Developed with 🧡 in SA.
+    </div>
+</footer>
+</html>

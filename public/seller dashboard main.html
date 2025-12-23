@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seller Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the profile sidebar */
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(100%);
+        }
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        .backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .status-pending, .status-processing { 
+        background-color: #fef3c7; /* yellow-100 */
+        color: #b45309; /* yellow-800 */
+    }
+    .status-shipped { 
+        background-color: #dbeafe; /* blue-100 */
+        color: #1e40af; /* blue-800 */
+    }
+    .status-delivered { 
+        background-color: #d1fae5; /* green-100 */
+        color: #065f46; /* green-800 */
+    }
+    .status-cancelled {
+        background-color: #fee2e2; /* red-100 */
+        color: #991b1b; /* red-800 */
+    }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div id="sidebar-backdrop" onclick="closeProfileSidebar()" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-40 hidden backdrop transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none"></div>
+
+    <div id="profile-sidebar" class="sidebar fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-50 p-6">
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+            <h2 class="text-xl font-bold text-gray-800">My Profile</h2>
+            <button onclick="closeProfileSidebar()" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <div id="user-details-panel">
+            <div class="space-y-4">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Email</p>
+                    <p id="detail-email" class="font-semibold text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Business Name</p>
+                    <p id="detail-businessName" class="font-semibold text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Phone Number</p>
+                    <p id="detail-phoneNumber" class="font-semibold text-gray-900"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="edit-profile-area" class="hidden">
+            <form id="edit-profile-form" class="space-y-4">
+                <div>
+                    <label for="businessName" class="block text-sm font-medium text-gray-700">Business Name</label>
+                    <input type="text" id="businessName" name="businessName" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                </div>
+                <div>
+                    <label for="phoneNumber" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <input type="tel" id="phoneNumber" name="phoneNumber" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <button type="submit" id="save-details-btn" class="w-full justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" disabled>
+                    Save Changes
+                </button>
+                <button type="button" id="cancel-edit-btn" class="w-full justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mt-2">
+                    Cancel
+                </button>
+            </form>
+        </div>
+
+        <div class="mt-6 pt-6 border-t border-gray-200 space-y-3">
+            <button id="toggle-edit-btn" class="w-full justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Edit Profile
+            </button>
+            <button onclick="logout()" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                Logout
+            </button>
+        </div>
+    </div>
+
+
+    <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 id="dashboard-title" class="text-3xl font-extrabold text-gray-900">Seller Dashboard</h1>
+            <div class="flex space-x-4">
+                <button id="profile-info-btn" class="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition duration-150">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.942 3.333.312 2.793 1.838a1.724 1.724 0 00.045 1.838c.538 1.527-.943 2.793-1.838 2.573a1.724 1.724 0 00-1.066 2.573c.942 1.543-.312 3.333-1.838 2.793a1.724 1.724 0 00-1.838.045c-1.527.538-2.793-.943-2.573-1.838a1.724 1.724 0 00-2.573-1.066c-1.543.942-3.333-.312-2.793-1.838a1.724 1.724 0 00-.045-1.838c-.538-1.527.943-2.793 1.838-2.573a1.724 1.724 0 001.066-2.573z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="message-area" class="hidden" role="alert"></div>
+
+        <div class="mb-6 border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button id="tab-products" onclick="switchTab('products')" class="tab-button border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none">
+                    My Products
+                </button>
+                <button id="tab-orders" onclick="switchTab('orders')" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none">
+                    My Orders
+                </button>
+            </nav>
+        </div>
+
+        <div id="content-products" class="tab-content">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-900">Product List</h2>
+                        <button id="add-product-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            Add New Product
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th> 
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Special Status</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="product-list-body" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-gray-500">Loading products...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="content-orders" class="tab-content hidden">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+                <div class="p-6">
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">Pending Orders</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="order-list-body" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-gray-500">No orders to display.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <footer class="mt-12 pt-4 border-t border-gray-200 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p>&copy; 2025 Campus Collective. All rights reserved.</p>
+        <p>Contact us via: <a href="mailto:info@campuscollection.com" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-600">info@campuscollection.com</a></p>
+    </footer>
+
+    <div id="orderDetailsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900 bg-opacity-75 transition-opacity duration-300">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-xl mx-4 my-8 max-h-[90vh] overflow-y-auto transform transition-all sm:w-full">
+            <div class="p-6">
+                <div class="flex justify-between items-center border-b pb-3 mb-4">
+                    <h3 class="text-xl font-bold text-gray-900">Order Details <span id="modal-order-id" class="text-indigo-600 font-medium text-lg"></span></h3>
+                    <button onclick="closeOrderDetailsModal()" class="text-gray-400 hover:text-gray-700 transition duration-150">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <div id="modal-content" class="space-y-4">
+                    <div class="border-b pb-3">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-2">Shipping Address</h4>
+                        <div class="text-sm text-gray-600 space-y-1" id="modal-shipping-address">
+                            </div>
+                    </div>
+
+                    <div class="border-b pb-3">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-2">Order Items</h4>
+                        <div class="max-h-60 overflow-y-auto">
+                            <ul class="divide-y divide-gray-200" id="modal-order-items">
+                                </ul>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <div class="flex justify-between text-sm font-medium text-gray-700">
+                            <span>Order Total:</span>
+                            <span id="modal-order-total" class="font-bold text-lg text-indigo-600"></span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Status: <span id="modal-order-status" class="font-semibold"></span></p>
+                    </div>
+
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <button onclick="closeOrderDetailsModal()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    // --- API CONFIGURATION ---
+    const API_URL = 'http://localhost:8080/api/seller/products';
+    const USER_ME_API = 'http://localhost:8080/api/auth/user/me'; 
+    const USER_UPDATE_API = 'http://localhost:8080/api/auth/user/update'; 
+    const ORDERS_API_URL = 'http://localhost:8080/api/seller/orders'; 
+    // NEW: API for single order detail - THIS IS THE ENDPOINT THAT MUST BE WORKING
+    const ORDER_DETAIL_API_URL = 'http://localhost:8080/api/seller/orders'; 
+    
+    const AUTH_TOKEN = localStorage.getItem('jwtToken');
+    const productListBody = document.getElementById('product-list-body');
+    const orderListBody = document.getElementById('order-list-body'); 
+    const messageArea = document.getElementById('message-area');
+    const dashboardTitle = document.getElementById('dashboard-title');
+
+    // Tab elements
+    const tabProducts = document.getElementById('tab-products');
+    const tabOrders = document.getElementById('tab-orders');
+    const contentProducts = document.getElementById('content-products');
+    const contentOrders = document.getElementById('content-orders');
+
+    // Sidebar elements
+    const profileInfoBtn = document.getElementById('profile-info-btn');
+    const profileSidebar = document.getElementById('profile-sidebar');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    const userDetailsPanel = document.getElementById('user-details-panel');
+    const editProfileArea = document.getElementById('edit-profile-area');
+    const toggleEditBtn = document.getElementById('toggle-edit-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    
+    // User detail display elements
+    const detailEmail = document.getElementById('detail-email');
+    const detailBusinessName = document.getElementById('detail-businessName');
+    const detailPhoneNumber = document.getElementById('detail-phoneNumber');
+
+    // Form elements
+    const editProfileForm = document.getElementById('edit-profile-form');
+    const businessNameInput = document.getElementById('businessName');
+    const phoneNumberInput = document.getElementById('phoneNumber');
+    const saveDetailsBtn = document.getElementById('save-details-btn');
+    
+    // Product Button
+    const addProductBtn = document.getElementById('add-product-btn'); 
+    
+    // NEW: Modal elements
+    const orderDetailsModal = document.getElementById('orderDetailsModal');
+    const modalOrderId = document.getElementById('modal-order-id');
+    const modalShippingAddress = document.getElementById('modal-shipping-address');
+    const modalOrderItems = document.getElementById('modal-order-items');
+    const modalOrderTotal = document.getElementById('modal-order-total');
+    const modalOrderStatus = document.getElementById('modal-order-status');
+
+    let currentUserData = null; 
+    
+    // --- AUTHENTICATION CHECK ---
+    if (!AUTH_TOKEN) {
+        dashboardTitle.textContent = 'Seller Dashboard: Access Denied';
+    }
+
+    // --- HELPER FUNCTIONS ---
+    function showMessage(type, message) {
+        messageArea.textContent = message;
+        messageArea.style.display = 'block';
+        if (type === 'success') {
+            messageArea.className = 'p-3 text-sm text-green-700 bg-green-100 rounded-lg font-medium mb-4';
+        } else {
+            messageArea.className = 'p-3 text-sm text-red-700 bg-red-100 rounded-lg font-medium mb-4';
+        }
+        setTimeout(() => {
+            messageArea.style.display = 'none';
+        }, 5000);
+    }
+
+    function getAuthHeaders() {
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${AUTH_TOKEN}` 
+        };
+    }
+    
+    function checkFormChanges() {
+        if (!currentUserData) return;
+        const isChanged = businessNameInput.value !== (currentUserData.businessName || '') || 
+                          phoneNumberInput.value !== (currentUserData.phoneNumber || '');
+        saveDetailsBtn.disabled = !isChanged;
+    }
+    
+    function displayUserDetails(user) {
+        detailEmail.textContent = user.email || 'N/A';
+        detailBusinessName.textContent = user.businessName || 'N/A (Update to set)';
+        detailPhoneNumber.textContent = user.phoneNumber || 'N/A (Update to set)';
+    }
+
+    // A. FETCH USER DETAILS
+    async function fetchUserDetails() {
+        if (!AUTH_TOKEN) return;
+
+        try {
+            const response = await fetch(USER_ME_API, {
+                method: 'GET',
+                headers: getAuthHeaders(), 
+            });
+
+            if (!response.ok) {
+                // If auth fails, throw error to be caught by catch block
+                throw new Error('Authorization Failed. Please log in again.');
+            }
+            
+            const user = await response.json();
+            currentUserData = user; // Store user data
+            
+            displayUserDetails(user);
+
+            const nameToDisplay = user.businessName || user.email || 'Your Business';
+            dashboardTitle.textContent = `Seller Dashboard for: ${nameToDisplay}`;
+
+        } catch (error) {
+            console.error('User Fetch Error:', error);
+            dashboardTitle.textContent = 'Seller Dashboard: Failed to load user profile'; 
+            showMessage('error', `Error loading profile: ${error.message}`);
+        }
+    }
+    
+    // F. UPDATE USER DETAILS
+    async function updateUserDetails(e) {
+        e.preventDefault();
+        if (!AUTH_TOKEN) return;
+        
+        saveDetailsBtn.disabled = true;
+        saveDetailsBtn.textContent = 'Saving...';
+        
+        const updatedDetails = {
+            businessName: businessNameInput.value.trim(), 
+            phoneNumber: phoneNumberInput.value.trim()
+        };
+
+        try {
+            const response = await fetch(USER_UPDATE_API, {
+                method: 'PATCH', // Assumed method
+                headers: getAuthHeaders(),
+                body: JSON.stringify(updatedDetails)
+            });
+            
+            let responseData = null;
+            const contentType = response.headers.get("content-type");
+
+            if (contentType && contentType.includes("application/json")) {
+                responseData = await response.json();
+            } else {
+                responseData = await response.text();
+            }
+
+            if (!response.ok) {
+                let errorMessage = `Failed to update details. Status: ${response.status}.`;
+                
+                if (typeof responseData === 'object' && responseData.message) {
+                    errorMessage = responseData.message;
+                } else if (typeof responseData === 'string' && responseData.length > 0) {
+                    console.error("Non-JSON Server Error Response:", responseData);
+                    errorMessage += ' (Server sent a non-JSON error response)';
+                }
+                throw new Error(errorMessage);
+            }
+            
+            toggleEditForm(false); 
+            showMessage('success', 'Profile details updated successfully!');
+            await fetchUserDetails(); 
+
+        } catch (error) {
+            console.error('Update Profile Error:', error);
+            showMessage('error', `Update failed: ${error.message}`);
+        } finally {
+            saveDetailsBtn.disabled = false;
+            saveDetailsBtn.textContent = 'Save Changes';
+        }
+    }
+
+    // G. SIDEBAR FUNCTIONS 
+    function openProfileSidebar() {
+        if (!currentUserData) {
+            showMessage('error', 'User data not loaded yet. Please wait.');
+            return;
+        }
+        toggleEditForm(false);
+        profileSidebar.classList.add('open');
+        sidebarBackdrop.classList.remove('hidden');
+        sidebarBackdrop.classList.add('open');
+    }
+
+    function closeProfileSidebar() {
+        profileSidebar.classList.remove('open');
+        sidebarBackdrop.classList.remove('open');
+        // Hide the backdrop after the transition
+        setTimeout(() => {
+            sidebarBackdrop.classList.add('hidden');
+        }, 300); 
+    }
+    
+    // G. MODAL FUNCTIONS (New function to close the Order Details Modal)
+    function closeOrderDetailsModal() {
+        orderDetailsModal.classList.remove('flex');
+        orderDetailsModal.classList.add('hidden');
+    }
+
+
+    function toggleEditForm(isEditing) {
+        if (isEditing) {
+            userDetailsPanel.classList.add('hidden');
+            editProfileArea.classList.remove('hidden');
+            toggleEditBtn.textContent = 'View Profile';
+            
+            // Populate form fields with current data
+            businessNameInput.value = currentUserData.businessName || '';
+            phoneNumberInput.value = currentUserData.phoneNumber || '';
+            saveDetailsBtn.disabled = true; 
+        } else {
+            userDetailsPanel.classList.remove('hidden');
+            editProfileArea.classList.add('hidden');
+            toggleEditBtn.textContent = 'Edit Profile';
+        }
+    }
+    
+    // H. REDIRECT TO ADD PRODUCT PAGE
+    function redirectToAddProduct() {
+        window.location.href = 'add product.html'; 
+    }
+    
+    // NEW HELPER FUNCTION: Calculate days left for special
+    function getDaysUntilExpiration(dateString) {
+        if (!dateString) return null;
+        const end = new Date(dateString);
+        const today = new Date();
+        // Set time to start of day for accurate calculation
+        today.setHours(0, 0, 0, 0); 
+        end.setHours(0, 0, 0, 0);
+
+        const diffTime = end.getTime() - today.getTime();
+        // Convert time difference (milliseconds) to days.
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return diffDays;
+    }
+
+    // J. NEW: TAB SWITCHING LOGIC
+    function switchTab(tabId) {
+        const tabs = ['products', 'orders'];
+        tabs.forEach(id => {
+            const tabButton = document.getElementById(`tab-${id}`);
+            const contentDiv = document.getElementById(`content-${id}`);
+
+            if (id === tabId) {
+                // Activate the selected tab
+                tabButton.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                tabButton.classList.add('border-indigo-500', 'text-indigo-600');
+                contentDiv.classList.remove('hidden');
+                
+                // If switching to orders, fetch the data
+                if (id === 'orders') {
+                    fetchOrders(); 
+                } else if (id === 'products') {
+                    fetchProducts(); 
+                }
+            } else {
+                // Deactivate other tabs
+                tabButton.classList.remove('border-indigo-500', 'text-indigo-600');
+                tabButton.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                contentDiv.classList.add('hidden');
+            }
+        });
+    }
+
+    // --- EVENT LISTENERS ---
+    profileInfoBtn.addEventListener('click', openProfileSidebar);
+    
+    toggleEditBtn.addEventListener('click', () => {
+        const isEditing = editProfileArea.classList.contains('hidden');
+        toggleEditForm(isEditing);
+    });
+
+    cancelEditBtn.addEventListener('click', () => {
+        toggleEditForm(false); 
+    });
+    
+    editProfileForm.addEventListener('submit', updateUserDetails);
+    
+    businessNameInput.addEventListener('input', checkFormChanges);
+    phoneNumberInput.addEventListener('input', checkFormChanges);
+    
+    // Add Product Button Listener
+    addProductBtn.addEventListener('click', redirectToAddProduct);
+
+
+    // B. FETCH PRODUCTS 
+    async function fetchProducts() {
+        if (!AUTH_TOKEN || contentProducts.classList.contains('hidden')) return; // Don't fetch if tab is hidden
+        productListBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Loading products...</td></tr>';
+        
+        try {
+            const response = await fetch(API_URL, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+
+            if (!response.ok) {
+                const responseText = await response.text();
+                let errorData;
+                try {
+                    errorData = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error(`Server responded with status ${response.status}.`);
+                }
+                throw new Error(errorData.message || `Server responded with status ${response.status}.`);
+            }
+
+            const products = await response.json();
+            renderProducts(products);
+
+        } catch (error) {
+            console.error('Products Fetch Error:', error);
+            productListBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-600">Error loading products: ${error.message}</td></tr>`;
+        }
+    }
+    
+    // C. RENDER PRODUCTS (NOW INCLUDES STOCK)
+    function renderProducts(products) {
+        if (products.length === 0) {
+            // Colspan is 6 for 6 columns
+            productListBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No products created yet.</td></tr>';
+        } else {
+            productListBody.innerHTML = products.map(product => {
+                let specialStatus = '<span class="text-xs text-gray-400">N/A</span>';
+                let priceDisplay = `R${product.price ? product.price.toFixed(2) : 'N/A'}`;
+                
+                if (product.onSpecial) {
+                    const daysLeft = getDaysUntilExpiration(product.specialEnd);
+                    
+                    if (daysLeft <= 0) {
+                        // Special has ended
+                        specialStatus = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Expired 🛑</span>`;
+                    } else {
+                        // Active Special
+                        const daysText = daysLeft === 1 ? '1 day' : `${daysLeft} days`;
+                        specialStatus = `
+                            <div class="space-y-1">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    On Special! 🏷️
+                                </span>
+                                <p class="text-xs text-gray-500">Ends in <span class="font-semibold">${daysText}</span></p>
+                            </div>
+                        `;
+                        // Ensure price fields are defined before formatting
+                        const currentPrice = product.price ? product.price.toFixed(2) : 'N/A';
+                        const oldPrice = product.oldPrice ? product.oldPrice.toFixed(2) : '';
+
+                        priceDisplay = `
+                            <span class="text-sm font-semibold text-red-600">R${currentPrice}</span>
+                            <s class="text-xs text-gray-400 block">R${oldPrice}</s>
+                        `;
+                    }
+                }
+
+                // Logic to display stock with red warning for zero
+                const stockDisplay = product.stock > 0 
+                    ? `<span class="font-medium text-gray-900">${product.stock}</span>`
+                    : `<span class="font-bold text-red-600">0 - OUT</span>`;
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">${product.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${stockDisplay}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${priceDisplay}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${product.category}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${specialStatus}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button class="edit-btn text-indigo-600 hover:text-indigo-900 font-medium" data-id="${product._id}">Edit</button>
+                            <button class="delete-btn text-red-600 hover:text-red-900 font-medium ml-3" data-id="${product._id}">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    }
+
+    // D. DELETE and EDIT PRODUCT ACTIONS (EVENT DELEGATION)
+    document.addEventListener('click', function(e) {
+        // 1. Handle DELETE action
+        if (e.target.classList.contains('delete-btn')) {
+            const productId = e.target.getAttribute('data-id');
+            deleteProduct(productId, e.target);
+        }
+        
+        // 2. Handle EDIT action
+        if (e.target.classList.contains('edit-btn')) {
+            const productId = e.target.getAttribute('data-id');
+            // Redirect to the edit page with the product ID
+            window.location.href = `edit product.html?id=${productId}`;
+        }
+    });
+
+    async function deleteProduct(productId, buttonElement) {
+        if (!confirm('Are you sure you want to delete this product?')) {
+            return;
+        }
+
+        buttonElement.disabled = true;
+        buttonElement.textContent = 'Deleting...';
+
+        try {
+            const response = await fetch(`${API_URL}/${productId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            });
+
+            if (!response.ok) {
+                const data = await response.json(); 
+                throw new Error(data.message || 'Product deletion failed.');
+            }
+            
+            // Remove the row from the table
+            buttonElement.closest('tr').remove();
+            showMessage('success', `Product ID ${productId} successfully deleted.`);
+            
+            // Re-render empty state if no products are left
+            if (productListBody.querySelectorAll('tr').length === 0) {
+                renderProducts([]);
+            }
+
+        } catch (error) {
+            console.error('Deletion Error:', error);
+            showMessage('error', `Error deleting product: ${error.message}`);
+            buttonElement.disabled = false;
+            buttonElement.textContent = 'Delete';
+        }
+    }
+
+
+    // =========================================================================
+    // 💡 NEW ORDER TRACKING FUNCTIONS 💡
+    // =========================================================================
+    
+    // H. FETCH ORDERS (using the real backend API)
+    async function fetchOrders() {
+        if (!AUTH_TOKEN || contentOrders.classList.contains('hidden')) return;
+        orderListBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">Fetching live orders...</td></tr>';
+        
+        try {
+            const response = await fetch(ORDERS_API_URL, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorData = {};
+                try { errorData = JSON.parse(errorText); } catch(e) {}
+                throw new Error(errorData.message || `Server responded with status ${response.status}.`);
+            }
+
+            const orders = await response.json();
+            renderOrders(orders);
+
+        } catch (error) {
+            console.error('Orders Fetch Error:', error);
+            orderListBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-red-600">Error loading orders: ${error.message}</td></tr>`;
+        }
+    }
+
+    // I. RENDER ORDERS (Using actual MongoDB properties)
+    function renderOrders(orders) {
+        if (orders.length === 0) {
+            orderListBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No new orders found.</td></tr>';
+        } else {
+            orderListBody.innerHTML = orders.map(order => {
+                let statusClass = '';
+                const lowerStatus = order.status.toLowerCase();
+                
+                // Determine CSS class based on status
+                if (lowerStatus === 'delivered') {
+                    statusClass = 'bg-green-100 text-green-800';
+                } else if (lowerStatus === 'shipped') {
+                    statusClass = 'bg-blue-100 text-blue-800';
+                } else if (lowerStatus === 'cancelled') {
+                    statusClass = 'bg-red-100 text-red-800';
+                } else { // Pending, Processing
+                    statusClass = 'bg-yellow-100 text-yellow-800';
+                }
+                
+                // Format data
+                const shortId = order._id.substring(order._id.length - 6).toUpperCase(); 
+                const date = new Date(order.orderDate).toLocaleDateString('en-US');
+                const customerName = order.shippingDetails.name;
+                const total = order.totalAmount.toFixed(2);
+                
+                // Track if the button should be disabled for final status
+                const isFinal = lowerStatus === 'delivered' || lowerStatus === 'cancelled';
+                const disabledAttr = isFinal ? 'disabled' : '';
+                const buttonColor = isFinal ? 'bg-gray-300 text-gray-600' : 'bg-green-600 hover:bg-green-700 text-white';
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#${shortId}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${customerName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">R${total}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                                ${order.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="viewOrderDetails('${order._id}')" class="text-indigo-600 hover:text-indigo-900">View Details</button>
+                            <button 
+                                onclick="openUpdateModal('${order._id}', '${order.status}', '${order.trackingNumber || ''}')" 
+                                class="ml-3 py-1 px-2 rounded text-xs font-semibold update-status-btn ${buttonColor}" 
+                                data-id="${order._id}" ${disabledAttr}>
+                                ${isFinal ? order.status : 'Update Status'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    }
+    
+    // M. Handles the prompt logic and calls the API update function
+    function openUpdateModal(orderId, currentStatus, currentTrackingNumber) {
+        const validStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+        
+        let newStatus = prompt(`Current Status: ${currentStatus}\n\nEnter the NEW status from this list: ${validStatuses.join(', ')}\n\n(Note: Tracking number will be asked for if you select 'Shipped'):`);
+
+        if (!newStatus) return;
+        newStatus = newStatus.trim();
+        
+        // Basic validation
+        const normalizedStatus = newStatus.charAt(0).toUpperCase() + newStatus.slice(1).toLowerCase();
+        if (!validStatuses.includes(normalizedStatus)) {
+            alert('Invalid status entered. Please choose from the list and ensure spelling is correct.');
+            return;
+        }
+        
+        let trackingNumber = currentTrackingNumber;
+
+        // Ask for tracking number if status is Shipped
+        if (normalizedStatus === 'Shipped') {
+            trackingNumber = prompt(`Enter the Tracking Number for Order #${orderId.substring(orderId.length - 6).toUpperCase()}:`, currentTrackingNumber || '');
+            if (!trackingNumber) {
+                 alert('Tracking number is required when status is "Shipped". Update cancelled.');
+                 return;
+            }
+        }
+        
+        updateOrderStatus(orderId, normalizedStatus, trackingNumber);
+    }
+    
+    // N. API Call to update the status
+    async function updateOrderStatus(orderId, newStatus, trackingNumber = null) {
+        if (!AUTH_TOKEN) return;
+
+        const button = document.querySelector(`.update-status-btn[data-id="${orderId}"]`);
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Updating...';
+        }
+
+        try {
+            const payload = { status: newStatus };
+            if (newStatus === 'Shipped' && trackingNumber) {
+                payload.trackingNumber = trackingNumber;
+            }
+
+            const response = await fetch(`${ORDERS_API_URL}/${orderId}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const data = await response.json(); 
+                throw new Error(data.message || 'Status update failed.');
+            }
+
+            showMessage('success', `Order #${orderId.substring(orderId.length - 6).toUpperCase()} status updated to ${newStatus}.`);
+            
+            // Refresh the list to show the change
+            fetchOrders(); 
+
+        } catch (error) {
+            console.error('Status Update Error:', error);
+            showMessage('error', `Status update failed: ${error.message}`);
+        } finally {
+            // Button state will be reset by fetchOrders() -> renderOrders()
+        }
+    }
+    
+    // O. Detailed view implementation (FIXED to use a modal)
+    async function viewOrderDetails(orderId) {
+        if (!AUTH_TOKEN) return;
+        
+        // Show a loading state inside the modal immediately
+        modalOrderId.textContent = `...`;
+        modalShippingAddress.innerHTML = `<p class="text-center text-gray-500">Loading details...</p>`;
+        modalOrderItems.innerHTML = ``;
+        modalOrderTotal.textContent = `...`;
+        modalOrderStatus.textContent = `...`;
+        
+        // Open the modal
+        orderDetailsModal.classList.remove('hidden');
+        orderDetailsModal.classList.add('flex');
+        
+        try {
+            // This fetch call is likely the source of your error
+            const response = await fetch(`${ORDER_DETAIL_API_URL}/${orderId}`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+
+            if (!response.ok) {
+                // Throws an error if the HTTP status is 4xx or 5xx
+                throw new Error(`Failed to fetch order details. Status: ${response.status}.`);
+            }
+
+            const order = await response.json();
+            
+            // --- Populate Modal Content ---
+            const shortId = order._id.substring(order._id.length - 6).toUpperCase(); 
+            
+            // 1. Header
+            modalOrderId.textContent = `#${shortId}`;
+            
+            // 2. Shipping Address
+            modalShippingAddress.innerHTML = `
+                <p><span class="font-medium">${order.shippingDetails.name}</span></p>
+                <p>${order.shippingDetails.address.street}, ${order.shippingDetails.address.city}</p>
+                <p>${order.shippingDetails.address.postalCode}</p>
+                <p>Phone: ${order.shippingDetails.phone}</p>
+            `;
+
+            // 3. Order Items
+            modalOrderItems.innerHTML = order.items.map(item => `
+                <li class="py-2 flex justify-between text-sm">
+                    <span class="text-gray-700">${item.name} (x${item.quantity})</span>
+                    <span class="font-medium text-gray-900">R${(item.price * item.quantity).toFixed(2)}</span>
+                </li>
+            `).join('');
+            
+            // Handle no items (unlikely but safe)
+            if (order.items.length === 0) {
+                modalOrderItems.innerHTML = `<li class="text-center py-2 text-gray-500">No items found for this order.</li>`;
+            }
+
+            // 4. Financial Summary
+            modalOrderTotal.textContent = `R${order.totalAmount.toFixed(2)}`;
+            
+            let statusClass = '';
+            const lowerStatus = order.status.toLowerCase();
+            if (lowerStatus === 'delivered') { statusClass = 'text-green-600'; } 
+            else if (lowerStatus === 'shipped') { statusClass = 'text-blue-600'; } 
+            else if (lowerStatus === 'cancelled') { statusClass = 'text-red-600'; } 
+            else { statusClass = 'text-yellow-600'; }
+            
+            modalOrderStatus.innerHTML = `<span class="${statusClass}">${order.status}</span>`;
+
+        } catch (error) {
+            console.error('Order Details Fetch Error:', error);
+            // This is the error message you are seeing in the modal
+            modalShippingAddress.innerHTML = `<p class="text-center text-red-600">Error loading details. Check console for error.</p>`;
+            showMessage('error', `Error loading order details: ${error.message}`);
+        }
+    }
+
+
+    // E. LOGOUT
+    function logout() {
+        localStorage.removeItem('jwtToken');
+        alert("You have been successfully logged out.");
+        window.location.href = 'login czra.html'; 
+    }
+    
+    // Expose functions to global scope for HTML onclick handler
+    window.switchTab = switchTab;
+    window.logout = logout;
+    window.openProfileSidebar = openProfileSidebar;
+    window.closeProfileSidebar = closeProfileSidebar;
+    window.openUpdateModal = openUpdateModal;
+    window.viewOrderDetails = viewOrderDetails; 
+    window.closeOrderDetailsModal = closeOrderDetailsModal; 
+
+    
+    // --- INITIALIZATION ---
+    fetchUserDetails();
+    fetchProducts(); // Initial fetch is for the default tab (Products)
+
+</script>
+</body>
+</html>

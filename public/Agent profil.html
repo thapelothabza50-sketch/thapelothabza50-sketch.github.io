@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Dashboard | Recruitment Tracker</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; overflow-x: hidden; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ffffff; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+            transition: opacity 0.8s ease-out, visibility 0.8s;
+            visibility: hidden; opacity: 0;
+        }
+        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .loader-ring {
+            position: absolute; width: 150px; height: 150px;
+            border: 3px solid transparent; border-top: 3px solid #2563eb;
+            border-bottom: 3px solid #ff6600; border-radius: 50%;
+            animation: spin-3d 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+        }
+        .loader-ring:nth-child(2) {
+            width: 130px; height: 130px;
+            border-top: 3px solid #10b981; border-bottom: 3px solid #f59e0b;
+            animation: spin-3d 2s linear infinite reverse;
+        }
+        @keyframes spin-3d {
+            0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+            100% { transform: rotateX(360deg) rotateY(180deg) rotateZ(360deg); }
+        }
+
+        #sidebar {
+            position: fixed; top: 0; left: -350px; width: 320px; height: 100%;
+            background: white; z-index: 100; transition: 0.4s;
+            box-shadow: 10px 0 20px rgba(0,0,0,0.1); padding: 25px;
+        }
+        #sidebar.open { left: 0; }
+        .overlay-bg {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+            display: none; z-index: 50;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+<div id="loader-overlay">
+    <div class="logo-container">
+        <div class="loader-ring"></div>
+        <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="w-24 h-24 rounded-full z-10 shadow-2xl">
+    </div>
+    <p id="loader-text" class="mt-8 text-blue-600 font-black uppercase tracking-widest animate-pulse">Initializing Portal...</p>
+</div>
+
+<div id="sidebar-overlay" class="overlay-bg" onclick="toggleSidebar()"></div>
+<div id="sidebar">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-black text-blue-600 uppercase">Agent Profile</h2>
+        <button onclick="toggleSidebar()" class="text-2xl">&times;</button>
+    </div>
+    
+    <div class="mb-8 border-b pb-4">
+        <p class="text-xs font-bold text-gray-400 uppercase">Personal Details</p>
+        <p id="side-name" class="text-lg font-bold text-gray-800">Loading...</p>
+        <p id="side-id" class="text-sm text-blue-600 font-mono">ID: ---</p>
+    </div>
+
+    <form id="bankForm" class="space-y-4">
+        <p class="text-xs font-bold text-gray-400 uppercase">Banking Information</p>
+        <div>
+            <label class="text-[10px] font-bold text-gray-500">BANK NAME</label>
+            <input type="text" name="bankName" required class="w-full p-2 border rounded bg-gray-50 text-sm">
+        </div>
+        <div>
+            <label class="text-[10px] font-bold text-gray-500">ACCOUNT HOLDER</label>
+            <input type="text" name="accHolder" required class="w-full p-2 border rounded bg-gray-50 text-sm">
+        </div>
+        <div>
+            <label class="text-[10px] font-bold text-gray-500">ACCOUNT NUMBER</label>
+            <input type="number" name="accNumber" required class="w-full p-2 border rounded bg-gray-50 text-sm">
+        </div>
+        <div>
+            <label class="text-[10px] font-bold text-gray-500">BANK PHONE NUMBER</label>
+            <input type="text" name="bankPhone" required class="w-full p-2 border rounded bg-gray-50 text-sm">
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white font-black py-3 rounded-lg hover:bg-blue-700 transition shadow-lg">SAVE BANKING INFO</button>
+    </form>
+</div>
+
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-8 border-b-2 border-blue-600 pb-4">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()" class="text-2xl text-gray-700 hover:text-blue-600 transition">☰</button>
+            <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="w-12 h-12 rounded-full">
+            <h1 class="text-2xl font-bold text-gray-800">Agent Portal</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <div id="agent-initials" class="w-10 h-10 bg-blue-600 text-white flex items-center justify-center rounded-full font-black text-sm shadow-md">..</div>
+            <button onclick="logout()" class="text-red-600 font-bold hover:underline">Logout</button>
+        </div>
+    </div>
+
+    <div id="stats-summary" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-center">
+        <div class="card p-6 border-l-4 border-blue-500">
+            <p class="text-gray-500 font-bold text-xs uppercase">Pending Recruits</p>
+            <h2 id="pending-count" class="text-3xl font-black">0</h2>
+        </div>
+        <div class="card p-6 border-l-4 border-green-500">
+            <p class="text-gray-500 font-bold text-xs uppercase">Approved</p>
+            <h2 id="approved-count" class="text-3xl font-black">0</h2>
+        </div>
+        <div class="card p-6 border-l-4 border-orange-500">
+            <p class="text-gray-500 font-bold text-xs uppercase">Total Commission</p>
+            <h2 id="total-commission" class="text-3xl font-black text-green-600">R 0.00</h2>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-1 card p-6 h-fit">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Submit New Student</h3>
+            <form id="studentForm" class="space-y-4">
+                <input type="text" name="studentName" placeholder="First Name" required class="w-full p-2 border rounded">
+                <input type="text" name="studentSurname" placeholder="Surname" required class="w-full p-2 border rounded">
+                <input type="email" name="studentEmail" placeholder="Student Email" required class="w-full p-2 border rounded">
+                <select name="accommodation" id="acc-select" required class="w-full p-2 border rounded" onchange="checkOther(this)">
+                    <option value="" disabled selected>Select Accommodation</option>
+                    <option value="Vuyani Student Accomodation">Vuyani Student Accomodation</option>
+                    <option value="Embizeni Student Accomodation (Matt)">Embizeni Student Accomodation (Matt)</option>
+                    <option value="Embizeni Student Accomodation (likazi 1)">Embizeni Student Accomodation (likazi 1)</option>
+                    <option value="Embizeni Student Accomodation (likaz 2)">Embizeni Student Accomodation (likaz 2)</option>
+                    <option value="Embizeni Student Accomodation (Entokozweni)">Embizeni Student Accomodation (Entokozweni)</option>
+                    <option value="View Inn Student accommodation">View Inn Student accommodation</option>
+                    <option value="Mashimula Student Accommodation (Likazi)">Mashimula Student Accommodation (Likazi)</option>
+                    <option value="Mashimula Student Accommodation (Entokozweni)">Mashimula Student Accommodation (Entokozweni)</option>
+                    <option value="Cecil Complex">Cecil Complex</option>
+                    <option value="Boniville Student Acc">Boniville Student Acc</option>
+                    <option value="Paballo Student Acc">Paballo Student Acc</option>
+                    <option value="not listed">Not Listed...</option>
+                </select>
+                <input type="text" id="manual-acc" name="manualAccommodation" placeholder="Type Accommodation Name" class="w-full p-2 border border-blue-500 rounded hidden">
+                <input type="date" name="moveInDate" required class="w-full p-2 border rounded">
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 transition">Submit Recruit</button>
+            </form>
+        </div>
+
+        <div class="lg:col-span-2 card p-6 overflow-x-auto">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-bold text-gray-800">Recent Submissions</h3>
+                <button onclick="downloadPDF()" class="bg-red-600 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-red-700 transition shadow">
+                    Download List PDF
+                </button>
+            </div>
+
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="text-gray-400 text-xs uppercase border-b">
+                        <th class="pb-3">Student</th>
+                        <th class="pb-3">Accommodation</th>
+                        <th class="pb-3">Move-in</th>
+                        <th class="pb-3">Status</th>
+                        <th class="pb-3">Commission</th>
+                    </tr>
+                </thead>
+                <tbody id="submissions-table" class="text-sm"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = '/api/admin'; 
+    const loader = document.getElementById('loader-overlay');
+    let recruitsData = []; // Store for PDF
+
+    function getToken() { return localStorage.getItem('jwtToken'); }
+
+    function triggerLoader(text) {
+        document.getElementById('loader-text').textContent = text;
+        loader.style.visibility = 'visible'; loader.style.opacity = '1';
+    }
+
+    function hideLoader() { 
+        loader.style.opacity = '0'; 
+        setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
+    }
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebar-overlay').style.display = 
+            document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none';
+    }
+
+    function checkOther(select) {
+        const manualInput = document.getElementById('manual-acc');
+        manualInput.classList.toggle('hidden', select.value !== 'not listed');
+        if(select.value === 'not listed') manualInput.focus();
+    }
+
+    // --- FAIL-SAFE IDENTITY INITIALIZATION ---
+    function initializeIdentity() {
+        try {
+            const storedUser = localStorage.getItem('userData');
+            if(storedUser) {
+                const user = JSON.parse(storedUser);
+                // Robust check for Name and ID
+                const displayName = user.fullName || user.name || "Agent";
+                const displayId = user.agentId || user.id || "---";
+
+                document.getElementById('side-name').innerText = displayName;
+                document.getElementById('side-id').innerText = "ID: " + displayId;
+                
+                const names = displayName.trim().split(' ');
+                let initials = "";
+                if(names.length > 1) {
+                    initials = (names[0][0] + names[names.length - 1][0]).toUpperCase();
+                } else {
+                    initials = names[0].substring(0, 2).toUpperCase();
+                }
+                document.getElementById('agent-initials').innerText = initials;
+            }
+        } catch(e) { console.log("Identity Error", e); }
+    }
+
+    function downloadPDF() {
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const dateStr = new Date().toLocaleDateString();
+            
+            doc.setFillColor(37, 99, 235);
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.text("CAMPUS COLLECTIVE", 14, 25);
+            doc.setFontSize(10);
+            doc.text("OFFICIAL AGENT RECRUITMENT REPORT", 14, 33);
+
+            doc.setTextColor(40, 40, 40);
+            doc.setFontSize(11);
+            doc.text("Agent: " + document.getElementById('side-name').innerText, 14, 50);
+            doc.text("Date Generated: " + dateStr, 14, 57);
+
+            const tableColumn = ["Student Name", "Surname", "Accommodation", "Move-in", "Status", "Comm."];
+            const tableRows = [];
+            let totalComm = 0;
+
+            recruitsData.forEach(r => {
+                const commValue = parseFloat(r.commissionEarned || 0);
+                totalComm += commValue;
+                tableRows.push([
+                    r.studentName,
+                    r.studentSurname,
+                    r.accommodation,
+                    new Date(r.moveInDate).toLocaleDateString(),
+                    r.status,
+                    "R " + commValue.toFixed(2)
+                ]);
+            });
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 65,
+                theme: 'striped',
+                headStyles: { fillColor: [37, 99, 235] }
+            });
+
+            const finalY = doc.lastAutoTable.finalY + 12;
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(22, 163, 74); 
+            doc.text(`TOTAL COMMISSION: R ${totalComm.toFixed(2)}`, 130, finalY);
+
+            const pageHeight = doc.internal.pageSize.height;
+            doc.setDrawColor(37, 99, 235);
+            doc.setLineWidth(1);
+            doc.circle(170, pageHeight - 25, 18);
+            doc.setLineWidth(0.5);
+            doc.circle(170, pageHeight - 25, 15);
+            
+            doc.setFontSize(7);
+            doc.setTextColor(37, 99, 235);
+            doc.text("CAMPUS", 163, pageHeight - 28);
+            doc.text("COLLECTIVE", 160, pageHeight - 25);
+            doc.setFont("helvetica", "normal");
+            doc.text(dateStr, 163, pageHeight - 21);
+
+            doc.save(`Recruits_List_${dateStr}.pdf`);
+        } catch(err) {
+            alert("PDF Generation Error: " + err.message);
+        }
+    }
+
+    async function fetchAgentData() {
+        try {
+            const response = await fetch(`${API_URL}/recruits`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            const data = await response.json();
+            recruitsData = data; 
+            renderTable(data);
+            updateStats(data);
+            
+            const profRes = await fetch(`${API_URL}/profiles`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+            const allProfiles = await profRes.json();
+            const myEmail = parseJwt(getToken()).email; 
+            const me = allProfiles.find(p => p.email === myEmail);
+            if(me && me.banking) {
+                document.querySelector('[name="bankName"]').value = me.banking.bankName || '';
+                document.querySelector('[name="accHolder"]').value = me.banking.accHolder || '';
+                document.querySelector('[name="accNumber"]').value = me.banking.accNumber || '';
+                document.querySelector('[name="bankPhone"]').value = me.banking.bankPhone || '';
+            }
+        } catch (err) { console.error(err); }
+        finally { hideLoader(); }
+    }
+
+    function parseJwt(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; }
+    }
+
+    function updateStats(recruits) {
+        if(!recruits || !recruits.length) return;
+        const pending = recruits.filter(r => r.status === 'Pending').length;
+        const approved = recruits.filter(r => r.status === 'Approved').length;
+        const commission = recruits.reduce((acc, curr) => acc + (curr.commissionEarned || 0), 0);
+        document.getElementById('pending-count').innerText = pending;
+        document.getElementById('approved-count').innerText = approved;
+        document.getElementById('total-commission').innerText = `R ${commission.toFixed(2)}`;
+    }
+
+    function renderTable(recruits) {
+        if(!recruits) return;
+        document.getElementById('submissions-table').innerHTML = recruits.map(r => `
+            <tr class="border-b hover:bg-gray-50 transition">
+                <td class="py-4 font-medium">${r.studentName} ${r.studentSurname}</td>
+                <td class="py-4 text-gray-600">${r.accommodation}</td>
+                <td class="py-4 text-gray-500">${new Date(r.moveInDate).toLocaleDateString()}</td>
+                <td class="py-4">
+                    <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status==='Approved'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${r.status}</span>
+                </td>
+                <td class="py-4 font-bold text-blue-600">R ${r.commissionEarned || 0}</td>
+            </tr>
+        `).join('');
+    }
+
+    document.getElementById('bankForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        triggerLoader("Updating Records...");
+        const formData = new FormData(e.target);
+        const banking = Object.fromEntries(formData);
+        
+        try {
+            const res = await fetch(`${API_URL}/update-banking`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                body: JSON.stringify({ banking })
+            });
+            hideLoader();
+            if(res.ok) alert("Banking details saved!");
+        } catch (error) { hideLoader(); alert("Error saving bank info"); }
+    });
+
+    document.getElementById('studentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        triggerLoader("Saving Recruit...");
+        const formData = new FormData(e.target);
+        const payload = Object.fromEntries(formData);
+        if (payload.accommodation === 'not listed') payload.accommodation = payload.manualAccommodation;
+        delete payload.manualAccommodation;
+
+        try {
+            const res = await fetch(`${API_URL}/submit-recruit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                body: JSON.stringify(payload)
+            });
+            hideLoader();
+            if(res.ok) { alert("Student added successfully!"); e.target.reset(); fetchAgentData(); }
+        } catch (error) { hideLoader(); alert("Connection Error"); }
+    });
+
+    function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
+    
+    window.onload = () => { 
+        if(!getToken()) {
+            window.location.href = 'agent login.html';
+        } else {
+            setTimeout(hideLoader, 4000); 
+            triggerLoader("CONNECTING...");
+            initializeIdentity();
+            fetchAgentData();
+        }
+    };
+</script>
+</body>
+</html>

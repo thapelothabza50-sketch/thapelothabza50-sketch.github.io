@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lushaba - Residence Accommodation Details</title>
+     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <style>
+         .navbar {
+            background-color: #23569d;
+            color: #fff;
+            padding: 1em;
+            text-align: center;
+        }
+        
+        .navbar ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .navbar li {
+            display: inline-block;
+            margin-right: 20px;
+        }
+        
+        .navbar a {
+            color: #fff;
+            text-decoration: none;
+        }
+        :root {
+            /* Define a primary color for the Res theme */
+            --primary-color: #004d99; /* Deep Blue */
+            --accent-color: #ffcc00; /* Yellow/Gold */
+            --text-color: #333;
+            --bg-color: #f4f7f9;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* --- Header/Hero Section --- */
+        .res-header {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 40px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 0 0 15px 15px;
+        }
+
+        .res-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+
+        .res-header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        /* --- Main Content Sections --- */
+        .section {
+            background-color: #fff;
+            padding: 30px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* --- Gallery Section --- */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .gallery-item {
+            overflow: hidden;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover; /* Ensures images fill the space without distortion */
+            display: block;
+        }
+        
+        /* Optional: Floor Plan Image Styling */
+        .floor-plan img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            display: block;
+            margin: 20px auto; /* Center the floor plan image */
+        }
+        
+        /* --- Modal for Larger Image View --- */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 100; 
+            padding-top: 60px; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.9); 
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 700px;
+        }
+
+        .modal-content, .caption { 
+            animation-name: zoom;
+            animation-duration: 0.6s;
+        }
+
+        @keyframes zoom {
+            from {transform:scale(0)} 
+            to {transform:scale(1)}
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<header> <nav class="navbar">
+         
+            <ul>
+              <li><a href="home.html">Home</a></li>
+                <li><a href="apply at uni.html">Apply@Universities</a></li>
+                <li><a href="czra more about us.html">About Us</a></li>
+                <li><a href="czra contact.html">Contact</a></li>
+                <li><a href="choose login.html">Login</a></li>
+                <li><a href="campus shop.html">Campus Store</a></li>
+                <li><a href="Learn More.html">Accomodations</a></li>
+            </ul>
+        </nav>
+    </header>
+
+<body>
+    <div class="res-header">
+        <h1>Welcome to Lushaba</h1>
+        <p>Your home away from home on campus.</p>
+    </div>
+
+    <div class="container">
+        
+        <div class="section" id="info">
+            <h2>Residence Information</h2>
+            <p>Lushaba offers modern, secure, and fully catered living spaces tailored for first-year and returning Students. We focus on a supportive community environment.</p>
+            <ul>
+                <li><strong>Room Types:</strong> Shared Rooms available.</li>
+                <li><strong>Location:</strong> Nelspruit Sonpark </li>
+                <li><strong>Facilities:</strong> High-speed Wi-Fi, laundry facilities, private study areas.</li>
+                <li><strong>Security:</strong> 24-hour security, and CCTV monitoring.</li>
+                <li><strong>Distance from campus:</strong> 20 min away</li>
+                 <li><strong>Other info:</strong> A walking ditance away from CBD </li>
+
+            </ul>
+        </div>
+        
+        <div class="section" id="gallery">
+            <h2>Residence Blocks & Rooms (Select to View)</h2>
+            <p>Click on any image below to view a larger picture of our blocks, common areas, and typical room layouts.</p>
+            <div class="gallery-grid">
+                <div class="gallery-item" onclick="openModal('Image/Block_A.jpg')">
+                    <img src="Images/Boniville cover.jpg" alt="ResOne Block A Exterior" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Image/Shared_Room.jpg')">
+                    <img src="Images/boniville5.jpg" alt="Typical Shared Student Room" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Image/Study_Lounge.jpg')">
+                    <img src="Images/Boniville4.jpg" alt="Communal Study Lounge" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Image/Dining_Hall.jpg')">
+                    <img src="Images/Boniville3.jpg" alt="ResOne Dining Hall Interior" loading="lazy">
+                </div>
+                <div class="gallery-item" onclick="openModal('Image/Entrance_Gate.jpg')">
+                    <img src="Images/Boniville2.jpg" alt="ResOne Security Gate" loading="lazy">
+                </div>
+                
+                </div>
+            </div>
+        </div>
+        
+        <div class="section floor-plan" id="layout">
+            <h2>Want to save yourself a room?</h2>
+            <p>If you like what you see, then don't hesitate to click <a href=""><button>Apply</button></a> </p>
+            
+            <p style="text-align: center; font-style: italic; margin-top: 15px;">**Note:** Self funded student can move in at anytime, but NSFAS funded should wait for moving in cycle to be open by NSFAS.</p>
+        </div>
+        
+    </div>
+    
+    <div id="myModal" class="modal">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <img class="modal-content" id="img01">
+    </div>
+
+    <script>
+        // Get the modal and the image element inside it
+        var modal = document.getElementById("myModal");
+        var modalImg = document.getElementById("img01");
+
+        // Function to open the modal
+        function openModal(imageSrc) {
+          modal.style.display = "block";
+          modalImg.src = imageSrc;
+        }
+
+        // Function to close the modal
+        function closeModal() {
+          modal.style.display = "none";
+        }
+    </script>
+    
+</body>
+<footer>&copy;2025 Campus Collection.All rights reserved</footer>
+</html>

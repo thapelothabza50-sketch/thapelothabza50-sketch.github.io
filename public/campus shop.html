@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Store | Campus Collective</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .product-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
+        
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .loader-ring {
+            position: absolute; width: 150px; height: 150px; border: 3px solid transparent;
+            border-top: 3px solid #2563eb; border-bottom: 3px solid #ff6600; border-radius: 50%;
+            animation: spin-ring 1.5s linear infinite;
+        }
+        .loader-logo {
+            width: 110px; height: 110px; border-radius: 50%; object-fit: cover;
+            animation: spin-3d 3s infinite ease-in-out; box-shadow: 0 0 25px rgba(59, 130, 246, 0.4); z-index: 10;
+        }
+        @keyframes spin-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-3d { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
+        .loader-text { margin-top: 30px; font-weight: 700; color: #2563eb; letter-spacing: 2px; text-transform: uppercase; }
+        .hidden-loader { display: none !important; }
+
+        footer {
+            background-color: #174483; color: white; padding: 30px 20px; margin-top: 40px;
+            font-size: 0.9em; line-height: 1.6; width: 100%;
+        }
+        .footer-content {
+            max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; 
+        }
+        .footer-section { flex: 1; margin: 10px; min-width: 200px; }
+        .footer-section h3 { border-bottom: 1px solid #ff6600; padding-bottom: 10px; margin-bottom: 15px; color: #ff6600; }
+        .footer-bottom {
+            text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 20px; font-size: 0.8em;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex flex-col min-h-screen">
+
+    <div id="loader-overlay">
+        <div class="logo-container">
+            <div class="loader-ring"></div>
+            <img src="Images/Campus collective logo origin.jpg" alt="Loading..." class="loader-logo">
+        </div>
+        <div class="loader-text">Loading Campus Shop...</div>
+    </div>
+
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="h-10 w-10 rounded-full">
+                    <span class="text-xl font-bold text-blue-900">Campus Collective</span>
+                </div>
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="home.html" class="text-gray-700 hover:text-blue-600 font-medium">Home</a>
+                    <a href="cart.html" class="text-gray-700 hover:text-blue-600 font-medium">🛒 Cart</a>
+                    <div id="authArea" class="flex items-center gap-4">
+                        <a href="customer-login.html" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <h1 class="text-3xl font-extrabold text-gray-900">Student Marketplace</h1>
+            <div class="flex flex-wrap gap-3">
+                <input type="text" id="searchInput" placeholder="Search products..." class="border p-2 rounded-lg w-64 outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="categoryFilter" class="border p-2 rounded-lg outline-none">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+        </div>
+        <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>About Us</h3>
+                <p>Campus Collective is your dedicated marketplace for student essentials.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <p><a href="home.html" class="hover:text-orange-400">Home</a></p>
+                <p><a href="campus shop.html" class="hover:text-orange-400">Shop</a></p>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <p>Email: support@campuscollective.co.za</p>
+            </div>
+        </div>
+        <div class="footer-bottom">&copy; 2025 Campus Collective. All Rights Reserved.</div>
+    </footer>
+
+    <script>
+        const API_URL = 'http://localhost:8080/api/shop/products';
+        const productsGrid = document.getElementById('productsGrid');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const searchInput = document.getElementById('searchInput');
+        const authArea = document.getElementById('authArea');
+        const loader = document.getElementById('loader-overlay');
+
+        let allProducts = [];
+
+        function addToCart(productId) {
+            const product = allProducts.find(p => p._id === productId);
+            if (!product) return;
+
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const existingItem = cart.find(item => item._id === productId);
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({
+                    _id: product._id,
+                    name: product.name || 'Unknown Product',
+                    price: product.price || 0,
+                    image: product.image || '',
+                    quantity: 1
+                });
+            }
+
+            localStorage.setItem('cart', JSON.stringify(cart));
+            alert(`${product.name || 'Product'} added to cart!`);
+        }
+
+        function updateNavbar() {
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const user = JSON.parse(userData);
+                const initials = (user.firstName ? user.firstName.charAt(0) : 'U') + (user.surname ? user.surname.charAt(0) : '');
+                authArea.innerHTML = `
+                    <a href="customer-orders.html" class="text-blue-600 font-bold hover:underline">Track Orders</a>
+                    <div class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold shadow-md">${initials.toUpperCase()}</div>
+                    <button onclick="logout()" class="text-xs text-red-500">Logout</button>
+                `;
+            }
+        }
+
+        function logout() { localStorage.clear(); window.location.reload(); }
+
+        async function fetchProducts() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Failed to fetch');
+                allProducts = await response.json();
+                
+                const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
+                categoryFilter.innerHTML = '<option value="">All Categories</option>';
+                categories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat; opt.textContent = cat;
+                    categoryFilter.appendChild(opt);
+                });
+
+                filterAndRender();
+            } catch (err) {
+                console.error(err);
+                productsGrid.innerHTML = '<p class="text-red-500 col-span-full text-center font-bold">Error loading products.</p>';
+            } finally {
+                loader.classList.add('hidden-loader');
+            }
+        }
+
+        function renderProduct(product) {
+            const card = document.createElement('div');
+            card.className = 'product-card bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full relative';
+            
+            let imgPath = 'Images/placeholder.jpg'; 
+            if (product.image) {
+                imgPath = product.image.startsWith('http') ? product.image : `http://localhost:8080/${product.image}`;
+            }
+
+            const name = product.name || 'Untitled Product';
+            const category = product.category || 'General';
+            const description = product.description || 'No description provided.';
+            const price = typeof product.price === 'number' ? product.price.toFixed(2) : '0.00';
+            
+            // SPECIAL OFFER LOGIC
+            const isOnSpecial = product.onSpecial === true;
+            const oldPrice = product.oldPrice ? `R${product.oldPrice.toFixed(2)}` : '';
+
+            card.innerHTML = `
+                ${isOnSpecial ? '<div class="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full z-10 shadow-lg">SALE</div>' : ''}
+                <div class="h-48 overflow-hidden bg-gray-100 flex items-center justify-center">
+                    <img src="${imgPath}" alt="${name}" class="w-full h-full object-cover" onerror="this.src='Images/placeholder.jpg'">
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                    <h3 class="text-lg font-bold text-gray-800 mb-1">${name}</h3>
+                    <p class="text-gray-500 text-xs mb-2 uppercase font-semibold">${category}</p>
+                    <p class="text-gray-600 text-sm mb-4 flex-grow line-clamp-3">${description}</p>
+                    <div class="mt-auto flex flex-col">
+                        ${isOnSpecial ? `<span class="text-gray-400 text-sm line-through">${oldPrice}</span>` : ''}
+                        <div class="flex items-center justify-between">
+                            <span class="text-blue-600 font-bold text-xl">R${price}</span>
+                            <button onclick="addToCart('${product._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-semibold transition shadow-md">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            productsGrid.appendChild(card);
+        }
+
+        function filterAndRender() {
+            productsGrid.innerHTML = '';
+            const search = searchInput.value.toLowerCase();
+            const cat = categoryFilter.value;
+            
+            const filtered = allProducts.filter(p => {
+                const matchesCategory = !cat || p.category === cat;
+                const matchesSearch = (p.name || '').toLowerCase().includes(search) || (p.description || '').toLowerCase().includes(search);
+                return matchesCategory && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                productsGrid.innerHTML = '<p class="text-gray-500 col-span-full text-center py-10">No products found.</p>';
+            } else {
+                filtered.forEach(p => renderProduct(p));
+            }
+        }
+
+        searchInput.addEventListener('input', filterAndRender);
+        categoryFilter.addEventListener('change', filterAndRender);
+        window.onload = () => { updateNavbar(); fetchProducts(); };
+    </script>
+</body>
+</html>

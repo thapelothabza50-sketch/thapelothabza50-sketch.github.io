@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Complete Your Profile | Campus Collective</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-900 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-2xl">
+        <h2 class="text-2xl font-black text-blue-900 mb-2">Welcome Agent!</h2>
+        <p class="text-gray-500 text-sm mb-6">Please complete your details and set a secure password.</p>
+
+        <form id="setup-form" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-400">First Name</label>
+                    <input type="text" id="firstName" required class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400">Surname</label>
+                    <input type="text" id="surname" required class="w-full p-2 border rounded">
+                </div>
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-400">Phone Number (Auto-filled)</label>
+                <input type="text" id="phone" readonly class="w-full p-2 bg-gray-100 border rounded cursor-not-allowed">
+            </div>
+            <hr>
+            <div>
+                <label class="text-xs font-bold text-gray-400">New Password</label>
+                <input type="password" id="newPassword" required class="w-full p-2 border rounded" placeholder="Minimum 6 characters">
+            </div>
+            <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700">
+                Activate Account
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // On load, we need to fetch their temporary data to auto-fill the phone
+        async function loadDraftData() {
+            const token = localStorage.getItem('jwtToken');
+            const res = await fetch('/api/auth/current-user', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const user = await res.json();
+            document.getElementById('phone').value = user.phone;
+        }
+
+        document.getElementById('setup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                firstName: document.getElementById('firstName').value,
+                surname: document.getElementById('surname').value,
+                password: document.getElementById('newPassword').value
+            };
+
+            const res = await fetch('/api/auth/complete-agent-setup', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if(res.ok) {
+                alert("Profile Activated! Redirecting to your dashboard...");
+                window.location.href = 'Agent profil.html';
+            } else {
+                alert("Error updating profile.");
+            }
+        });
+
+        loadDraftData();
+    </script>
+</body>
+</html>

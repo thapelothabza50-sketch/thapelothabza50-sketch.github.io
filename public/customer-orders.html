@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - Campus Shop</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 🏆 3D SPINNING LOADER CSS */
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .loader-ring {
+            position: absolute; width: 150px; height: 150px; border: 3px solid transparent;
+            border-top: 3px solid #2563eb; border-bottom: 3px solid #ff6600; border-radius: 50%;
+            animation: spin-ring 1.5s linear infinite;
+        }
+        .loader-logo { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; animation: spin-3d 3s infinite ease-in-out; }
+        @keyframes spin-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-3d { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
+        .hidden-loader { display: none !important; }
+
+        .status-pending, .status-processing { background-color: #fef3c7; color: #b45309; }
+        .status-shipped { background-color: #dbeafe; color: #1e40af; }
+        .status-delivered { background-color: #d1fae5; color: #065f46; }
+        .status-cancelled { background-color: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div id="loader-overlay">
+        <div class="logo-container">
+            <div class="loader-ring"></div>
+            <img src="Images/Campus collective logo origin.jpg" alt="Loading..." class="loader-logo">
+        </div>
+        <div class="mt-4 font-bold text-blue-600 uppercase tracking-widest">Fetching Orders...</div>
+    </div>
+
+    <header class="bg-white shadow-md mb-8">
+        <div class="max-w-7xl mx-auto py-4 px-4 flex justify-between items-center">
+            <h1 class="text-2xl font-extrabold text-blue-900">My Orders 📦</h1>
+            <div id="userHeader" class="flex items-center gap-4">
+                <a href="campus shop.html" class="text-blue-600 hover:text-blue-800 font-medium">← Back to Shop</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4">
+        <div id="message-area" class="hidden p-3 text-sm rounded-lg font-medium mb-4" role="alert"></div>
+        <div class="bg-white shadow-xl overflow-hidden rounded-lg">
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tracking #</th>
+                            </tr>
+                        </thead>
+                        <tbody id="order-list-body" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080/api/orders/me';
+        const AUTH_TOKEN = localStorage.getItem('jwtToken');
+        const loader = document.getElementById('loader-overlay');
+        const orderListBody = document.getElementById('order-list-body');
+        const userHeader = document.getElementById('userHeader');
+
+        function setupUser() {
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const user = JSON.parse(userData);
+                const initials = (user.firstName.charAt(0) + user.surname.charAt(0)).toUpperCase();
+                userHeader.innerHTML += `
+                    <div class="w-10 h-10 bg-orange-500 text-white flex items-center justify-center rounded-full font-bold shadow-md">
+                        ${initials}
+                    </div>
+                `;
+            }
+        }
+
+        async function fetchCustomerOrders() {
+            if (!AUTH_TOKEN) { window.location.href = 'customer-login.html'; return; }
+            
+            try {
+                const response = await fetch(API_URL, {
+                    headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+                });
+                const orders = await response.json();
+                
+                if (orders.length === 0) {
+                    orderListBody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-400">No orders found.</td></tr>';
+                } else {
+                    orderListBody.innerHTML = orders.map(order => {
+                        const shortId = order._id.substring(order._id.length - 6).toUpperCase();
+                        const date = new Date(order.orderDate).toLocaleDateString();
+                        const statusClass = `status-${order.status.toLowerCase().replace(/\s/g, '-')}`;
+                        return `
+                            <tr>
+                                <td class="px-6 py-4 font-bold">#${shortId}</td>
+                                <td class="px-6 py-4">${date}</td>
+                                <td class="px-6 py-4 font-bold text-blue-600">R${order.totalAmount.toFixed(2)}</td>
+                                <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-xs font-bold ${statusClass}">${order.status}</span></td>
+                                <td class="px-6 py-4 text-xs font-mono text-gray-500">${order.trackingNumber || 'Processing'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+                loader.classList.add('hidden-loader');
+            } catch (error) {
+                loader.classList.add('hidden-loader');
+                orderListBody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load orders.</td></tr>';
+            }
+        }
+
+        window.onload = () => {
+            setupUser();
+            fetchCustomerOrders();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SA Public University Application Hub</title>
+     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <style>
+
+        /* 1. CRITICAL FIX: Removed margin from body */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0; 
+            padding-top: 80px; /* NEW: Add padding equal to the navbar's height + some space */
+            padding-bottom: 0; /* FIX: Removed previous padding-bottom */
+            background-color: #f4f4f9;
+            color: #333;
+            /* Ensure the body takes up at least the height of the viewport */
+            min-height: 100vh;
+        }
+
+        /* 2. CRITICAL FIX: Fixed Navbar Position */
+        .navbar {
+            background-color: #23569d;
+            color: #fff;
+            padding: 1em 0; 
+            text-align: center;
+            
+            /* The FIX: Position properties */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000; 
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); 
+        }
+        
+        .navbar ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .navbar li {
+            display: inline-block;
+            margin: 0 10px; 
+        }
+        
+        .navbar a {
+            color: #fff;
+            text-decoration: none;
+            padding: 0.5em 0.8em; 
+            transition: background-color 0.3s;
+        }
+
+        .navbar a:hover {
+            background-color: #1a4178; 
+            border-radius: 4px;
+        }
+        /* End of Navbar Styles */
+
+        /* Container styling - keeping most of it */
+        .container {
+            max-width: 800px;
+            margin: 0 auto; 
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px; /* Add some space before the footer */
+        }
+        h1 {
+            color: #004a99; 
+            text-align: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .university-list {
+            list-style: none;
+            padding: 0;
+        }
+        .university-list li {
+            background-color: #eaf1fb;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .university-list li:hover {
+            background-color: #dbe4f4;
+        }
+        .university-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+        .apply-button {
+            background-color: #ff6600;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .apply-button:hover {
+            background-color: #cc5200;
+        }
+
+        /* 3. Footer Styling - A modern 'mega-footer' structure */
+        footer {
+            background-color: #1a4178; 
+            color: #fff;
+            padding: 30px 20px;
+            margin-top: 0; /* FIX: Remove the margin-top here */
+            font-size: 0.9em;
+            line-height: 1.6;
+
+            /* FIX: Removed position: absolute; bottom: 0; to make it flow naturally after content */
+            width: 100%;
+        }
+
+        .footer-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap; 
+        }
+
+        .footer-section {
+            padding: 10px;
+            min-width: 200px;
+            margin-bottom: 20px;
+        }
+
+        .footer-section h4 {
+            color: #ff6600; 
+            margin-bottom: 15px;
+            border-bottom: 1px solid #3b669e; 
+            padding-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .footer-section p, .footer-section a {
+            color: #ccc;
+            text-decoration: none;
+            display: block; 
+            margin-bottom: 5px;
+        }
+
+        .footer-section a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .social-icons a {
+            display: inline-block;
+            margin-right: 15px;
+            font-size: 1.5em;
+            color: #fff;
+            transition: color 0.3s;
+        }
+
+        .social-icons a:hover {
+            color: #ff6600; 
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #3b669e;
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+<body>
+
+<header> 
+    <nav class="navbar">
+        <ul>
+            <li><a href="home.html">Home</a></li>
+            <li><a href="apply at uni.html">Apply@Universities</a></li>
+            <li><a href="czra more about us.html">About Us</a></li>
+            <li><a href="czra contact.html">Contact</a></li>
+            <li><a href="choose login.html">Login</a></li>
+            <li><a href="campus shop.html">Campus Store</a></li>
+            <li><a href="Learn More.html">Accomodations</a></li>
+        </ul>
+    </nav>
+</header>
+<div class="container">
+    <h1>Public Universities in South Africa 🎓</h1>
+    <p>Select a university below to visit its official application portal and begin your application process.</p>
+
+    <ul class="university-list">
+        <li>
+            <span class="university-name">University of Cape Town (UCT)</span>
+            <a href="https://www.uct.ac.za/article/2025-04-01-apply-now-to-study-in-2026" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+        
+        <li>
+            <span class="university-name">University of the Witwatersrand (Wits)</span>
+            <a href="https://www.wits.ac.za/undergraduate/apply-to-wits/" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+
+        <li>
+            <span class="university-name">Stellenbosch University (SU)</span>
+            <a href="https://student.sun.ac.za/applicant-portal/#/auth/login" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+
+        <li>
+            <span class="university-name">University of Pretoria (UP)</span>
+            <a href="https://www.up.ac.za/online-application/home" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+        <li>
+            <span class="university-name">University of Mpumalanga (UMP)</span>
+            <a href="https://www.ump.ac.za/Study-with-us/Application-Process/Online-Applications" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+        <li>
+            <span class="university-name">University of Limpopo (UL)</span>
+            <a href="https://applyuni.co.za/ul-online-application/" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+        <li>
+            <span class="university-name">Tshwane University Of Technology (TUT)</span>
+            <a href="https://www.tut.ac.za/online-application-form" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+        <li>
+            <span class="university-name">University of Venda (UNIVEN)</span>
+            <a href="https://www.univen.ac.za/apply/" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+        <li>
+            <span class="university-name">University Of Johannesburg (UJ)</span>
+            <a href="https://www.uj.ac.za/admission-aid/apply/" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+
+        <li>
+            <span class="university-name">Apply on CAO (All KZN Universities)</span>
+            <a href="https://cao.ac.za/Apply.aspx?content=Apply." class="apply-button" target="_blank">Apply Now</a>
+        </li>
+         <li>
+            <span class="university-name">Cape Pensula Universirty of Technology (CPUT)</span>
+            <a href="https://www.cput.ac.za/study-at-cput/undergraduate/apply" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+         <li>
+            <span class="university-name">University Of Free State (UFS)</span>
+            <a href="https://www.ufs.ac.za/prospective/study-at-ufs/apply/2026-applications" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+         <li>
+            <span class="university-name">North West University (NWU)</span>
+            <a href="https://www.studentroom.co.za/north-west-university-nwu-online-applications-2026-opening-and-closing-dates/s" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+         <li>
+            <span class="university-name">Nelson Mandela University (NMU)</span>
+            <a href="https://www.mandela.ac.za/Study-at-Mandela/Application/Apply-Undergraduate" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+         <li>
+            <span class="university-name">Walter Sisulu University (WSU)</span>
+            <a href="https://applications.wsu.ac.za" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+         <li>
+            <span class="university-name">University Fort Hare (UFH) </span>
+            <a href="https://www.ufh.ac.za/apply" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+
+         <li>
+            <span class="university-name">Vaarl University of Technology (VUT)</span>
+            <a href="https://vut.ac.za/how-to-apply/" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+
+         <li>
+            <span class="university-name">Rhodes Universirty</span>
+            <a href="https://www.ru.ac.za/admissiongateway/application/" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+        <li>
+            <span class="university-name">University of the Western Cape (UWC)</span>
+            <a href="https://www.uwc.ac.za/admission-and-financial-aid/apply" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+
+        <li>
+            <span class="university-name">University of South Africa (UNISA)</span>
+            <a href="https://www.unisa.ac.za/sites/corporate/default/Apply-for-admission" class="apply-button" target="_blank">Apply Now</a>
+        </li>
+        
+        </ul>
+    
+    <p style="text-align: center; margin-top: 30px;">
+        *Note: All application links are external and maintained by the respective universities.*
+    </p>
+
+</div>
+
+<footer>
+
+    <div class="footer-bottom">
+        &copy; 2025 Campus Collective. All rights reserved. | Developed with 🧡 in SA.
+    </div>
+</footer>
+
+</body>
+</html>

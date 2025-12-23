@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5; /* A light background color */
+            display: flex; /* Use flexbox to center content */
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            min-height: 100vh; /* Make sure body takes full viewport height */
+            margin: 0;
+        }
+        .container {
+            width: 350px; /* Slightly wider container for better spacing */
+            padding: 30px;
+            border: none; /* Remove default border */
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* More pronounced shadow */
+            background-color: #fff; /* White background for the container */
+            text-align: center; /* Center the heading */
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 15px; /* Slightly less margin for tighter forms */
+            text-align: left; /* Align labels and inputs to the left */
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px; /* Space between label and input */
+            font-weight: bold;
+            color: #555;
+            font-size: 0.95em;
+        }
+        .form-group input {
+            width: calc(100% - 20px); /* Account for padding */
+            height: 45px; /* Slightly taller inputs */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            box-sizing: border-box; /* Include padding in width */
+        }
+        .form-group input:focus {
+            border-color: #007bff; /* Highlight focus */
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        .btn {
+            width: 100%;
+            height: 45px; /* Taller button */
+            padding: 10px;
+            background-color: #007bff; /* Modern blue */
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            margin-top: 20px; /* Space above button */
+        }
+        .btn:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+        #back-to-login-btn {
+            background-color: #6c757d; /* Different color for back button */
+            margin-top: 10px;
+        }
+        #back-to-login-btn:hover {
+            background-color: #5a6268;
+        }
+        p {
+            margin-top: 25px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        p a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        p a:hover {
+            text-decoration: underline;
+        }
+        .error-message {
+            color: #dc3545; /* Red for error messages */
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: none; /* Hidden by default */
+            text-align: left;
+        }
+        .success-message {
+            color: #28a745; /* Green for success messages */
+            font-size: 0.95em;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 id="form-title">Login</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">Student Number:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button class="btn" type="submit">Login</button>
+        </form>
+
+        <p>Don't have an account? <a href="#" id="create-account-link">Create one!</a></p>
+
+        <form id="create-account-form" style="display: none;">
+            <div class="form-group">
+                <label for="new-student-number">Student Number:</label>
+                <input type="text" id="new-student-number" name="new-student-number" required placeholder="e.g., S12345678">
+                <div id="student-number-error" class="error-message"></div>
+            </div>
+            <div class="form-group">
+                <label for="new-password">Create Password:</label>
+                <input type="password" id="new-password" name="new-password" required placeholder="Min 6 characters">
+                <div id="password-error" class="error-message"></div>
+            </div>
+            <div class="form-group">
+                <label for="confirm-password">Confirm Password:</label>
+                <input type="password" id="confirm-password" name="confirm-password" required>
+                <div id="confirm-password-error" class="error-message"></div>
+            </div>
+            <button class="btn" type="submit">Create Account</button>
+            <button class="btn" id="back-to-login-btn" type="button">Back to Login</button>
+            <div id="create-account-success" class="success-message"></div>
+            <div id="create-account-general-error" class="error-message"></div>
+        </form>
+    </div>
+
+    <script>
+        const createAccountLink = document.getElementById('create-account-link');
+        const createAccountForm = document.getElementById('create-account-form');
+        const loginForm = document.getElementById('login-form');
+        const backToLoginBtn = document.getElementById('back-to-login-btn');
+        const formTitle = document.getElementById('form-title');
+
+        // New elements for create account form validation and messages
+        const newStudentNumberInput = document.getElementById('new-student-number');
+        const newPasswordInput = document.getElementById('new-password');
+        const confirmPasswordInput = document.getElementById('confirm-password');
+        const createAccountSubmitBtn = createAccountForm.querySelector('.btn[type="submit"]');
+
+        const studentNumberError = document.getElementById('student-number-error');
+        const passwordError = document.getElementById('password-error');
+        const confirmPasswordError = document.getElementById('confirm-password-error');
+        const createAccountSuccess = document.getElementById('create-account-success');
+        const createAccountGeneralError = document.getElementById('create-account-general-error');
+
+        // Simulate a database of existing users (in a real app, this would be on the server)
+        const mockUserDatabase = [
+            { studentNumber: 'S12345678', passwordHash: 'hashedpassword1' }, // Example user
+            { studentNumber: 'S98765432', passwordHash: 'hashedpassword2' }
+        ];
+
+        // Function to clear all messages
+        function clearMessages() {
+            studentNumberError.style.display = 'none';
+            passwordError.style.display = 'none';
+            confirmPasswordError.style.display = 'none';
+            createAccountSuccess.style.display = 'none';
+            createAccountGeneralError.style.display = 'none';
+            createAccountGeneralError.textContent = ''; // Clear previous error text
+        }
+
+        createAccountLink.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent default link behavior
+            clearMessages(); // Clear any existing messages
+            loginForm.style.display = 'none';
+            createAccountForm.style.display = 'block';
+            formTitle.textContent = 'Create Account'; // Change title
+        });
+
+        backToLoginBtn.addEventListener('click', () => {
+            clearMessages(); // Clear any existing messages
+            loginForm.style.display = 'block';
+            createAccountForm.style.display = 'none';
+            formTitle.textContent = 'Login'; // Change title back
+            // Optionally clear create account form fields when going back
+            newStudentNumberInput.value = '';
+            newPasswordInput.value = '';
+            confirmPasswordInput.value = '';
+        });
+
+        // Handle Create Account form submission
+        createAccountForm.addEventListener('submit', (e) => {
+            e.preventDefault(); // Prevent default form submission (page reload)
+            clearMessages(); // Clear previous messages
+
+            const studentNumber = newStudentNumberInput.value.trim();
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            let isValid = true;
+
+            // 1. Validate Student Number
+            if (!studentNumber) {
+                studentNumberError.textContent = 'Student number is required.';
+                studentNumberError.style.display = 'block';
+                isValid = false;
+            } else if (!studentNumber.match(/^S\d{8}$/i)) { // Example: S followed by 8 digits
+                studentNumberError.textContent = 'Invalid student number format (e.g., S12345678).';
+                studentNumberError.style.display = 'block';
+                isValid = false;
+            } else {
+                // Simulate checking if student number already exists
+                const studentExists = mockUserDatabase.some(user => user.studentNumber.toLowerCase() === studentNumber.toLowerCase());
+                if (studentExists) {
+                    studentNumberError.textContent = 'This student number is already registered.';
+                    studentNumberError.style.display = 'block';
+                    isValid = false;
+                }
+            }
+
+
+            // 2. Validate Password
+            if (newPassword.length < 6) {
+                passwordError.textContent = 'Password must be at least 6 characters long.';
+                passwordError.style.display = 'block';
+                isValid = false;
+            }
+
+            // 3. Validate Confirm Password
+            if (newPassword !== confirmPassword) {
+                confirmPasswordError.textContent = 'Passwords do not match.';
+                confirmPasswordError.style.display = 'block';
+                isValid = false;
+            }
+
+            if (isValid) {
+                // --- THIS IS THE CLIENT-SIDE SIMULATION ---
+                // In a real application, you would send this data to a server here.
+                // Example: fetch('/api/create-account', { method: 'POST', body: JSON.stringify({ studentNumber, newPassword }) })
+                // .then(response => response.json())
+                // .then(data => { /* handle server response */ });
+
+                // Simulate successful account creation
+                // In a real app, you would add the user to the database after hashing the password
+                // For demonstration, let's just add it to our mock database
+                mockUserDatabase.push({ studentNumber: studentNumber, passwordHash: 'simulated_hashed_password_for_' + studentNumber });
+
+                createAccountSuccess.textContent = Account for ${studentNumber} successfully created! You can now log in.;
+                createAccountSuccess.style.display = 'block';
+
+                // Optional: Automatically switch back to login form after a short delay
+                setTimeout(() => {
+                    backToLoginBtn.click(); // Programmatically click the back button
+                    // Optionally pre-fill the username field with the newly created student number
+                    document.getElementById('username').value = studentNumber;
+                }, 2000); // 2 seconds delay
+            } else {
+                createAccountGeneralError.textContent = 'Please fix the errors above.';
+                createAccountGeneralError.style.display = 'block';
+            }
+        });
+
+        // Handle Login form submission (basic simulation)
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault(); // Prevent default form submission
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            // Simulate login check (very basic and insecure, for demo only)
+            const userFound = mockUserDatabase.find(user => user.studentNumber.toLowerCase() === username.toLowerCase());
+
+            if (userFound && userFound.passwordHash === 'simulated_hashed_password_for_' + username) {
+                alert('Login successful! Welcome, ' + username);
+                // In a real app: redirect to dashboard or set session
+            } else {
+                alert('Invalid student number or password.');
+            }
+        });
+    </script>
+</body>
+<footer>
+    <p>@2025 Comfort Zone.All rights reserved</p>
+</footer>
+</html>

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accommodations</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700&display=swap">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+
+#campus-logo {
+    display: block; 
+    margin: 5px auto 10px auto; 
+    width: 150px;
+    height: auto;
+}
+
+.rating-stars {
+  font-size: 24px;
+  color: #ccc;
+}
+
+.star {
+  cursor: default;
+}
+
+.star.filled {
+  color: gold;
+}
+    .navbar {
+    background-color: #083e77;
+    color: #fff;
+    padding: 0.5em;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+
+.navbar ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+
+.navbar li {
+    margin-right: 20px;
+}
+
+.navbar a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+}
+
+#search-bar {
+    width: 50px;
+    height: 30px;
+    padding: 5px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-left: none;
+    transition: width 0.4s ease-in-out;
+}
+
+#search-btn {
+    width: 70px;
+    height: 30px;
+    padding: 5px;
+    font-size: 14px;
+    border: none;
+    border-radius: 0 5px 5px 0;
+    background-color: #083e77;
+    color: #fff;
+    cursor: pointer;
+    border: 1px solid #fff;
+}
+
+
+#search-filter {
+    height: 30px;
+    padding: 5px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px 0 0 5px;
+    border-right: none;
+    background-color: #fff;
+}
+#search-bar:focus {
+    width: 150px;
+}
+
+/* --- SCROLLING STYLES --- */
+
+main {
+    padding: 0;
+    flex-grow: 1;
+    /* This calculation might need fine-tuning based on actual header/footer/h1/logo heights */
+    height: calc(100vh - 180px); /* Increased by 30px to account for smaller logo & its margin */
+    overflow: auto; /* Bi-directional scrolling */
+}
+
+.accommodation-grid {
+    display: flex;
+    flex-wrap: wrap; 
+    gap: 20px; 
+    padding: 20px;
+    
+    width: 2000px; /* Forces horizontal overflow */
+    height: auto; 
+}
+
+.accommodation {
+    background-color: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border-radius: 10px;
+    width: 400px; /* Wider boxes as requested */
+    flex-shrink: 0; 
+}
+
+
+/* Adjust slideshow width to match new box width */
+        .slideshow-container {
+            position: relative;
+            width: 100%; 
+            height: 200px; 
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .slideshow-container img {
+            width: 100%;
+            height: 200px; 
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 1s;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .slideshow-container img.active {
+            opacity: 1;
+        }
+        
+        .more-details {
+            background-color: #083e77;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .more-details:hover {
+            background-color: #0a4d8f;
+        }
+         footer {
+            background-color: #1a4178; 
+            color: #fff;
+            padding: 30px 20px;
+            margin-top: 0; /* FIX: Remove the margin-top here */
+            font-size: 0.9em;
+            line-height: 1.6;
+
+            /* FIX: Removed position: absolute; bottom: 0; to make it flow naturally after content */
+            width: 100%;
+        }
+
+        .footer-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap; 
+        }
+
+        .footer-section {
+            padding: 10px;
+            min-width: 200px;
+            margin-bottom: 20px;
+        }
+
+        .footer-section h4 {
+            color: #ff6600; 
+            margin-bottom: 15px;
+            border-bottom: 1px solid #3b669e; 
+            padding-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .footer-section p, .footer-section a {
+            color: #ccc;
+            text-decoration: none;
+            display: block; 
+            margin-bottom: 5px;
+        }
+
+        .footer-section a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #3b669e;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    
+    <header>
+        <nav class="navbar">
+    <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="apply at uni.html">Apply@Universities</a></li>
+        <li><a href="czra more about us.html">About Us</a></li>
+        <li><a href="czra contact.html">Contact</a></li>
+        <li><a href="choose login.html">Login</a></li>
+        <li><a href="campus shop.html">Campus Store</a></li>
+    </ul>
+    <div class="search-container">
+    <select id="search-filter">
+        <option value="all">All</option>
+        <option value="location">Location</option>
+        <option value="name">Name</option>
+        <option value="room-type">Room Type</option>
+    </select>
+    <input type="text" id="search-bar" placeholder="Search for accommodations...">
+    <button id="search-btn">Search</button>
+</div>
+</nav>
+    </header>
+    
+    <h1 style="text-align: center;">Choose from the following:</h1>
+    
+    <main>
+        <div class="accommodation-grid">
+            
+                <div class="accommodation">
+                    <div class="slideshow-container">
+                        <img src="Images/Mbizeni pool tff.jpg" alt="embizeni 1" class="active">
+                        <img src="Images/mattafin computer.jpg" alt="embizeni 2">
+                        <img src="Images/mattafin mbizeni.jpg" alt="embizeni 3">
+                        <img src="Images/mattafin TV.jpg " alt="embizeni 4">
+                    </div>
+                    <h2>Embizeni Student Accommodation</h2>
+                    <p><strong>Location</strong>: Mattafin, Likazi, Entokozweni</p>
+                    <p><strong>Rooms:</strong> Single and sharing Rooms</p>
+                    <p><strong>Accommodation Type:</strong> Co-living/ house sharing</p>
+                    <p><strong>Accomodates:</strong> UMP and TUT students(Funded or self-funded)</p>
+                    <p><strong>Rating:</strong>
+                <div class="rating-stars">
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star">&#9734;</span>
+                   <span class="star">&#9734;</span>
+                </div> </p>
+                    <a href="embizeni.html"><button class="more-details">View</button></a>
+                </div>
+            
+                <div class="accommodation">
+                    <div class="slideshow-container">
+                        <img src="Images/Boniville cover.jpg" alt="boniville 1" class="active">
+                        <img src="Images/Boniville2.jpg" alt="boniville 2">
+                        <img src="Images/Boniville3.jpg" alt="boniville 3">
+                        <img src="Images/Boniville4.jpg" alt="boniville 4">
+                    </div>
+                    <h2>Boniville Residence</h2>
+                    <p><strong>Location:</strong> Msholozi</p>
+                    <p><strong>Rooms:</strong> Sharing Rooms</p>
+                    <p><strong>Accommodation Type:</strong> rooms with own bathroom and kitchen</p>
+                    <p><strong>Rating:</strong>
+                <div class="rating-stars">
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star">&#9734;</span>
+                   
+                </div></p>
+                    <a href="boniville.html"><button class="more-details">View</button></a>
+                </div>
+            
+                <div class="accommodation">
+                    <div class="slideshow-container">
+                        <img src="Images/Mash frnt.jpg" alt="mash 1" class="active">
+                        <img src="Images/mashimula cover .jpg" alt="mash 2">
+                        <img src="Images/mash.jpg" alt="mash 3">
+                        <img src="Images/mash bulk.jpg" alt="mash 4">
+                        <img src="Images/mash likazi bath.jpg" alt="mash 6">
+                        
+                    </div>
+                    <h2>Mashimula Student Accommodation</h2>
+                    <p><strong>Location:</strong> Entokozweni and Likazi</p>
+                    <p><strong>Rooms:</strong> Sharing</p>
+                    <p><strong>Accommodation Type:</strong></p>
+                    <p><strong>Rating:</strong>
+                <div class="rating-stars">
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star">&#9734;</span></div></p>
+                    <a href="Mashimula.html"><button class="more-details">View</button></a>
+                </div>
+            
+                <div class="accommodation">
+                    <div class="slideshow-container">
+                        <img src="Images/cecil ng.jpg" alt="cecil 1" class="active">
+                        <img src="Images/cecil cn.jpg" alt="cecil 2">
+                        <img src="Images/cecil pool ng.jpg" alt="cecil 3">
+                        <img src="Images/cecil pura.jpg" alt="cecil 4">
+                        <img src="Images/cecil dubai.jpg" alt="cecil 5">
+                    </div>
+                    <h2>Cecil Complex</h2>
+                    <p><strong>Location:</strong> Ngodini, Msholozi and White River</p>
+                    <p><strong>Rooms:</strong> Singles and sharings</p>
+                    <p><strong>Accommodation Type:</strong></p>
+                    <p><strong>Rating:</strong>
+                <div class="rating-stars">
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span></div></p>
+                    <a href="cecil.html"><button class="more-details">View</button></a>
+                </div>
+            
+                <div class="accommodation">
+                    <div class="slideshow-container">
+                        <img src="Images/vuyani cover.jpg" alt="vuyani 1" class="active">
+                        <img src="Images/vuyani kitch.jpg" alt="vuyani 2">
+                        <img src="Images/vuyani bed.jpg" alt="vuyani 3">
+                        <img src="Images/vuyane gate.jpg" alt="vuyani 4">
+                    </div>
+                    <h2>Vuyani Student Accommodation</h2>
+                    <p><strong>Location: </strong> Thekwane North</p>
+                    <p><strong>Rooms: </strong> and sharings</p>
+                    <p><strong>Accommodation Type:</strong></p>
+                    <p><strong>Rating:</strong>
+                <div class="rating-stars">
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star">&#9734;</span>
+                   <span class="star">&#9734;</span></div></p>
+                    <a href="vuyani.html"><button class="more-details">View</button></a>
+                </div>
+                
+                <div class="accommodation">
+                    <div class="slideshow-container">
+                        <img src="Images/Boniville cover.jpg" alt="boniville copy 1" class="active">
+                        <img src="Images/Boniville2.jpg" alt="boniville copy 2">
+                    </div>
+                    <h2>Boniville Residence (Copy)</h2>
+                    <p><strong>Location:</strong> Msholozi, White River</p>
+                    <p><strong>Rooms:</strong> Sharing Rooms, Single Rooms Available</p>
+                    <p><strong>Accommodation Type:</strong> rooms with own bathroom and kitchen</p>
+                    <p><strong>Rating:</strong>
+                <div class="rating-stars">
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star">&#9734;</span>
+                   
+                </div></p>
+                    <a href="boniville.html"><button class="more-details">View</button></a>
+                </div>
+                
+                <div class="accommodation">
+                    <div class="slideshow-container">
+                        <img src="Images/view in sharing.jpg" alt="View in 1" class="active">
+                        <img src="Images/view in room 2.jpg" alt="View in 2">
+                        <img src="Images/view in kitchen.jpg" alt="View in 3">
+                        <img src="Images/view in single.jpg" alt="View in 4">
+                    </div>
+                    <h2>View In</h2>
+                    <p><strong>Location:</strong> Entokozweni</p>
+                    <p><strong>Rooms:</strong> Singles and sharings</p>
+                    <p><strong>Accommodation Type:</strong></p>
+                    <p><strong>Rating:</strong>
+                <div class="rating-stars">
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span>
+                   <span class="star filled">&#9733;</span></div></p>
+                    <a href="view__in.html"><button class="more-details">View</button></a>
+                </div>
+                </div>
+        
+    </main>
+    <script>
+        let slideshowContainers = document.getElementsByClassName('slideshow-container');
+for (let i = 0; i < slideshowContainers.length; i++) {
+    let images = slideshowContainers[i].children;
+    let currentImageIndex = 0;
+    setInterval(() => {
+        images[currentImageIndex].classList.remove('active');
+        currentImageIndex = (currentImageIndex + 1) % images.length;
+        images[currentImageIndex].classList.add('active');
+    }, 3000); // Change image every 3 seconds
+}
+
+const searchBar = document.getElementById('search-bar');
+const searchBtn = document.getElementById('search-btn');
+const searchFilter = document.getElementById('search-filter');
+const accommodations = document.getElementsByClassName('accommodation');
+
+// Function to handle the search/filter logic
+function filterAccommodations() {
+    const searchValue = searchBar.value.toLowerCase();
+    const filterValue = searchFilter.value;
+
+    for (let i = 0; i < accommodations.length; i++) {
+        const accommodationName = accommodations[i].querySelector('h2').textContent.toLowerCase();
+        // Index 0: Location P tag. Index 1: Rooms P tag. Index 2: Accom Type P tag.
+        const accommodationLocation = accommodations[i].querySelectorAll('p')[0].textContent.toLowerCase().replace('location: ', '');
+        const accommodationRooms = accommodations[i].querySelectorAll('p')[1].textContent.toLowerCase();
+        
+        let isMatch = false;
+
+        if (filterValue === 'all') {
+            if (accommodationName.includes(searchValue) || accommodationLocation.includes(searchValue)) {
+                isMatch = true;
+            }
+        } else if (filterValue === 'location') {
+            if (accommodationLocation.includes(searchValue)) {
+                isMatch = true;
+            }
+        } else if (filterValue === 'name') {
+            if (accommodationName.includes(searchValue)) {
+                isMatch = true;
+            }
+        } else if (filterValue === 'room-type') {
+            // Checks if the search value is anywhere in the 'Rooms' paragraph
+            if (accommodationRooms.includes(searchValue)) {
+                isMatch = true;
+            }
+        }
+        
+        // Use 'block' for display as items will wrap within the flex container
+        if (isMatch) {
+            accommodations[i].style.display = 'block';
+        } else {
+            accommodations[i].style.display = 'none';
+        }
+    }
+}
+
+// Attach the filtering logic to both the button click and input changes
+searchBtn.addEventListener('click', filterAccommodations);
+searchBar.addEventListener('input', filterAccommodations);
+searchFilter.addEventListener('change', filterAccommodations); 
+
+</script>
+    
+</body>
+<footer>
+
+    <div class="footer-bottom">
+        &copy; 2025 Campus Collective. All rights reserved. | Developed with 🧡 in SA.
+    </div>
+</footer>
+</html>
