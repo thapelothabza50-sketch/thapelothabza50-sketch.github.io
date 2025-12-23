@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seller Dashboard | Campus Collective</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <style>
+        .status-pending, .status-processing { 
+            background-color: #fef3c7; 
+            color: #b45309; 
+        }
+        .status-shipped { 
+            background-color: #dbeafe; 
+            color: #1e40af; 
+        }
+        .status-delivered { 
+            background-color: #d1fae5; 
+            color: #065f46; 
+        }
+        .status-cancelled {
+            background-color: #fee2e2; 
+            color: #991b1b; 
+        }
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+        }
+
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .dark #loader-overlay { background: rgba(17, 24, 39, 0.95); }
+        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .loader-ring {
+            position: absolute; width: 150px; height: 150px; border: 3px solid transparent;
+            border-top: 3px solid #2563eb; border-bottom: 3px solid #ff6600; border-radius: 50%;
+            animation: spin-ring 1.5s linear infinite;
+        }
+        .loader-logo {
+            width: 110px; height: 110px; border-radius: 50%; object-fit: cover;
+            animation: spin-3d 3s infinite ease-in-out; box-shadow: 0 0 25px rgba(59, 130, 246, 0.4); z-index: 10;
+        }
+        @keyframes spin-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-3d { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
+        .loader-text { margin-top: 30px; font-weight: 700; color: #2563eb; letter-spacing: 2px; text-transform: uppercase; animation: pulse-text 2s infinite; }
+        @keyframes pulse-text { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        .hidden-loader { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+
+    <div id="loader-overlay" class="hidden-loader">
+        <div class="logo-container">
+            <div class="loader-ring"></div>
+            <img src="Images/Campus collective logo origin.jpg" alt="Loading..." class="loader-logo">
+        </div>
+        <div class="loader-text text-xs">Campus Collective</div>
+    </div>
+
+    <div class="main-container">
+
+        <aside class="w-64 bg-white dark:bg-gray-800 shadow-xl p-6 flex flex-col justify-between fixed h-full z-10">
+            <div>
+                <h2 class="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-6">Seller Hub</h2>
+                
+                <div class="mb-8 border-b pb-4 border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold" id="profile-name">Loading...</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400" id="profile-email">email@example.com</p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <p class="text-xs font-mono text-blue-600 dark:text-blue-400" id="profile-role">SELLER</p>
+                        <span id="account-status" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500">PENDING</span>
+                    </div>
+                </div>
+
+                <nav class="space-y-2">
+                    <button id="tab-orders" onclick="switchTab('orders')" class="tab-button w-full flex items-center p-3 rounded-lg text-sm font-medium text-white bg-blue-600">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2m-4 0V3m0 2v2m0 0h.01M9 12h.01M15 12h.01M9 16h.01M15 16h.01"></path></svg>
+                        Orders Management
+                    </button>
+                    <button id="tab-products" onclick="switchTab('products')" class="tab-button w-full flex items-center p-3 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                        Product Inventory
+                    </button>
+                </nav>
+            </div>
+
+            <button onclick="handleLogout()" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                Logout
+            </button>
+        </aside>
+
+        <main class="flex-grow ml-64 p-8">
+            <header class="mb-8">
+                <h1 class="text-4xl font-extrabold text-gray-800 dark:text-gray-200">Dashboard Overview</h1>
+                <div id="message-area" class="hidden p-3 text-sm rounded-lg mt-4 font-medium" role="alert"></div>
+            </header>
+
+            <section id="content-products" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold">Your Products</h2>
+                    <button onclick="triggerLoader('add product.html', 'Opening Product Creator...')" class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                        + Add New Product
+                    </button>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Product Name</th>
+                                <th scope="col" class="px-6 py-3">Price</th>
+                                <th scope="col" class="px-6 py-3">Stock</th>
+                                <th scope="col" class="px-6 py-3">Special Offer</th>
+                                <th scope="col" class="px-6 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table-body">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="content-orders" class="tab-content hidden">
+                <h2 class="text-2xl font-semibold mb-6">Pending & Recent Orders</h2>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Order ID</th>
+                                <th scope="col" class="px-6 py-3">Date</th>
+                                <th scope="col" class="px-6 py-3">Customer Name</th>
+                                <th scope="col" class="px-6 py-3">Total Items (Seller)</th>
+                                <th scope="col" class="px-6 py-3">Status</th>
+                                <th scope="col" class="px-6 py-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+        
+    </div>
+
+    <div id="order-update-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-75 hidden z-20 items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-md">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-xl font-semibold">Update Order Status</h3>
+                <button onclick="closeModal('order-update-modal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <form id="order-update-form" data-order-id="">
+                <div class="mb-4">
+                    <label for="order-status" class="block text-sm font-medium mb-1">Status for Order: <span id="modal-order-id" class="font-bold"></span></label>
+                    <select id="order-status" name="status" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600">
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label for="tracking-number" class="block text-sm font-medium mb-1">Tracking Number (if Shipped)</label>
+                    <input type="text" id="tracking-number" name="trackingNumber" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" placeholder="Enter tracking number">
+                </div>
+                <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+<script>
+    const API_BASE_URL = '/api';
+    const LOGIN_PAGE = 'login czra.html';
+    const AUTH_TOKEN = localStorage.getItem('jwtToken'); 
+    const SELLER_ID = localStorage.getItem('userId'); 
+
+    const profileName = document.getElementById('profile-name');
+    const profileEmail = document.getElementById('profile-email');
+    const profileRole = document.getElementById('profile-role');
+    const messageArea = document.getElementById('message-area');
+    const productsTableBody = document.getElementById('products-table-body');
+    const ordersTableBody = document.getElementById('orders-table-body');
+    const orderUpdateModal = document.getElementById('order-update-modal');
+    const orderUpdateForm = document.getElementById('order-update-form');
+
+    window.triggerLoader = function(url, text) {
+        const loader = document.getElementById('loader-overlay');
+        document.querySelector('.loader-text').textContent = text;
+        loader.classList.remove('hidden-loader');
+        setTimeout(() => { window.location.href = url; }, 1200);
+    };
+
+    function showMessage(type, message) {
+        messageArea.textContent = message;
+        messageArea.className = `p-3 text-sm rounded-lg mt-4 font-medium ${type === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`;
+        messageArea.classList.remove('hidden');
+        setTimeout(() => messageArea.classList.add('hidden'), 5000);
+    }
+
+    function getStatusBadge(status) {
+        const statusMap = {
+            'Pending': 'status-pending',
+            'Processing': 'status-processing',
+            'Shipped': 'status-shipped',
+            'Delivered': 'status-delivered',
+            'Cancelled': 'status-cancelled',
+            'Active': 'status-delivered',
+            'Inactive': 'status-cancelled'
+        };
+        const badgeClass = statusMap[status] || 'bg-gray-200 text-gray-800';
+        return `<span class="px-2 py-1 text-xs font-semibold rounded-full ${badgeClass}">${status}</span>`;
+    }
+    
+    window.closeModal = function(id) {
+        document.getElementById(id).classList.add('hidden');
+        document.getElementById(id).classList.remove('flex');
+    }
+
+    window.openModal = function(orderId, currentStatus) {
+        document.getElementById('modal-order-id').textContent = orderId.substring(0, 8);
+        document.getElementById('order-update-form').setAttribute('data-order-id', orderId);
+        document.getElementById('order-status').value = currentStatus;
+        document.getElementById('order-update-modal').classList.remove('hidden');
+        document.getElementById('order-update-modal').classList.add('flex');
+    }
+
+    window.handleLogout = function() {
+        localStorage.clear();
+        showMessage('success', 'Logged out successfully. Redirecting...');
+        setTimeout(() => { window.location.href = LOGIN_PAGE; }, 1000);
+    }
+
+    window.switchTab = function(tabName) {
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            const isActive = btn.id === `tab-${tabName}`;
+            btn.classList.remove('text-white', 'bg-blue-600');
+            btn.classList.add('hover:bg-gray-100', 'dark:hover:bg-gray-700'); 
+            if (isActive) {
+                btn.classList.add('text-white', 'bg-blue-600');
+                btn.classList.remove('hover:bg-gray-100', 'dark:hover:bg-gray-700');
+            }
+        });
+
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+
+        const activeContent = document.getElementById(`content-${tabName}`);
+        if (activeContent) {
+            activeContent.classList.remove('hidden');
+        }
+
+        if (tabName === 'orders') {
+            fetchSellerOrders();
+        } else if (tabName === 'products') {
+            fetchSellerProducts();
+        }
+    };
+    
+    async function fetchUserDetails() {
+        if (!AUTH_TOKEN) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/me`, {
+                headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+            });
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    localStorage.clear();
+                    window.location.href = LOGIN_PAGE;
+                    return;
+                }
+                throw new Error('Failed to fetch user details.');
+            }
+            const user = await response.json();
+            profileName.textContent = user.businessName || `${user.firstName} ${user.lastName}`;
+            profileEmail.textContent = user.email;
+            profileRole.textContent = user.role.toUpperCase();
+
+            // 🏆 FIXED ACCOUNT STATUS LOGIC
+            const statusBadge = document.getElementById('account-status');
+            statusBadge.textContent = 'ACTIVE';
+            statusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800';
+
+        } catch (error) {
+            console.error("Profile Fetch Error:", error);
+        }
+    }
+
+    async function fetchSellerProducts() {
+        if (!AUTH_TOKEN) return;
+        productsTableBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center">Loading products...</td></tr>';
+        try {
+            const response = await fetch(`${API_BASE_URL}/seller/products`, {
+                headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch products.');
+            const products = await response.json();
+            renderProducts(products);
+        } catch (error) {
+            productsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Error: ${error.message}</td></tr>`;
+        }
+    }
+    
+    function renderProducts(products) {
+        if (products.length === 0) {
+            productsTableBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center">No products found.</td></tr>';
+            return;
+        }
+        productsTableBody.innerHTML = products.map(product => `
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">${product.name}</th>
+                <td class="px-6 py-4">R ${product.price ? product.price.toFixed(2) : 'N/A'}</td>
+                <td class="px-6 py-4">${product.stock || 0}</td>
+                <td class="px-6 py-4">${product.onSpecial ? getStatusBadge('Active') : getStatusBadge('Inactive')}</td> <td class="px-6 py-4 space-x-2">
+                    <a href="edit-product.html?id=${product._id}" class="text-blue-600 hover:text-blue-800 font-medium">Edit</a>
+                    <button onclick="handleDeleteProduct('${product._id}')" class="text-red-600 hover:text-red-800 font-medium ml-2">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function fetchSellerOrders() {
+        if (!AUTH_TOKEN) return;
+        ordersTableBody.innerHTML = '<tr><td colspan="6" class="p-4 text-center">Loading orders...</td></tr>';
+        try {
+            const response = await fetch(`${API_BASE_URL}/seller/orders`, {
+                headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch orders.');
+            const orders = await response.json();
+            renderOrders(orders);
+        } catch (error) {
+            ordersTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">Error: ${error.message}</td></tr>`;
+        }
+    }
+
+    function renderOrders(orders) {
+        if (orders.length === 0) {
+            ordersTableBody.innerHTML = '<tr><td colspan="6" class="p-4 text-center">No orders found.</td></tr>';
+            return;
+        }
+        ordersTableBody.innerHTML = orders.map(order => `
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">#${order._id.substring(0, 8)}</th>
+                <td class="px-6 py-4">${new Date(order.createdAt).toLocaleDateString()}</td>
+                <td class="px-6 py-4">${order.customerName || 'N/A'}</td>
+                <td class="px-6 py-4">${order.items.length}</td>
+                <td class="px-6 py-4">${getStatusBadge(order.status)}</td>
+                <td class="px-6 py-4">
+                    <button onclick="openModal('${order._id}', '${order.status}')" class="text-blue-600 hover:text-blue-800 font-medium">Update</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    window.handleDeleteProduct = async function(productId) {
+        if (!confirm('Are you sure you want to delete this product?')) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/seller/products/${productId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+            });
+            if (!response.ok) throw new Error('Failed to delete product.');
+            showMessage('success', 'Product deleted successfully.');
+            fetchSellerProducts();
+        } catch (error) {
+            showMessage('error', error.message);
+        }
+    }
+    
+    async function handleOrderStatusUpdate(event) {
+        event.preventDefault();
+        const orderId = event.target.getAttribute('data-order-id');
+        const newStatus = document.getElementById('order-status').value;
+        const trackingNumber = document.getElementById('tracking-number').value;
+        try {
+            const response = await fetch(`${API_BASE_URL}/seller/orders/${orderId}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${AUTH_TOKEN}`
+                },
+                body: JSON.stringify({ status: newStatus, trackingNumber })
+            });
+            if (!response.ok) throw new Error('Failed to update status.');
+            closeModal('order-update-modal');
+            showMessage('success', `Status updated to ${newStatus}.`);
+            fetchSellerOrders();
+        } catch (error) {
+            showMessage('error', error.message);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!AUTH_TOKEN || !SELLER_ID) {
+            window.location.href = LOGIN_PAGE;
+            return; 
+        }
+        fetchUserDetails();
+        orderUpdateForm.addEventListener('submit', handleOrderStatusUpdate);
+        switchTab('orders');
+    });
+</script>
+
+</body>
+</html>

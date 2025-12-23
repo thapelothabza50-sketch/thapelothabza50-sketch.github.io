@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Product</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: sans-serif; }
+
+        /* --- ADDED: 3D SPINNING LOADER CSS --- */
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .dark #loader-overlay { background: rgba(17, 24, 39, 0.95); }
+        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .loader-ring {
+            position: absolute; width: 150px; height: 150px; border: 3px solid transparent;
+            border-top: 3px solid #2563eb; border-bottom: 3px solid #ff6600; border-radius: 50%;
+            animation: spin-ring 1.5s linear infinite;
+        }
+        .loader-logo {
+            width: 110px; height: 110px; border-radius: 50%; object-fit: cover;
+            animation: spin-3d 3s infinite ease-in-out; box-shadow: 0 0 25px rgba(59, 130, 246, 0.4); z-index: 10;
+        }
+        @keyframes spin-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-3d { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
+        .loader-text { margin-top: 30px; font-weight: 700; color: #2563eb; letter-spacing: 2px; text-transform: uppercase; animation: pulse-text 2s infinite; }
+        @keyframes pulse-text { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        .hidden-loader { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 min-h-screen">
+    
+    <div id="loader-overlay">
+        <div class="logo-container">
+            <div class="loader-ring"></div>
+            <img src="Images/Campus collective logo origin.jpg" alt="Loading..." class="loader-logo">
+        </div>
+        <div class="loader-text text-xs">Campus Collective</div>
+    </div>
+
+    <div class="container mx-auto max-w-4xl">
+        <header class="border-b pb-4 mb-6 border-gray-200 dark:border-gray-700">
+            <a href="seller dasboard.html" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-600 font-medium mb-4 inline-block">
+                &larr; Back to Dashboard
+            </a>
+            <h1 class="text-3xl font-bold">Edit Product ✏️</h1>
+        </header>
+
+        <div id="message-area" class="hidden p-3 text-sm rounded-lg mb-4 font-medium" role="alert"></div>
+
+        <form id="edit-form" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl space-y-6">
+            
+            <section class="space-y-4">
+                <h2 class="text-xl font-semibold border-b pb-2 mb-4">Product Information</h2>
+                
+                <div>
+                    <label for="name" class="block text-sm font-medium">Product Name *</label>
+                    <input type="text" id="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600">
+                </div>
+                
+                <div>
+                    <label for="description" class="block text-sm font-medium">Description *</label>
+                    <textarea id="description" rows="4" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600"></textarea>
+                </div>
+
+                <div>
+                    <label for="category" class="block text-sm font-medium">Category *</label>
+                    <select id="category" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600">
+                        <option value="TEXTBOOK">Textbooks</option>
+                        <option value="ELECTRONICS">Electronics</option>
+                        <option value="Food">Food</option>
+                        <option value="Cloths">Clothing</option>
+                        <option value="SERVICES">Services</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="price" class="block text-sm font-medium">Price (R) *</label>
+                        <input type="number" id="price" required min="0.01" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div>
+                        <label for="stock" class="block text-sm font-medium">Stock Quantity *</label>
+                        <input type="number" id="stock" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                </div>
+            </section>
+            
+            <section class="space-y-4">
+                <h2 class="text-xl font-semibold border-b pb-2 mb-4">Update Image</h2>
+                <div class="flex items-center gap-4">
+                    <img id="current-image" src="" alt="Current" class="w-20 h-20 object-cover rounded border dark:border-gray-600 bg-gray-100">
+                    <div class="flex-grow">
+                        <label for="image" class="block text-sm font-medium">Change Image (Optional)</label>
+                        <input type="file" id="image" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                </div>
+            </section>
+
+            <section class="space-y-4 border p-4 rounded-md dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <h2 class="text-xl font-semibold border-b pb-2 mb-4">Sale/Special Offer</h2>
+                <div class="flex items-center">
+                    <input type="checkbox" id="onSpecial" class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                    <label for="onSpecial" class="ml-2 text-sm font-medium">Is this product on special?</label>
+                </div>
+                
+                <div id="special-offer-group" class="hidden space-y-4 mt-4">
+                    <div>
+                        <label for="oldPrice" class="block text-sm font-medium">Original Price (Before Discount)</label>
+                        <input type="number" id="oldPrice" min="0.01" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div>
+                        <label for="specialEnd" class="block text-sm font-medium">Special End Date</label>
+                        <input type="date" id="specialEnd" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                </div>
+            </section>
+            
+            <button type="submit" id="submit-btn" class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400">
+                Save Changes
+            </button>
+        </form>
+    </div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:8080/api';
+    const AUTH_TOKEN = localStorage.getItem('jwtToken');
+    let productId = '';
+
+    const editForm = document.getElementById('edit-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const messageArea = document.getElementById('message-area');
+    const loader = document.getElementById('loader-overlay');
+    const loaderText = document.querySelector('.loader-text');
+
+    const onSpecialCheckbox = document.getElementById('onSpecial');
+    const specialOfferGroup = document.getElementById('special-offer-group');
+
+    onSpecialCheckbox.addEventListener('change', () => {
+        specialOfferGroup.classList.toggle('hidden', !onSpecialCheckbox.checked);
+    });
+
+    function showMessage(type, message) {
+        messageArea.textContent = message;
+        messageArea.className = `p-3 text-sm rounded-lg mb-4 font-medium ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+        messageArea.classList.remove('hidden');
+        window.scrollTo(0, 0);
+    }
+
+    async function fetchProductDetails() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/shop/products`);
+            const products = await response.json();
+            const product = products.find(p => p._id === productId);
+
+            if (!product) throw new Error('Product not found');
+
+            document.getElementById('name').value = product.name;
+            document.getElementById('description').value = product.description;
+            document.getElementById('category').value = product.category;
+            document.getElementById('price').value = product.price;
+            document.getElementById('stock').value = product.stock;
+            document.getElementById('current-image').src = `http://localhost:8080/${product.image}`;
+            
+            // Set special offer fields
+            document.getElementById('onSpecial').checked = product.onSpecial === true;
+            if (product.onSpecial) {
+                specialOfferGroup.classList.remove('hidden');
+                document.getElementById('oldPrice').value = product.oldPrice || '';
+                if (product.specialEnd) {
+                    document.getElementById('specialEnd').value = product.specialEnd.split('T')[0];
+                }
+            }
+
+            loader.classList.add('hidden-loader');
+        } catch (error) {
+            loader.classList.add('hidden-loader');
+            showMessage('error', error.message);
+        }
+    }
+
+    async function updateProduct(e) {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        loader.classList.remove('hidden-loader');
+        loaderText.textContent = "Saving Changes...";
+
+        const formData = new FormData();
+        formData.append('name', document.getElementById('name').value);
+        formData.append('description', document.getElementById('description').value);
+        formData.append('category', document.getElementById('category').value);
+        formData.append('price', document.getElementById('price').value);
+        formData.append('stock', document.getElementById('stock').value);
+        
+        // 🔑 THE FIX: Explicitly convert checkbox state to a string boolean to prevent CastError
+        const isSpecial = document.getElementById('onSpecial').checked;
+        formData.append('onSpecial', isSpecial ? 'true' : 'false');
+
+        if (isSpecial) {
+            formData.append('oldPrice', document.getElementById('oldPrice').value);
+            formData.append('specialEnd', document.getElementById('specialEnd').value);
+        }
+        
+        if (document.getElementById('image').files.length > 0) {
+            formData.append('image', document.getElementById('image').files[0]);
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/seller/products/${productId}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update product');
+            }
+
+            loaderText.textContent = "Success! Redirecting...";
+            setTimeout(() => { window.location.href = 'seller dasboard.html'; }, 1500);
+
+        } catch (error) {
+            loader.classList.add('hidden-loader');
+            submitBtn.disabled = false;
+            showMessage('error', error.message);
+        }
+    }
+
+    window.onload = () => {
+        const params = new URLSearchParams(window.location.search);
+        productId = params.get('id');
+        
+        if (!AUTH_TOKEN) {
+            window.location.href = 'customer-login.html';
+            return;
+        }
+
+        if (productId) {
+            fetchProductDetails();
+        } else {
+            loader.classList.add('hidden-loader');
+            showMessage('error', 'Missing Product ID');
+        }
+    };
+
+    editForm.addEventListener('submit', updateProduct);
+</script>
+</body>
+</html>

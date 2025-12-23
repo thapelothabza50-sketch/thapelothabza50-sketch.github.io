@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Business Registration</title>
+     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        /* 🏆 3D SPINNING LOADER CSS - ADDED */
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .loader-ring {
+            position: absolute; width: 150px; height: 150px; border: 3px solid transparent;
+            border-top: 3px solid #2563eb; border-bottom: 3px solid #ff6600; border-radius: 50%;
+            animation: spin-ring 1.5s linear infinite;
+        }
+        .loader-logo {
+            width: 110px; height: 110px; border-radius: 50%; object-fit: cover;
+            animation: spin-3d 3s infinite ease-in-out; box-shadow: 0 0 25px rgba(59, 130, 246, 0.4); z-index: 10;
+        }
+        @keyframes spin-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-3d { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
+        .loader-text { margin-top: 30px; font-weight: 700; color: #2563eb; letter-spacing: 2px; text-transform: uppercase; }
+    </style>
+
+    </head>
+<body class="bg-gray-100 p-8">
+
+    <div id="loader-overlay">
+        <div class="logo-container">
+            <div class="loader-ring"></div>
+            <img src="Images/campus collective icon.ico" alt="Loading..." class="loader-logo">
+        </div>
+        <div class="loader-text">Submitting Business...</div>
+    </div>
+
+    <div class="max-w-3xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden md:flex">
+        <div class="md:w-1/2 bg-gray-900 p-8 flex flex-col justify-center items-center text-white">
+            <h1 class="text-4xl font-extrabold mb-4 text-center">Showcase Your Business</h1>
+            <p class="text-lg text-center mb-8">Get your business noticed by the entire campus community. It's time to grow!</p>
+            <div class="space-y-4 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M4 8h16l-1 9H5L4 8z" />
+                </svg>
+                <div class="text-center">
+                    <p class="text-sm font-light">Campus Collective gives you the tools to reach new customers and manage your business profile.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="md:w-1/2 p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Seller Registration</h2>
+            <form id="studentForm" class="space-y-4">
+                <div id="inline-message" class="hidden p-3 text-sm rounded-lg" role="alert"></div>
+
+                <div>
+                    <label for="fullName" class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input type="text" id="fullName" name="fullName" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700"> Email Address</label>
+                    <input type="email" id="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Set Account Password</label>
+                    <input type="password" id="password" name="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                </div>
+                
+                <p class="text-sm text-gray-500 pt-2 border-t mt-4">Business Profile (Can be completed later)</p>
+                <div>
+                    <label for="businessName" class="block text-sm font-medium text-gray-700">Business Name</label>
+                    <input type="text" id="businessName" name="businessName" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                </div>
+                <div>
+                    <label for="businessCategory" class="block text-sm font-medium text-gray-700">Business Category</label>
+                    <select id="businessCategory" name="businessCategory" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                        <option value="">Select a category</option>
+                        <option value="food">Food & Drinks</option>
+                        <option value="fashion">Fashion & Apparel</option>
+                        <option value="tech">Tech & Gadgets</option>
+                        <option value="tutoring">Tutoring & Services</option>
+                        <option value="art">Art & Crafts</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700">Business Description</label>
+                    <textarea id="description" name="description" rows="3" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300" placeholder="Tell us about your business, products, or services."></textarea>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="terms" name="terms" type="checkbox" required class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="terms" class="font-medium text-gray-700">I agree to the <a href="terms.html" class="text-blue-600 hover:text-blue-500">terms and conditions</a></label>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" id="submitButton" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300">
+                        Submit Business
+                    </button>
+                </div>
+                
+                <p class="text-center text-sm text-gray-600">
+                    Already registered? <a href="login czra.html" class="font-medium text-blue-600 hover:text-blue-500">Log In here</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div id="messageBox" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full text-center">
+            <p id="messageText" class="text-lg font-semibold mb-4"></p>
+            <button id="modalCloseButton" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" ><a href="join us.html">
+                Close</a>
+            </button>
+        </div>
+    </div>
+
+<script>
+    // --- API Configuration ---
+    const REGISTER_API = 'http://localhost:8080/api/auth/seller/register'; 
+    const REDIRECT_PAGE = 'seller dasboard.html'; 
+    
+    // --- UI Element References ---
+    const form = document.getElementById('studentForm');
+    const submitButton = document.getElementById('submitButton');
+    const inlineMessage = document.getElementById('inline-message');
+    const messageBox = document.getElementById('messageBox');
+    const messageText = document.getElementById('messageText');
+    const modalCloseButton = document.getElementById('modalCloseButton');
+    const loader = document.getElementById('loader-overlay'); // Loader reference added
+    
+    // --- UI Helper Functions ---
+    function displayMessage(message, isError, shouldRedirect = false) {
+        inlineMessage.textContent = message;
+        inlineMessage.classList.remove('hidden');
+        if (isError) {
+            inlineMessage.className = 'p-3 text-sm text-red-700 bg-red-100 rounded-lg font-medium mb-4';
+        } else {
+            inlineMessage.className = 'p-3 text-sm text-green-700 bg-green-100 rounded-lg font-medium mb-4';
+        }
+
+        if (shouldRedirect) {
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+            messageBox.classList.add('flex');
+            
+            setTimeout(() => {
+                window.location.href = REDIRECT_PAGE;
+            }, 1000); 
+        }
+    }
+    
+    modalCloseButton.onclick = () => {
+        messageBox.classList.add('hidden');
+        messageBox.classList.remove('flex');
+    };
+
+    messageBox.onclick = (e) => {
+        if (e.target === messageBox) {
+            messageBox.classList.add('hidden');
+            messageBox.classList.remove('flex');
+        }
+    };
+
+
+    // --- API REGISTRATION LOGIC ---
+    async function handleFormSubmit(event) {
+        event.preventDefault(); 
+        
+        // 🏆 START LOADER
+        loader.style.display = 'flex';
+        submitButton.disabled = true;
+        submitButton.textContent = 'Creating Account...';
+        inlineMessage.classList.add('hidden'); 
+
+        // 🏆 CHECK FOR SIGNATURE BEFORE SUBMITTING
+        const signature = localStorage.getItem('pendingSignature');
+        if (!signature) {
+            loader.style.display = 'none';
+            alert("You must sign the Terms & Conditions first.");
+            window.location.href = "terms.html";
+            return;
+        }
+
+        const parsedSignature = JSON.parse(signature);
+        const registrationData = {
+            fullName: form.elements.fullName.value,
+            email: form.elements.email.value,
+            password: form.elements.password.value,
+            businessName: form.elements.businessName.value,
+            businessCategory: form.elements.businessCategory.value,
+            description: form.elements.description.value,
+            legalSignature: parsedSignature.fullName, // Combined signature
+            signatureDate: parsedSignature.agreedAt
+        };
+
+        try {
+            const response = await fetch(REGISTER_API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(registrationData)
+            });
+
+            const contentType = response.headers.get("content-type");
+            const isJson = contentType && contentType.indexOf("application/json") !== -1;
+            
+            let data = {};
+            if (isJson) {
+                data = await response.json();
+            } else if (!response.ok) {
+                throw new Error(`Server returned status ${response.status}.`);
+            }
+
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Registration failed.');
+            }
+
+            if (data.token) {
+                localStorage.setItem('jwtToken', data.token);
+            }
+            
+            localStorage.removeItem('pendingSignature'); // Clear signature memory
+            displayMessage(`Success! Your account has been created. Redirecting...`, false, true);
+            
+        } catch (error) {
+            loader.style.display = 'none'; // Hide loader on error
+            console.error("Registration Error: ", error);
+            displayMessage(`Error: ${error.message}`, true, false); 
+        } finally {
+            if (!localStorage.getItem('jwtToken') || inlineMessage.classList.contains('text-red-700')) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Business';
+            }
+        }
+    }
+    
+    form.addEventListener('submit', handleFormSubmit);
+    
+</script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Login | Campus Collective</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .loader-ring {
+            position: absolute; width: 150px; height: 150px; border: 3px solid transparent;
+            border-top: 3px solid #2563eb; border-bottom: 3px solid #ff6600; border-radius: 50%;
+            animation: spin-ring 1.5s linear infinite;
+        }
+        .loader-logo { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; animation: spin-3d 3s infinite ease-in-out; }
+        @keyframes spin-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-3d { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
+        .hidden-loader { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+
+    <div id="loader-overlay" class="hidden-loader">
+        <div class="logo-container">
+            <div class="loader-ring"></div>
+            <img src="Images/Campus collective logo origin.jpg" alt="Loading..." class="loader-logo">
+        </div>
+        <div class="mt-4 font-bold text-blue-600 uppercase tracking-widest">Verifying Account...</div>
+    </div>
+
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
+        <div class="text-center mb-8">
+            <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="h-20 w-20 mx-auto rounded-full mb-4 shadow-md">
+            <h2 class="text-3xl font-extrabold text-blue-900">Welcome Back</h2>
+            <p class="text-gray-500 mt-2">Login to your customer account</p>
+        </div>
+
+        <div id="message" class="hidden text-sm mb-4 p-3 rounded-lg text-center"></div>
+
+        <form id="loginForm" class="space-y-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Student Email</label>
+                <input type="email" id="email" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="yourname@student.com">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                <input type="password" id="password" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="••••••••">
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transform hover:scale-[1.02] transition-all shadow-lg">
+                Login
+            </button>
+        </form>
+
+        <p class="text-center mt-8 text-gray-600">
+            Don't have an account? <a href="customer-register.html" class="text-blue-600 font-bold hover:underline">Register</a>
+        </p>
+       
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080/api/auth/customer/login';
+        const form = document.getElementById('loginForm');
+        const loader = document.getElementById('loader-overlay');
+        const message = document.getElementById('message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loader.classList.remove('hidden-loader');
+            message.classList.add('hidden');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value,
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed.');
+                }
+                
+                // 🏆 SAVE BOTH TOKEN AND USER OBJECT
+                localStorage.setItem('jwtToken', data.token); 
+                localStorage.setItem('user', JSON.stringify(data.user)); 
+                
+                window.location.href = 'campus shop.html';
+
+            } catch (error) {
+                loader.classList.add('hidden-loader');
+                message.textContent = error.message; 
+                message.className = 'text-red-600 text-center mb-4 font-bold p-2 bg-red-50 rounded';
+                message.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

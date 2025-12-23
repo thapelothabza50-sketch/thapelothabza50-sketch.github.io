@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Campus Collective</title>
+     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <link rel="stylesheet" href="style.css">
+    <style>
+         
+.navbar {
+  background-color: #23569d;
+  color: #fff;
+  padding: 1em;
+  text-align: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+        .navbar ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .navbar li {
+            display: inline-block;
+            margin-right: 20px;
+        }
+        
+        .navbar a {
+            color: #fff;
+            text-decoration: none;
+        }
+       body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+
+
+
+.container {
+  text-align: center;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  width: 90%;
+  margin: 100px auto 0 auto;
+}
+
+
+h1 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+p {
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.option-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.card {
+    display: block;
+    width: 300px;
+    padding: 30px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #fff;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.landlord-card {
+    background: linear-gradient(135deg, #1abc9c, #2ecc71);
+}
+
+.student-card {
+    background: linear-gradient(135deg, #3498db, #9b59b6);
+}
+
+.card-content h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+}
+
+.card-content p {
+    font-size: 1rem;
+    margin: 0;
+    color: #f0f0f0;
+}
+
+
+
+
+
+
+
+    </style>
+</head>
+<header>
+        <nav class="navbar">
+         
+            <ul>
+                <li><a href="home.html">Home</a></li>
+                <li><a href="apply at uni.html">Apply@Universities</a></li>
+                <li><a href="czra more about us.html">About Us</a></li>
+                <li><a href="czra contact.html">Contact</a></li>
+                <li><a href="choose login.html">Login</a></li>
+                <li><a href="campus shop.html">Campus Store</a></li>
+                <li><a href="Learn More.html">Accomodations</a></li>
+            </ul>
+        </nav>
+    </header>
+<body>
+
+    <div class="container">
+        <h1>Welcome to Campus Collective</h1>
+        <p>Choose your path to get started.</p>
+
+        <div class="option-cards">
+            <a href="landlord.html" class="card landlord-card">
+                <div class="card-content">
+                    <h2>I am a Landlord🏬</h2>
+                    <p>List your accommodation and reach a wide network of students.</p>
+                </div>
+            </a>
+            <a href="seller-onboarding.html" class="card student-card">
+                <div class="card-content">
+                    <h2>I am a Student💰</h2>
+                    <p>Showcase your small business and connect with the community.</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

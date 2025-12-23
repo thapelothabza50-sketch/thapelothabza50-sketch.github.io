@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Your Account Type | Login</title>
+     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <style>
+        
+        /* FIX: Reset margins and add padding-top for fixed navbar */
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; /* Reset margin */
+            padding-top: 65px; /* Added padding to clear the fixed navbar */
+            background-color: #f4f4f9; 
+            display: flex; 
+            flex-direction: column; /* To stack content and footer */
+            justify-content: flex-start; 
+            align-items: center; 
+            min-height: 100vh; /* Ensure full height */
+            color: #333;
+        }
+
+        /* Navbar Styling */
+        .navbar {
+            background-color: #23569d;
+            color: #fff;
+            padding: 1em 0; /* Adjusted padding */
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .navbar ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .navbar li {
+            display: inline-block;
+            margin: 0 10px; /* Adjusted margin */
+        }
+        
+        .navbar a {
+            color: #fff;
+            text-decoration: none;
+            padding: 0.5em 0.8em;
+        }
+
+        /* Content Container */
+        .container { 
+            max-width: 800px; 
+            width: 90%; /* Make it responsive */
+            margin: 40px auto; /* Centered with top/bottom margin */
+            background: white; 
+            padding: 40px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+            text-align: center;
+            flex-grow: 1; /* Allows container to push footer down */
+        }
+        h1 { 
+            color: #333; 
+            border-bottom: 2px solid #eee; 
+            padding-bottom: 10px; 
+            margin-bottom: 30px; 
+        }
+        
+        /* User Selection Styles */
+        .selection-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .type-select-button {
+            background-color: #ffffff;
+            color: #333;
+            padding: 30px 15px;
+            border: 2px solid #ff9800; 
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-decoration: none; 
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+        }
+        
+        .type-select-button:hover {
+            background-color: #ff9800; 
+            color: white; 
+            box-shadow: 0 4px 8px rgba(255, 152, 0, 0.4);
+            transform: translateY(-2px); 
+        }
+        
+        .icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        /* 3. NEW: Footer Styling (Copied from apply at uni.html) */
+        footer {
+            background-color: #1a4178; 
+            color: #fff;
+            padding: 30px 20px;
+            margin-top: 40px; /* Add margin above footer */
+            font-size: 0.9em;
+            line-height: 1.6;
+            width: 100%; /* Ensure footer spans full width */
+        }
+
+        .footer-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap; 
+        }
+
+        .footer-section {
+            padding: 10px;
+            min-width: 200px;
+            margin-bottom: 20px;
+        }
+
+        .footer-section h4 {
+            color: #ff6600; 
+            margin-bottom: 15px;
+            border-bottom: 1px solid #3b669e; 
+            padding-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .footer-section p, .footer-section a {
+            color: #ccc;
+            text-decoration: none;
+            display: block; 
+            margin-bottom: 5px;
+        }
+
+        .footer-section a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .social-icons a {
+            display: inline-block;
+            margin-right: 15px;
+            font-size: 1.5em;
+            color: #fff;
+            transition: color 0.3s;
+        }
+
+        .social-icons a:hover {
+            color: #ff6600; 
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #3b669e;
+            margin-top: 20px;
+        }
+        /* End of Footer Styling */
+
+
+        /* Media Query for smaller screens (to stack buttons) */
+        @media (max-width: 700px) {
+            .selection-grid {
+                grid-template-columns: 1fr; /* Stack buttons vertically */
+            }
+            .footer-content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<header>
+        <nav class="navbar">
+         
+            <ul>
+                <li><a href="home.html">Home</a></li>
+                <li><a href="apply at uni.html">Apply@Universities</a></li>
+                <li><a href="czra more about us.html">About Us</a></li>
+                <li><a href="czra contact.html">Contact</a></li>
+                <li><a href="choose login.html">Login</a></li>
+                <li><a href="campus shop.html">Campus Store</a></li>
+                <li><a href="Learn More.html">Accomodations</a></li>
+            </ul>
+        </nav>
+    </header>
+<body>
+
+<div class="container">
+    <h1>Welcome Back! Please Select Your Account Type</h1>
+
+    <p style="color: #666;">Choose the option that describes how you interact with our platform to proceed to your specific login portal.</p>
+
+    <div class="selection-grid">
+        
+        <a href="login czra.html" class="type-select-button">
+            <span class="icon">💰</span> Seller
+        </a>
+
+        <a href="agent login.html" class="type-select-button">
+            <span class="icon">🤝</span> Agent
+        </a>
+
+        <a href="Admin.html" class="type-select-button">
+            <span class="icon">🧑🏼‍💻</span> Admin
+        </a>
+        
+    </div>
+</div>
+
+<footer>
+   
+    <div class="footer-bottom">
+        &copy; 2025 Campus Collective. All rights reserved. | Developed with 🧡 in SA.
+    </div>
+</footer>
+
+</body>
+</html>

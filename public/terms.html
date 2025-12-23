@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Terms | Campus Collective</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .signature-font { font-family: 'Dancing Script', cursive; }
+    </style>
+</head>
+<body class="bg-gray-100 py-10 px-4">
+
+    <div class="max-w-4xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden">
+        <div class="bg-blue-900 p-8 text-white flex items-center gap-4">
+            <img src="Images/campus collective icon.ico" alt="Icon" class="w-12 h-12 rounded-full border-2 border-white">
+            <div>
+                <h1 class="text-3xl font-bold">Seller Master Agreement</h1>
+                <p class="opacity-80">Campus Collective Marketplace (South Africa)</p>
+            </div>
+        </div>
+
+        <div class="p-8 md:p-12 overflow-y-auto max-h-[600px] border-b text-gray-700 leading-relaxed">
+            <h2 class="text-xl font-bold text-blue-900 mb-4 uppercase tracking-wide">1. Acceptance of Terms</h2>
+            <p class="mb-6">By registering as a seller on Campus Collective, you enter into a legally binding agreement. You acknowledge that you have read, understood, and agree to be bound by these terms in accordance with the <strong>Electronic Communications and Transactions Act 25 of 2002 (ECTA)</strong>.</p>
+
+            <h2 class="text-xl font-bold text-blue-900 mb-4 uppercase tracking-wide">2. The Escrow Payment Model</h2>
+            <p class="mb-4">To ensure student safety, Campus Collective operates an <strong>Escrow System</strong>:</p>
+            <ul class="list-disc pl-6 mb-6 space-y-2">
+                <li>Funds paid by the Buyer are held securely by Campus Collective.</li>
+                <li>The Seller is notified of the payment and must deliver the item within 48 hours.</li>
+                <li>Funds are only released to the Seller's wallet once the Buyer confirms receipt of the item.</li>
+                <li>If a dispute arises, Campus Collective reserves the right to hold funds until a resolution is reached.</li>
+            </ul>
+
+            <h2 class="text-xl font-bold text-red-600 mb-4 uppercase tracking-wide">3. Account Status & Inactivity Fees</h2>
+            <div class="bg-red-50 p-6 rounded-xl border-l-4 border-red-500 mb-6">
+                <p class="mb-4 font-semibold text-red-700">To maintain a high-quality marketplace, the following inactivity rules apply:</p>
+                <div class="space-y-4">
+                    <div class="flex gap-4">
+                        <div class="bg-red-100 text-red-700 font-bold px-3 py-1 rounded h-fit">60 Days</div>
+                        <p>Accounts with no login or activity for <strong>60 days</strong> will be temporarily locked. A <strong>Reconnection Fee of R50.00</strong> will be charged to reactivate the account.</p>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="bg-red-700 text-white font-bold px-3 py-1 rounded h-fit">90 Days</div>
+                        <p>Accounts with no activity for <strong>90 days</strong> will be permanently deleted from our database. Any new account creation by the same user will require a <strong>Setup Fee of R100.00</strong>.</p>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold text-blue-900 mb-4 uppercase tracking-wide">4. Order Fulfillment & Refunds</h2>
+            <p class="mb-6">Sellers must keep stock levels accurate. If a seller fails to fulfill 3 orders in a row, the account will be flagged for review. In the event of damaged items, Escrow funds are returned to the student, and the seller is responsible for the return shipping/collection.</p>
+
+            <h2 class="text-xl font-bold text-blue-900 mb-4 uppercase tracking-wide">5. Illegal & Suspicious Behavior</h2>
+            <p class="mb-6">Campus Collective has a <strong>Zero Tolerance Policy</strong>. Accounts will be immediately deactivated without notice for:
+            <br>• Selling stolen property or counterfeit goods.
+            <br>• Harassment of students or campus staff.
+            <br>• Attempting to bypass the Escrow system (asking for direct EFTs).
+            <br>• Multiple negative reviews or delivery failures.</p>
+
+            <h2 class="text-xl font-bold text-blue-900 mb-4 uppercase tracking-wide">6. Verification</h2>
+            <p class="mb-6">Campus Collective reserves the right to request a copy of the seller's Student ID at any time to verify identity and maintain the security of the campus marketplace.</p>
+
+            <h2 class="text-xl font-bold text-blue-900 mb-4 uppercase tracking-wide">7. Fees and Payouts</h2>
+            <p class="mb-6">Registration is free. However, a platform commission (10%) and transaction fees (3.5% + R2.00) are deducted from each successful sale before the final payout is released to the seller's bank account.</p>
+        </div>
+
+        <div class="p-8 bg-gray-50">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Digital Signature & Binding</h3>
+            <p class="text-sm text-gray-500 mb-6">By typing your name and clicking below, you legally bind yourself to these terms. You will then be redirected to complete your business registration.</p>
+            
+            <div class="grid md:grid-cols-2 gap-6 items-end">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Full Legal Name</label>
+                    <input type="text" id="signer-name" placeholder="John Doe" 
+                        class="w-full p-4 border-b-2 border-gray-300 bg-transparent focus:border-blue-600 outline-none text-2xl signature-font text-blue-900">
+                </div>
+                <div>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" id="terms-checkbox" class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-sm text-gray-700">I agree to the Inactivity Fees and all terms mentioned above.</span>
+                    </label>
+                    <button onclick="submitSignature()" class="mt-4 w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-4 rounded-xl shadow-lg transition duration-200">
+                        Sign & Proceed to Form
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function submitSignature() {
+            const name = document.getElementById('signer-name').value.trim();
+            const isChecked = document.getElementById('terms-checkbox').checked;
+
+            if (name === "") {
+                alert("Please type your full legal name to sign.");
+                return;
+            }
+
+            if (!isChecked) {
+                alert("You must check the box to accept the inactivity fees.");
+                return;
+            }
+
+            // Save signature temporarily in browser memory
+            const signatureData = {
+                fullName: name,
+                agreedAt: new Date().toISOString()
+            };
+            
+            localStorage.setItem('pendingSignature', JSON.stringify(signatureData));
+            
+            alert("Terms signed! Now, please complete your business registration details.");
+            
+            // Redirect back to your registration form (studbusiness.html)
+            window.location.href = "studbusiness.html"; 
+        }
+    </script>
+</body>
+</html>

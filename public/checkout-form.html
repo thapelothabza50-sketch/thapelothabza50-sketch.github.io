@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | Campus Collective</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 🏆 3D SPINNING LOADER CSS */
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .loader-ring {
+            position: absolute; width: 150px; height: 150px; border: 3px solid transparent;
+            border-top: 3px solid #2563eb; border-bottom: 3px solid #ff6600; border-radius: 50%;
+            animation: spin-ring 1.5s linear infinite;
+        }
+        .loader-logo {
+            width: 110px; height: 110px; border-radius: 50%; object-fit: cover;
+            animation: spin-3d 3s infinite ease-in-out; box-shadow: 0 0 25px rgba(59, 130, 246, 0.4); z-index: 10;
+        }
+        @keyframes spin-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-3d { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
+        .loader-text { margin-top: 30px; font-weight: 700; color: #2563eb; letter-spacing: 2px; text-transform: uppercase; }
+        .hidden-loader { display: none !important; }
+
+        /* 🏆 CAMPUS SHOP FOOTER STYLES */
+        footer {
+            background-color: #174483; color: white; padding: 30px 20px; margin-top: 40px;
+            font-size: 0.9em; line-height: 1.6; width: 100%;
+        }
+        .footer-content {
+            max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; 
+        }
+        .footer-section { flex: 1; margin: 10px; min-width: 200px; }
+        .footer-section h3 { border-bottom: 1px solid #ff6600; padding-bottom: 10px; margin-bottom: 15px; color: #ff6600; }
+        .footer-bottom {
+            text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 20px; font-size: 0.8em;
+        }
+
+        label { display: block; font-weight: 600; color: #374151; margin-bottom: 4px; font-size: 0.875rem; }
+        input, select { margin-bottom: 16px; width: 100%; border: 1px solid #d1d5db; padding: 12px; border-radius: 8px; outline: none; }
+        input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+
+        /* 🏆 POSTAL MODAL STYLES */
+        #postal-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10000;
+        }
+        .modal-content {
+            background: white; width: 95%; max-width: 500px; border-radius: 12px; padding: 20px; max-height: 85vh; display: flex; flex-direction: column;
+        }
+        #postal-results { overflow-y: auto; flex-grow: 1; margin-top: 10px; }
+    </style>
+</head>
+<body class="bg-gray-50 flex flex-col min-h-screen">
+
+    <div id="loader-overlay" class="hidden-loader">
+        <div class="logo-container">
+            <div class="loader-ring"></div>
+            <img src="Images/Campus collective logo origin.jpg" alt="Loading..." class="loader-logo">
+        </div>
+        <div class="loader-text">Processing Order...</div>
+    </div>
+    <div id="postal-modal">
+        <div class="modal-content shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-blue-900">SA Postal Code Search</h3>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-red-500 font-bold text-2xl">&times;</button>
+            </div>
+            
+            <button onclick="enableManualEntry()" class="w-full mb-4 bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold py-3 rounded-lg border-2 border-dashed border-orange-300 transition">
+                Can't find your area? Enter manually
+            </button>
+
+            <input type="text" id="postal-search-input" placeholder="Type Suburb or Code (e.g. Pretoria, Kabokwen)..." class="mb-2 border-2 border-blue-100 focus:border-blue-500">
+            
+            <div id="postal-results" class="space-y-2 pr-2">
+                </div>
+        </div>
+    </div>
+
+    <nav class="bg-white shadow-md p-4 sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="h-10 w-10 rounded-full">
+                <span class="text-xl font-bold text-blue-900">Checkout</span>
+            </div>
+            <a href="cart.html" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">← Back to Cart</a>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-4xl mx-auto p-6 w-full">
+        <form id="checkout-form" class="bg-white shadow-lg rounded-xl p-8">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Shipping Details</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                <div><label>First Name</label><input type="text" id="shipping-name" required></div>
+                <div><label>Surname</label><input type="text" id="shipping-surname" required></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                <div><label>Email Address</label><input type="email" id="shipping-email" required></div>
+                <div><label>Phone Number</label><input type="tel" id="shipping-phone" required></div>
+            </div>
+
+            <h2 class="text-lg font-bold mt-4 mb-4 text-blue-800">Delivery Address</h2>
+            
+            <div>
+                <label>Street Address</label>
+                <input type="text" id="street" placeholder="House number and street name" required>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                <div><label>Suburb</label><input type="text" id="suburb" required></div>
+                <div><label>City / Town</label><input type="text" id="city" required></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                <div>
+                    <label>Province</label>
+                    <select id="province" required>
+                        <option value="">Select Province</option>
+                        <option value="Gauteng">Gauteng</option>
+                        <option value="Western Cape">Western Cape</option>
+                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                        <option value="Eastern Cape">Eastern Cape</option>
+                        <option value="Free State">Free State</option>
+                        <option value="Limpopo">Limpopo</option>
+                        <option value="Mpumalanga">Mpumalanga</option>
+                        <option value="North West">North West</option>
+                        <option value="Northern Cape">Northern Cape</option>
+                    </select>
+                </div>
+                <div class="relative">
+                    <label>Postal Code</label>
+                    <div class="relative">
+                        <input type="text" id="postal-code" placeholder="Click to search..." readonly required onclick="handlePostalInputClick()" class="cursor-pointer pr-10 bg-blue-50 font-bold text-blue-800">
+                        <div id="search-icon-container" class="absolute inset-y-0 right-3 top-[-15px] flex items-center pointer-events-none text-blue-400">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 bg-gray-50 p-6 rounded-lg">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Order Summary</h2>
+                <div id="order-summary-items" class="space-y-3 mb-4 text-gray-700"></div>
+                <div class="text-xl font-bold text-blue-900 flex justify-between pt-4 border-t">
+                    <span>Total Amount:</span>
+                    <span id="total-price">R0.00</span>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full mt-8 bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg text-lg">
+                Place Order (Pay on Collection)
+            </button>
+        </form>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section"><h3>About Us</h3><p>Campus Collective Shop is your dedicated marketplace for student essentials.</p></div>
+            <div class="footer-section"><h3>Quick Links</h3><p><a href="home.html">Home</a><br><a href="campus shop.html">Shop</a></p></div>
+            <div class="footer-section"><h3>Contact Us</h3><p>Email: support@campuscollective.co.za</p></div>
+        </div>
+        <div class="footer-bottom">&copy; 2025 Campus Collective. All Rights Reserved.</div>
+    </footer>
+
+    <script>
+        // 🏆 EXPANDED POSTAL DATA (Existing Data Preserved)
+        const saPostalCodes = [{"suburb": "Aandrus", "city": "Bloemfontein", "code": "9301"},{"suburb": "Nelspruit", "city": "Mbombela", "code": "1200"}, {"suburb": "Abbotsford", "city": "Johannesburg", "code": "2192"}, {"suburb": "Abel", "city": "Polokwane", "code": "884"}, {"suburb": "Acornhoek", "city": "Nelspruit", "code": "1360"}, {"suburb": "Addington", "city": "Durban", "code": "4001"}, {"suburb": "Addney", "city": "Polokwane", "code": "712"}, {"suburb": "Aeroton", "city": "Johannesburg", "code": "2190"}, {"suburb": "African Jewel", "city": "Polokwane", "code": "699"}, {"suburb": "Airdlin", "city": "Johannesburg", "code": "2157"}, {"suburb": "Akasia", "city": "Pretoria", "code": "182"}, {"suburb": "Alberton", "city": "Johannesburg", "code": "1449"}, {"suburb": "Albertsville", "city": "Johannesburg", "code": "2195"}, {"suburb": "Amanzimtoti", "city": "Durban", "code": "4126"}, {"suburb": "Arcadia", "city": "Pretoria", "code": "83"}, {"suburb": "Auckland Park", "city": "Johannesburg", "code": "2092"}, {"suburb": "Belhar", "city": "Cape Town", "code": "7493"}, {"suburb": "Bellville", "city": "Cape Town", "code": "7530"}, {"suburb": "Bloemfontein Central", "city": "Bloemfontein", "code": "9301"}, {"suburb": "Braamfontein", "city": "Johannesburg", "code": "2001"}, {"suburb": "Cape Town CBD", "city": "Cape Town", "code": "8001"}, {"suburb": "Centurion", "city": "Pretoria", "code": "157"}, {"suburb": "Chweni", "city": "Kabokweni", "code": "1250"}, {"suburb": "Daantjie", "city": "Kanyamazane", "code": "1215"}, {"suburb": "Durban CBD", "city": "Durban", "code": "4001"}, {"suburb": "Embonisweni", "city": "Kabokweni", "code": "1252"}, {"suburb": "Gutshwa", "city": "Kabokweni", "code": "1247"}, {"suburb": "Hatfield", "city": "Pretoria", "code": "28"}, {"suburb": "Kabokweni", "city": "White River", "code": "1245"}, {"suburb": "Kanyamazane", "city": "Kanyamazane", "code": "1214"}, {"suburb": "Legogote", "city": "White River", "code": "1257"}, {"suburb": "Luphisa", "city": "Kanyamazane", "code": "1217"}, {"suburb": "Makoko", "city": "Kabokweni", "code": "1251"}, {"suburb": "Malekutu", "city": "White River", "code": "1256"}, {"suburb": "Mganduzweni", "city": "White River", "code": "1240"}, {"suburb": "Msogwaba", "city": "Kanyamazane", "code": "1215"}, {"suburb": "Nelspruit", "city": "Nelspruit", "code": "1201"}, {"suburb": "Pienaar", "city": "Kanyamazane", "code": "1214"}, {"suburb": "Polokwane", "city": "Polokwane", "code": "700"}, {"suburb": "Pretoria Central", "city": "Pretoria", "code": "2"}, {"suburb": "Rondebosch", "city": "Cape Town", "code": "7700"}, {"suburb": "Soweto", "city": "Johannesburg", "code": "1818"}, {"suburb": "Stellenbosch", "city": "Stellenbosch", "code": "7600"}, {"suburb": "Sunnyside", "city": "Pretoria", "code": "2"}, {"suburb": "Swalala", "city": "White River", "code": "1254"}, {"suburb": "White River", "city": "Nelspruit", "code": "1240"}, {"suburb": "Witrivier", "city": "White River", "code": "1240"}];
+
+        const modal = document.getElementById('postal-modal');
+        const searchInput = document.getElementById('postal-search-input');
+        const resultsDiv = document.getElementById('postal-results');
+        const postalInput = document.getElementById('postal-code');
+        const checkoutForm = document.getElementById('checkout-form');
+        const loader = document.getElementById('loader-overlay');
+
+        // 🏆 NEW: Form Submission Handler with Loader
+        checkoutForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Show the 3D spinning loader
+            loader.classList.remove('hidden-loader');
+
+            // Simulate processing time before final action
+            setTimeout(() => {
+                // Here you would normally send the data to a database
+                alert('Thank you! Your order has been placed successfully. You can pay on collection.');
+                
+                // Clear cart and redirect
+                localStorage.removeItem('cart');
+                window.location.href = 'home.html';
+            }, 3000); // 3-second delay to show off the loader
+        });
+
+        function handlePostalInputClick() { if (postalInput.readOnly) openModal(); }
+
+        function openModal() { 
+            modal.style.display = 'flex'; 
+            renderResults(saPostalCodes.slice(0, 50)); 
+            setTimeout(() => searchInput.focus(), 100); 
+        }
+
+        function closeModal() { modal.style.display = 'none'; }
+
+        function enableManualEntry() {
+            postalInput.readOnly = false;
+            postalInput.placeholder = "Enter code...";
+            postalInput.value = "";
+            postalInput.classList.remove('bg-blue-50', 'cursor-pointer');
+            document.getElementById('search-icon-container').style.display = 'none';
+            closeModal();
+            postalInput.focus();
+        }
+
+        function renderResults(data) {
+            resultsDiv.innerHTML = data.map(item => `
+                <div onclick="selectPostal('${item.suburb}', '${item.city}', '${item.code}')" 
+                     class="p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition border-blue-100 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-blue-800">${item.suburb}</div>
+                        <div class="text-xs text-gray-500">${item.city}</div>
+                    </div>
+                    <div class="font-mono font-bold text-orange-600">${item.code}</div>
+                </div>
+            `).join('') || '<p class="text-center text-red-500 font-bold p-4">Not found. Use Manual Entry above.</p>';
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase().trim();
+            if (val.length < 2) { renderResults(saPostalCodes.slice(0, 50)); return; }
+            const filtered = saPostalCodes.filter(item => 
+                item.suburb.toLowerCase().includes(val) || item.code.includes(val) || item.city.toLowerCase().includes(val)
+            );
+            renderResults(filtered);
+        });
+
+        function selectPostal(sub, city, code) {
+            document.getElementById('suburb').value = sub;
+            document.getElementById('city').value = city;
+            postalInput.value = code;
+            closeModal();
+        }
+
+        function initCheckout() {
+            lucide.createIcons(); 
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const user = JSON.parse(userData);
+                document.getElementById('shipping-name').value = user.firstName || '';
+                document.getElementById('shipping-surname').value = user.surname || '';
+                document.getElementById('shipping-email').value = user.email || '';
+                document.getElementById('shipping-phone').value = user.phone || '';
+            }
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let total = 0;
+            const summaryDiv = document.getElementById('order-summary-items');
+            summaryDiv.innerHTML = cart.map(item => {
+                total += item.price * item.quantity;
+                return `<div class="flex justify-between"><span>${item.name} (x${item.quantity})</span><span>R${(item.price * item.quantity).toFixed(2)}</span></div>`;
+            }).join('');
+            document.getElementById('total-price').textContent = `R${total.toFixed(2)}`;
+        }
+
+        window.onload = initCheckout;
+    </script>
+</body>
+</html>

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Seller Dashboard</title>
+    <style>
+        :root {
+            --primary: #004d99; /* Deep Blue */
+            --accent: #ffcc00; /* Yellow/Gold */
+            --bg: #f4f7f9;
+            --text: #333;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+        }
+        .header {
+            background-color: var(--primary);
+            color: #fff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        .header button {
+            background-color: var(--accent);
+            color: var(--primary);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        /* --- Sidebar Navigation --- */
+        .sidebar {
+            width: 250px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            min-height: 100vh;
+        }
+        .sidebar a {
+            display: block;
+            padding: 12px 10px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            color: var(--text);
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background-color: var(--primary);
+            color: #fff;
+        }
+
+        /* --- Main Content Area --- */
+        .main-content {
+            flex-grow: 1;
+            padding: 30px;
+        }
+        .section-title {
+            color: var(--primary);
+            border-bottom: 3px solid var(--accent);
+            padding-bottom: 5px;
+            margin-bottom: 25px;
+        }
+        
+        /* --- Product Management Table --- */
+        .product-table, .order-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .product-table th, .product-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .product-table th {
+            background-color: var(--primary);
+            color: white;
+        }
+        .action-btn {
+            padding: 5px 10px;
+            margin-right: 5px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .edit-btn { background-color: #008080; color: white; }
+        .delete-btn { background-color: #dc3545; color: white; }
+        
+        /* --- Add Product Form --- */
+        .form-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .form-section input[type="text"],
+        .form-section textarea,
+        .form-section input[type="number"],
+        .form-section input[type="file"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-section button {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        /* --- Content Toggling --- */
+        .dashboard-section {
+            display: none;
+        }
+        .dashboard-section.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Seller Dashboard: Boniville Campus</h1>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <a href="#" class="active" onclick="showSection('products-list', this)">📦 My Products</a>
+            <a href="#" onclick="showSection('add-product', this)">➕ Add New Product</a>
+            <a href="#" onclick="showSection('orders', this)">📝 Orders & Sales</a>
+            <a href="#" onclick="showSection('payments', this)">💳 Payments & Payouts</a>
+        </div>
+
+        <div class="main-content">
+            
+            <div id="products-list" class="dashboard-section active">
+                <h2 class="section-title">📦 My Current Listings</h2>
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Price (R)</th>
+                            <th>Stock</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-list-body">
+                        <tr>
+                            <td>101</td>
+                            <td><img src="https://via.placeholder.com/50x50?text=Product" alt="Thumb" style="width:50px; height:50px;"></td>
+                            <td>Study Lamp XL</td>
+                            <td>189.99</td>
+                            <td>25</td>
+                            <td>
+                                <button class="action-btn edit-btn" onclick="editProduct(101)">Edit</button>
+                                <button class="action-btn delete-btn" onclick="deleteProduct(101)">Delete</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="add-product" class="dashboard-section">
+                <h2 class="section-title">➕ Add New Product</h2>
+                <div class="form-section">
+                    <form id="add-product-form">
+                        <label for="p-name">Product Name:</label>
+                        <input type="text" id="p-name" required placeholder="e.g., Boniville T-Shirt">
+
+                        <label for="p-price">Price (R):</label>
+                        <input type="number" id="p-price" step="0.01" required placeholder="e.g., 350.00">
+
+                        <label for="p-stock">Stock Quantity:</label>
+                        <input type="number" id="p-stock" required placeholder="e.g., 50">
+                        
+                        <label for="p-desc">Description:</label>
+                        <textarea id="p-desc" rows="4" required placeholder="A brief description of your product..."></textarea>
+                        
+                        <label for="p-image">Product Image:</label>
+                        <input type="file" id="p-image" accept="image/*" required>
+
+                        <button type="submit">Submit Product for Listing</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="orders" class="dashboard-section">
+                <h2 class="section-title">📝 Pending and Completed Orders</h2>
+                <table class="order-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Item Count</th>
+                            <th>Total (R)</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#0045</td>
+                            <td>2025-09-29</td>
+                            <td>2 items</td>
+                            <td>539.99</td>
+                            <td><span style="color: orange;">Pending Shipment</span></td>
+                            <td><button class="action-btn edit-btn">View Details</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="payments" class="dashboard-section">
+                <h2 class="section-title">💳 Payout Information</h2>
+                <p>This section would display your earned balance, last payout date, and allow you to set your bank details for automated transfers (requires secure backend).</p>
+                <div style="border: 1px dashed #ddd; padding: 20px; text-align: center;">
+                    <p>Current Balance: <strong>R4,500.00</strong></p>
+                    <p>Next Payout Date: October 5, 2025</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Function to toggle between sidebar sections
+        function showSection(id, element) {
+            // Hide all sections
+            document.querySelectorAll('.dashboard-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            // Show the selected section
+            document.getElementById(id).classList.add('active');
+
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar a').forEach(a => {
+                a.classList.remove('active');
+            });
+            element.classList.add('active');
+        }
+
+        // --- PLACEHOLDER FUNCTIONS (THESE NEED BACKEND CODE) ---
+        
+        function logout() {
+            alert("Logging out... (Needs backend to end session)");
+            // window.location.href = 'login.html'; // Redirect to login page
+        }
+
+        // The key function to add the product
+        document.getElementById('add-product-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // 1. COLLECT DATA (INCLUDING THE IMAGE FILE)
+            const productName = document.getElementById('p-name').value;
+            const productPrice = document.getElementById('p-price').value;
+            const productStock = document.getElementById('p-stock').value;
+            const productDesc = document.getElementById('p-desc').value;
+            const productImage = document.getElementById('p-image').files[0]; // Get the actual file
+
+            // 2. BACKEND CONNECTION (THIS IS THE MISSING PART)
+            // You would use the 'fetch' API to send this data to your server API endpoint:
+            /*
+            const formData = new FormData();
+            formData.append('name', productName);
+            formData.append('price', productPrice);
+            formData.append('image', productImage); // Sending the file
+            // ... and so on
+
+            fetch('/api/seller/add-product', {
+                method: 'POST',
+                body: formData 
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    alert('Product uploaded successfully and is now live!');
+                    // OPTIONAL: Reload the products list
+                    showSection('products-list', document.querySelector('.sidebar a'));
+                } else {
+                    alert('Upload failed: ' + data.message);
+                }
+            });
+            */
+            
+            // Temporary Success Message
+            alert(`SUCCESS (Frontend only): Product "${productName}" ready to be uploaded! \n\nCheck your browser's console for the actual required network code.`);
+            this.reset(); // Clear the form
+        });
+
+        function editProduct(id) {
+            alert(`Editing product ID: ${id}. This would load a pre-filled edit form.`);
+        }
+
+        function deleteProduct(id) {
+            if (confirm(`Are you sure you want to delete product ID ${id}?`)) {
+                alert(`Product ID ${id} deleted. (Needs server request to permanently remove from database)`);
+            }
+        }
+        
+    </script>
+</body>
+</html>

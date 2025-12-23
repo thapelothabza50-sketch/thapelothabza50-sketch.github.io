@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Management Dashboard | Campus Collective</title>
+     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; }
+        .container { max-width: 1400px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .logo-area { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 25px; }
+        th { background-color: #f8fafc; text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: bold; }
+
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ffffff; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+            transition: opacity 0.8s ease-out, visibility 0.8s;
+            visibility: hidden; opacity: 0;
+        }
+        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .loader-ring {
+            position: absolute; width: 150px; height: 150px;
+            border: 3px solid transparent; border-top: 3px solid #2563eb;
+            border-bottom: 3px solid #ff6600; border-radius: 50%;
+            animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #payment-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+<div id="loader-overlay">
+    <div class="logo-container">
+        <div class="loader-ring"></div>
+        <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="w-24 h-24 rounded-full z-10 shadow-2xl">
+    </div>
+    <p id="loader-text" class="mt-8 text-blue-600 font-black uppercase tracking-widest animate-pulse">Processing...</p>
+</div>
+
+<div id="payment-modal">
+    <div class="bg-white p-8 rounded-2xl w-[500px] shadow-2xl relative border-t-8 border-blue-600">
+        <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-2xl text-gray-400 hover:text-black">&times;</button>
+        <h2 class="text-2xl font-black text-blue-600 mb-4 uppercase text-center">Agent Payout Portal</h2>
+        <div id="payment-content" class="space-y-4"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="logo-area">
+        <div class="flex items-center gap-4">
+            <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="w-16 h-16 rounded-full object-cover">
+            <h1 class="text-2xl font-black text-gray-800 uppercase tracking-tight">Management Command Center</h1>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="triggerLoader('Syncing Data...', 1200).then(()=>location.reload())" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-bold border hover:bg-gray-200 transition">🔄 Refresh</button>
+            <button onclick="openCalculator()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-bold border border-blue-300 hover:bg-blue-200 transition">🧮 Commission Calcs</button>
+            <button onclick="logout()" class="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition">Secure Logout</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div class="bg-blue-600 p-6 rounded-xl text-white shadow-lg">
+            <h3 class="text-lg font-semibold opacity-80">Total Revenue</h3>
+            <p id="stat-revenue" class="text-3xl font-bold">R 0.00</p>
+        </div>
+        <div class="bg-emerald-600 p-6 rounded-xl text-white shadow-lg">
+            <h3 class="text-lg font-semibold opacity-80">Total Orders</h3>
+            <p id="stat-orders" class="text-3xl font-bold">0</p>
+        </div>
+        <div class="bg-purple-600 p-6 rounded-xl text-white shadow-lg">
+            <h3 class="text-lg font-semibold opacity-80">Escrow Held</h3>
+            <p id="escrow-total" class="text-3xl font-bold">R 0.00</p>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-xl text-white shadow-lg">
+            <h3 class="text-lg font-semibold opacity-80">Personnel</h3>
+            <p id="stat-users" class="text-3xl font-bold">0</p>
+        </div>
+    </div>
+
+    <div class="mb-4 flex justify-between">
+        <input type="text" id="globalSearch" onkeyup="handleGlobalSearch()" placeholder="Search..." class="w-1/3 p-2 border-2 border-blue-100 rounded-lg outline-none text-sm shadow-sm">
+        <button onclick="printAllRecruitsPDF()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-green-700 transition">📄 Print Master Recruit List</button>
+    </div>
+
+    <div class="flex justify-between items-center mb-6 border-b border-gray-200">
+        <div class="flex gap-8">
+            <button onclick="switchTab('agents')" id="tab-agents" class="tab-active py-2 px-4">Internal Agents</button>
+            <button onclick="switchTab('profiles')" id="tab-profiles" class="py-2 px-4">Marketplace Sellers</button>
+            <button onclick="switchTab('recruits')" id="tab-recruits" class="py-2 px-4">Student Recruits</button>
+            <button onclick="switchTab('escrow')" id="tab-escrow" class="py-2 px-4">Escrow Tracker</button>
+        </div>
+        <button onclick="addNewAccount()" class="bg-black text-white px-4 py-2 rounded-lg font-bold mb-2 hover:bg-gray-800 transition">+Add New Agent</button>
+    </div>
+
+    <div id="section-agents" class="space-y-6">
+        <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr><th>Agent Name</th><th>Agent ID</th><th>Contact</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="agent-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="section-profiles" class="hidden space-y-6">
+        <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr><th>Seller / Business</th><th>Contact info</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="profile-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="section-recruits" class="hidden space-y-6">
+        <div class="flex gap-4 items-center bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <span class="text-sm font-bold text-blue-800">Print Accommodation:</span>
+            <select id="acc-filter" class="p-2 border rounded-lg text-sm bg-white"></select>
+            <button onclick="printAccPDF()" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold text-xs hover:bg-blue-700 transition">Print List</button>
+        </div>
+        <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr><th>Student</th><th>Accommodation</th><th>Agent</th><th>Date Applied</th><th>Status</th><th>Control</th></tr>
+                </thead>
+                <tbody id="recruit-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="section-escrow" class="hidden space-y-6">
+        <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr><th>Order ID</th><th>Customer</th><th>Amount</th><th>Escrow Status</th><th>Date</th><th>Control</th></tr>
+                </thead>
+                <tbody id="escrow-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="calc-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-[2000]">
+    <div class="bg-white p-8 rounded-3xl w-96 shadow-2xl">
+        <h2 class="text-2xl font-black mb-6 flex items-center gap-2">🧮 Commission <span class="text-blue-600">Pro</span></h2>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Calculation Type</label>
+                <select id="calc-mode" onchange="toggleManualInput()" class="w-full p-3 bg-gray-50 border rounded-xl font-bold">
+                    <option value="seller">Seller Marketplace (10%)</option>
+                    <option value="agent">Internal Agent (R250/unit)</option>
+                    <option value="manual">Manual Custom Payout</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Item/Unit Price</label>
+                <input type="number" id="calc-price" oninput="runCalc()" placeholder="0.00" class="w-full p-3 bg-gray-50 border rounded-xl font-bold">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Quantity/Units</label>
+                <input type="number" id="calc-qty" oninput="runCalc()" value="1" class="w-full p-3 bg-gray-50 border rounded-xl font-bold">
+            </div>
+            <div id="manual-val-div" class="hidden">
+                <label class="block text-xs font-bold text-blue-400 uppercase mb-1">Custom Payout per Unit</label>
+                <input type="number" id="calc-manual-val" oninput="runCalc()" placeholder="0.00" class="w-full p-3 bg-blue-50 border border-blue-200 rounded-xl font-bold text-blue-700">
+            </div>
+            <div class="bg-gray-900 p-5 rounded-2xl text-white space-y-2 mt-4">
+                <div class="flex justify-between border-b border-white/10 pb-2">
+                    <span class="text-xs text-gray-400">Campus Admin:</span>
+                    <span id="calc-admin" class="font-bold text-blue-400">R 0.00</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-xs text-gray-400">Partner Payout:</span>
+                    <span id="calc-partner" class="font-bold text-green-400">R 0.00</span>
+                </div>
+            </div>
+        </div>
+        <button onclick="closeCalculator()" class="w-full mt-6 bg-gray-100 py-3 rounded-xl font-bold text-gray-600 hover:bg-gray-200 transition uppercase text-sm">Close Tool</button>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = '/api/admin';
+    const token = localStorage.getItem('jwtToken');
+    const loader = document.getElementById('loader-overlay');
+    const loaderText = document.getElementById('loader-text');
+    
+    let allRecruits = [];
+    let allUsers = [];
+
+    function triggerLoader(text, duration = 1200) {
+        loaderText.textContent = text;
+        loader.style.visibility = 'visible'; loader.style.opacity = '1';
+        return new Promise(resolve => setTimeout(() => {
+            loader.style.opacity = '0'; loader.style.visibility = 'hidden';
+            setTimeout(resolve, 500);
+        }, duration));
+    }
+
+    function switchTab(tab) {
+        ['profiles', 'recruits', 'escrow', 'agents'].forEach(t => {
+            document.getElementById('section-' + t).classList.add('hidden');
+            document.getElementById('tab-' + t).classList.remove('tab-active');
+        });
+        document.getElementById('section-' + tab).classList.remove('hidden');
+        document.getElementById('tab-' + tab).classList.add('tab-active');
+
+        if(tab === 'profiles' || tab === 'agents') fetchProfiles();
+        if(tab === 'recruits') fetchRecruits();
+        if(tab === 'escrow') fetchEscrowOrders();
+    }
+
+    async function fetchProfiles() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/profiles`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            allUsers = data;
+            renderAllUsers(data);
+            document.getElementById('stat-users').innerText = data.length;
+        } catch (e) { console.error(e); }
+    }
+
+    function renderAllUsers(users) {
+        const agentBody = document.getElementById('agent-table-body');
+        const sellerBody = document.getElementById('profile-table-body');
+        
+        const agents = users.filter(u => u.role === 'Agent' || u.role === 'agent');
+        const sellers = users.filter(u => u.role !== 'Agent' && u.role !== 'agent');
+
+        agentBody.innerHTML = agents.map(u => `
+            <tr class="hover:bg-blue-50 cursor-pointer" onclick="openAgentPayment('${u._id}')">
+                <td><b>${u.fullName}</b><br><small class="text-gray-400">${u.email}</small></td>
+                <td><span class="text-blue-600 font-mono font-bold">${u.agentId || '---'}</span></td>
+                <td>${u.phone || 'N/A'}</td>
+                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
+                <td>
+                    <div class="flex gap-2">
+                        <button onclick="event.stopPropagation(); toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 text-gray-700 px-3 py-1 rounded text-xs font-bold border">LOCK/UNLOCK</button>
+                        <button onclick="event.stopPropagation(); deleteAccount('${u._id}', 'Agent')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-xs font-bold border border-red-200">DELETE</button>
+                    </div>
+                </td>
+            </tr>`).join('');
+
+        sellerBody.innerHTML = sellers.map(u => `
+            <tr>
+                <td><b>${u.businessName || u.fullName}</b><br><small>${u.email}</small></td>
+                <td>${u.phone || 'N/A'}</td>
+                <td>${u.role}</td>
+                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
+                <td>
+                    <button onclick="toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 text-gray-700 px-3 py-1 rounded text-xs font-bold border mr-2">LOCK/UNLOCK</button>
+                    <button onclick="deleteAccount('${u._id}', 'Seller')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-xs font-bold border">DELETE</button>
+                </td>
+            </tr>`).join('');
+    }
+
+    async function fetchRecruits() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/recruits`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            allRecruits = data;
+            
+            const accSet = new Set(data.map(r => r.accommodation));
+            document.getElementById('acc-filter').innerHTML = Array.from(accSet).map(a => `<option value="${a}">${a}</option>`).join('');
+
+            renderRecruits(data);
+        } catch (e) { console.error(e); }
+    }
+
+    function renderRecruits(recruits) {
+        const body = document.getElementById('recruit-table-body');
+        body.innerHTML = recruits.map(r => {
+            let agentName = "System/Direct";
+            if (r.agent && r.agent.fullName) agentName = r.agent.fullName;
+            else if (typeof r.agent === 'string') {
+                const found = allUsers.find(u => u._id === r.agent);
+                if (found) agentName = found.fullName;
+            }
+
+            return `
+            <tr>
+                <td><b>${r.studentName} ${r.studentSurname}</b><br><small>${r.studentEmail}</small></td>
+                <td>${r.accommodation}</td>
+                <td class="text-blue-600 font-bold">${agentName}</td>
+                <td>${new Date(r.createdAt).toLocaleDateString()}</td>
+                <td><span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${r.status}</span></td>
+                <td><select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded"><option value="">Update...</option><option value="Approved">Approve</option><option value="Cancelled">Cancel</option></select></td>
+            </tr>`;
+        }).join('');
+    }
+
+    // PDF REQUISITIONS
+    function printAllRecruitsPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("CAMPUS COLLECTIVE - MASTER RECRUIT LIST", 14, 20);
+        const rows = allRecruits.map(r => [`${r.studentName} ${r.studentSurname}`, r.accommodation, r.agent?.fullName || 'Direct', r.status, new Date(r.createdAt).toLocaleDateString()]);
+        doc.autoTable({ head: [['Student', 'Accommodation', 'Agent', 'Status', 'Date']], body: rows, startY: 25 });
+        doc.save('All_Recruits.pdf');
+    }
+
+    function printAccPDF() {
+        const val = document.getElementById('acc-filter').value;
+        const filtered = allRecruits.filter(r => r.accommodation === val);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text(`RECRUITS: ${val}`, 14, 20);
+        const rows = filtered.map(r => [`${r.studentName} ${r.studentSurname}`, r.agent?.fullName || 'Direct', r.status]);
+        doc.autoTable({ head: [['Student', 'Agent', 'Status']], body: rows, startY: 25 });
+        doc.save(`Recruits_${val}.pdf`);
+    }
+
+    function printAgentPDF(agentName, agentId) {
+        const filtered = allRecruits.filter(r => (r.agent && r.agent._id === agentId) || (r.agent === agentId));
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text(`RECRUITMENT REPORT: ${agentName}`, 14, 20);
+        const rows = filtered.map(r => [`${r.studentName} ${r.studentSurname}`, r.accommodation, r.status]);
+        doc.autoTable({ head: [['Student', 'Accommodation', 'Status']], body: rows, startY: 25 });
+        doc.save(`Agent_${agentName}.pdf`);
+    }
+
+    // FIXED: OPEN PAYOUT MODAL WITH BANK PHONE & PAYSTACK CALL
+    function openAgentPayment(userId) {
+        const agent = allUsers.find(u => u._id === userId);
+        if(!agent) return;
+
+        const agentRecruits = allRecruits.filter(r => ((r.agent && r.agent._id === userId) || (r.agent === userId)) && r.status === 'Approved');
+        const totalPayout = agentRecruits.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
+
+        const modal = document.getElementById('payment-modal');
+        const content = document.getElementById('payment-content');
+        const bank = agent.banking || {};
+
+        content.innerHTML = `
+            <div class="bg-gray-100 p-4 rounded-xl border">
+                <h3 class="font-bold text-lg">${agent.fullName}</h3>
+                <p class="text-sm text-blue-600 font-mono">${agent.agentId || 'ID: ---'}</p>
+            </div>
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-2">
+                <p class="text-[10px] font-bold text-blue-400 uppercase">Settlement Banking Details</p>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <p><b>Bank:</b> ${bank.bankName || 'N/A'}</p>
+                    <p><b>Acc Holder:</b> ${bank.accHolder || 'N/A'}</p>
+                    <p><b>Acc Num:</b> ${bank.accNumber || 'N/A'}</p>
+                    <p class="text-emerald-600"><b>Phone:</b> ${bank.bankPhone || 'N/A'}</p>
+                </div>
+            </div>
+            <div class="flex justify-between items-center py-4">
+                <p class="font-black text-gray-500 uppercase text-xs">Total Due for Payout:</p>
+                <h3 class="text-4xl font-black text-green-600">R ${totalPayout.toFixed(2)}</h3>
+            </div>
+            <button onclick="payWithPaystack('${agent.email}', ${totalPayout})" 
+                class="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 shadow-lg transition uppercase">
+                Authorize Bank Payout
+            </button>
+            <button onclick="printAgentPDF('${agent.fullName}', '${agent._id}')" class="w-full text-gray-400 text-xs uppercase font-bold hover:text-gray-800 transition">📄 Generate Report PDF</button>
+        `;
+        modal.style.display = 'flex';
+    }
+
+    function closePaymentModal() { document.getElementById('payment-modal').style.display = 'none'; }
+
+    // FIXED: PAYSTACK INTEGRATION
+    function payWithPaystack(email, amount) {
+        if(amount <= 0) { alert("Balance is zero."); return; }
+        const handler = PaystackPop.setup({
+            key: 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxx', // Replace with your key
+            email: email,
+            amount: amount * 100,
+            currency: "ZAR",
+            callback: function(response) {
+                alert('Success! Reference: ' + response.reference);
+                closePaymentModal();
+                location.reload();
+            }
+        });
+        handler.openIframe();
+    }
+
+    async function updateRecruitStatus(id, status) {
+        if(!status) return;
+        let commissionAmount = 0;
+        if(status === 'Approved') {
+            const val = prompt("Enter Commission Amount:", "250");
+            if(val === null) return;
+            commissionAmount = parseFloat(val) || 0;
+        }
+        await triggerLoader("Updating...");
+        try {
+            await fetch(`${API_BASE_URL}/approve-recruit/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ status, commissionAmount })
+            });
+            fetchRecruits();
+        } catch (e) { console.error(e); }
+    }
+
+    async function toggleLock(userId, currentStatus) {
+        const newStatus = currentStatus === 'active' ? 'locked' : 'active';
+        await triggerLoader("Toggling Lock...");
+        try {
+            await fetch(`${API_BASE_URL}/toggle-lock/${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ status: newStatus })
+            });
+            fetchProfiles();
+        } catch (e) { console.error(e); }
+    }
+
+    async function deleteAccount(userId, role) {
+        if (!confirm(`Permanently delete this ${role}?`)) return;
+        await triggerLoader("Deleting...");
+        try {
+            await fetch(`${API_BASE_URL}/delete-account/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            fetchProfiles();
+        } catch (e) { console.error(e); }
+    }
+
+    function handleGlobalSearch() {
+        const query = document.getElementById('globalSearch').value.toLowerCase();
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none');
+    }
+
+    function openCalculator() { document.getElementById('calc-modal').classList.remove('hidden'); }
+    function closeCalculator() { document.getElementById('calc-modal').classList.add('hidden'); }
+    function toggleManualInput() { 
+        const mode = document.getElementById('calc-mode').value;
+        document.getElementById('manual-val-div').classList.toggle('hidden', mode !== 'manual');
+        runCalc();
+    }
+    function runCalc() {
+        const mode = document.getElementById('calc-mode').value;
+        const price = parseFloat(document.getElementById('calc-price').value) || 0;
+        const qty = parseFloat(document.getElementById('calc-qty').value) || 1;
+        const manualVal = parseFloat(document.getElementById('calc-manual-val').value) || 0;
+        let admin = 0, partner = 0;
+        if (mode === 'seller') { admin = (price * qty) * 0.10; partner = (price * qty) - admin; }
+        else if (mode === 'agent') { admin = price * qty; partner = 250 * qty; }
+        else { partner = manualVal * qty; admin = (price * qty) - partner; }
+        document.getElementById('calc-admin').innerText = 'R ' + admin.toFixed(2);
+        document.getElementById('calc-partner').innerText = 'R ' + partner.toFixed(2);
+    }
+
+    async function addNewAccount() { await triggerLoader("Redirecting..."); window.location.href = 'Admin-register-agent.html'; }
+    async function logout() { await triggerLoader("Ending Session..."); localStorage.clear(); window.location.href = 'Admin.html'; }
+
+    window.onload = () => { if(!token) { window.location.href = 'Admin.html'; } else { fetchProfiles(); fetchRecruits(); } };
+</script>
+</body>
+</html>

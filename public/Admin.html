@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Campus Collective</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- ADVANCED 3D SPINNING LOADER STYLES --- */
+        #loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease-out, visibility 0.8s;
+            visibility: hidden; /* Hidden by default, shown on submit */
+            opacity: 0;
+        }
+
+        .dark #loader-overlay { background: #111827; }
+
+        .logo-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        .loader-ring {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border: 3px solid transparent;
+            border-top: 3px solid #2563eb;
+            border-bottom: 3px solid #ff6600;
+            border-radius: 50%;
+            animation: spin-ring 1.5s linear infinite;
+        }
+
+        .loader-logo {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            animation: spin-3d 3s infinite ease-in-out;
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+            z-index: 10;
+        }
+
+        @keyframes spin-ring {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes spin-3d {
+            0% { transform: rotateY(0deg) scale(1); }
+            50% { transform: rotateY(180deg) scale(1.1); }
+            100% { transform: rotateY(360deg) scale(1); }
+        }
+
+        .loader-text {
+            margin-top: 30px;
+            font-weight: 700;
+            color: #2563eb;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            animation: pulse-text 2s infinite;
+        }
+
+        @keyframes pulse-text {
+            0%, 100% { opacity: 0.4; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center">
+
+    <div id="loader-overlay">
+        <div class="logo-container">
+            <div class="loader-ring"></div>
+            <img src="Images/Campus collective logo origin.jpg" alt="Loading..." class="loader-logo">
+        </div>
+        <div id="loader-status" class="loader-text text-xs">Verifying Credentials...</div>
+    </div>
+
+    <div id="main-content" class="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-xl shadow-2xl">
+        <div class="flex justify-center">
+            <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="h-24 w-24 mx-auto mb-4 rounded-full object-cover">
+        </div>
+        <h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white">Admin Login</h2>
+        
+        <div id="message-area" class="hidden p-3 text-sm text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900 rounded-lg font-medium"></div>
+
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Login ID (Email or ID)</label>
+                <input type="text" id="loginId" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="admin@example.com">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                <input type="password" id="password" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="••••••••">
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <input id="remember-me" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                    <label for="remember-me" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">Remember me</label>
+                </div>
+                <div class="text-sm">
+                    <a href="forgot-password.html" class="font-medium text-blue-600 hover:text-blue-500">Forgot password?</a>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" class="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                Sign In
+            </button>
+            
+            <p class="text-center mt-8 text-gray-600">
+                Not an Admin/Agent? <a href="choose login.html" class="text-blue-600 font-bold hover:underline">Return to selection</a>
+            </p>
+        </form>
+    </div>
+
+<script>
+    const loginForm = document.getElementById('login-form');
+    const messageArea = document.getElementById('message-area');
+    const submitBtn = document.getElementById('submit-btn');
+    const loader = document.getElementById('loader-overlay');
+    const loaderText = document.getElementById('loader-status');
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        
+        // Show 3D Loader
+        messageArea.classList.add('hidden');
+        loader.style.visibility = 'visible';
+        loader.style.opacity = '1';
+        loaderText.textContent = "Verifying Credentials...";
+
+        // 🏆 Fetching the correct IDs from the HTML
+        const loginId = document.getElementById('loginId').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const response = await fetch('/api/auth/admin-agent/login', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ loginId, password })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // Hide loader to show error
+                loader.style.visibility = 'hidden';
+                loader.style.opacity = '0';
+                
+                if (data.action === 'MANDATORY_RESET') {
+                    window.location.href = 'agent-first-login-reset.html';
+                    return;
+                }
+                throw new Error(data.message || 'Invalid credentials');
+            }
+
+            // SUCCESS logic
+            localStorage.setItem('jwtToken', data.token);
+            loaderText.textContent = "Accessing Dashboard...";
+
+            setTimeout(() => {
+                const role = data.role.toLowerCase();
+                if (role === 'admin') window.location.href = 'management.html';
+                else if (role === 'agent') window.location.href = 'Agent profil.html';
+                else window.location.href = 'management.html';
+            }, 1500);
+
+        } catch (error) {
+            console.error("Login Error:", error);
+            loader.style.visibility = 'hidden';
+            loader.style.opacity = '0';
+            messageArea.textContent = error.message;
+            messageArea.classList.remove('hidden');
+        }
+    });
+</script>
+</body>
+</html>
