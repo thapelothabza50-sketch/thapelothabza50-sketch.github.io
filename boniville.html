@@ -3,300 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boniville - Residence Accommodation Details</title>
-     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <title>Boniville - Residence Details</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
     <style>
-         .navbar {
-            background-color: #23569d;
-            color: #fff;
-            padding: 1em;
-            text-align: center;
+        :root {
+            --primary-color: #23569d;
+            --accent-color: #ffcc00;
+            --text-color: #333;
+            --bg-color: #f4f7f9;
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* --- MOBILE FRIENDLY NAVBAR --- */
+        .navbar {
+            background-color: var(--primary-color);
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
         
         .navbar ul {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
+            list-style: none;
+            display: flex;
+            overflow-x: auto; /* Allows swiping the menu on small phones */
+            white-space: nowrap;
+            padding-bottom: 5px;
         }
         
-        .navbar li {
-            display: inline-block;
-            margin-right: 20px;
-        }
+        .navbar li { margin-right: 15px; }
         
         .navbar a {
             color: #fff;
             text-decoration: none;
-        }
-        :root {
-            /* Define a primary color for the Res theme */
-            --primary-color: #004d99; /* Deep Blue */
-            --accent-color: #ffcc00; /* Yellow/Gold */
-            --text-color: #333;
-            --bg-color: #f4f7f9;
+            font-size: 0.9rem;
+            font-weight: bold;
         }
 
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+        /* --- HERO SECTION --- */
+        .res-header {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 0 0 25px 25px;
         }
 
+        .res-header h1 { font-size: 2rem; margin-bottom: 10px; }
+        .res-header p { font-size: 1rem; opacity: 0.9; }
+
+        /* --- MAIN CONTENT --- */
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
 
-        /* --- Header/Hero Section --- */
-        .res-header {
-            background-color: var(--primary-color);
-            color: #fff;
-            padding: 40px 0;
-            text-align: center;
-            margin-bottom: 30px;
-            border-radius: 0 0 15px 15px;
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: bold;
         }
 
-        .res-header h1 {
-            font-size: 2.5em;
-            margin-bottom: 5px;
-        }
-
-        .res-header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-
-        /* --- Main Content Sections --- */
         .section {
-            background-color: #fff;
-            padding: 30px;
-            margin-bottom: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background-color: var(--white);
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         .section h2 {
             color: var(--primary-color);
             border-bottom: 3px solid var(--accent-color);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
         }
 
-        /* --- Gallery Section --- */
+        .info-list { list-style: none; }
+        .info-list li { margin-bottom: 10px; padding-left: 5px; }
+
+        /* --- GALLERY (Responsive Grid) --- */
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            /* 1 column on mobile, 2 on tablets, 3 on desktop */
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 15px;
         }
 
         .gallery-item {
             overflow: hidden;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .gallery-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
         }
 
         .gallery-item img {
             width: 100%;
-            height: 200px;
-            object-fit: cover; /* Ensures images fill the space without distortion */
+            height: 220px;
+            object-fit: cover;
             display: block;
+            transition: transform 0.3s;
         }
-        
-        /* Optional: Floor Plan Image Styling */
-        .floor-plan img {
-            max-width: 100%;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+
+        .gallery-item img:hover { transform: scale(1.05); }
+
+        /* --- APPLY BUTTON --- */
+        .apply-btn {
             display: block;
-            margin: 20px auto; /* Center the floor plan image */
+            width: 100%;
+            max-width: 300px;
+            margin: 20px auto;
+            background-color: #25D366; /* WhatsApp Green */
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
         }
-        
-        /* --- Modal for Larger Image View --- */
+
+        /* --- MODAL --- */
         .modal {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
-            z-index: 100; 
-            padding-top: 60px; 
-            left: 0;
-            top: 0;
-            width: 100%; 
-            height: 100%; 
-            overflow: auto; 
-            background-color: rgba(0,0,0,0.9); 
+            z-index: 2000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.9);
         }
 
         .modal-content {
             margin: auto;
             display: block;
-            width: 80%;
-            max-width: 700px;
-        }
-
-        .modal-content, .caption { 
-            animation-name: zoom;
-            animation-duration: 0.6s;
-        }
-
-        @keyframes zoom {
-            from {transform:scale(0)} 
-            to {transform:scale(1)}
+            width: 90%;
+            max-width: 800px;
+            margin-top: 10%;
         }
 
         .close {
             position: absolute;
-            top: 15px;
-            right: 35px;
-            color: #f1f1f1;
-            font-size: 40px;
-            font-weight: bold;
-            transition: 0.3s;
+            top: 20px; right: 30px;
+            color: white; font-size: 40px; font-weight: bold;
         }
 
-        .close:hover,
-        .close:focus {
-            color: #bbb;
-            text-decoration: none;
-            cursor: pointer;
-        }
-         footer {
-            background-color: #1a4178; 
+        footer {
+            background-color: #1a4178;
             color: #fff;
-            padding: 30px 20px;
-            margin-top: 0; /* FIX: Remove the margin-top here */
-            font-size: 0.9em;
-            line-height: 1.6;
-
-            /* FIX: Removed position: absolute; bottom: 0; to make it flow naturally after content */
-            width: 100%;
-        }
-
-        .footer-content {
-            max-width: 1000px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap; 
-        }
-
-        .footer-section {
-            padding: 10px;
-            min-width: 200px;
-            margin-bottom: 20px;
-        }
-
-        .footer-section h4 {
-            color: #ff6600; 
-            margin-bottom: 15px;
-            border-bottom: 1px solid #3b669e; 
-            padding-bottom: 5px;
-            font-size: 1.1em;
-        }
-
-        .footer-section p, .footer-section a {
-            color: #ccc;
-            text-decoration: none;
-            display: block; 
-            margin-bottom: 5px;
-        }
-
-        .footer-section a:hover {
-            color: #fff;
-            text-decoration: underline;
-        }
-        .footer-bottom {
+            padding: 20px;
             text-align: center;
-            padding-top: 20px;
-            border-top: 1px solid #3b669e;
+            font-size: 0.85rem;
             margin-top: 20px;
         }
-
     </style>
 </head>
-<header> <nav class="navbar">
-         
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="apply at uni.html">Apply@Universities</a></li>
-                <li><a href="czra more about us.html">About Us</a></li>
-                <li><a href="czra contact.html">Contact</a></li>
-                <li><a href="choose login.html">Login</a></li>
-                <li><a href="campus shop.html">Campus Store</a></li>
-                <li><a href="Learn More.html">Accomodations</a></li>
-            </ul>
-        </nav>
-    </header>
-
 <body>
+
+    <nav class="navbar">
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="apply at uni.html">Apply@Uni</a></li>
+            <li><a href="Learn More.html">Accommodations</a></li>
+            <li><a href="czra contact.html">Contact</a></li>
+        </ul>
+    </nav>
+
     <div class="res-header">
         <h1>Welcome to Boniville</h1>
         <p>Your home away from home on campus.</p>
     </div>
-    <a href="Learn More.html" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-600 font-medium mb-4 inline-block">
-                &larr; Back to Accomodations
-            </a>
 
     <div class="container">
+        <a href="Learn More.html" class="back-link">← Back to Accommodations</a>
         
-        <div class="section" id="info">
+        <div class="section">
             <h2>Residence Information</h2>
-            <p>Boniville offers modern, secure, and fully catered living spaces tailored for first-year and returning Students. We focus on a supportive community environment.</p>
-            <ul>
-                <li><strong>Room Types:</strong> Shared Rooms available.</li>
-                <li><strong>Location:</strong> Msholozi </li>
-                <li><strong>Facilities:</strong> High-speed Wi-Fi, laundry facilities, private study areas.</li>
-                <li><strong>Security:</strong> 24-hour security, and CCTV monitoring.</li>
-                <li><strong>Distance from campus:</strong> 20 min away</li>
-
+            <p style="margin-bottom: 15px;">Boniville offers modern, secure living spaces tailored for students. We focus on a supportive community environment.</p>
+            <ul class="info-list">
+                <li><strong>📍 Location:</strong> Msholozi</li>
+                <li><strong>🛏️ Room Types:</strong> Shared Rooms available.</li>
+                <li><strong>📡 Facilities:</strong> High-speed Wi-Fi, laundry, study areas.</li>
+                <li><strong>🛡️ Security:</strong> 24-hour security & CCTV.</li>
+                <li><strong>🚌 Distance:</strong> 20 min from campus</li>
             </ul>
         </div>
         
-        <div class="section" id="gallery">
-            <h2>Residence Blocks & Rooms (Select to View)</h2>
-            <p>Click on any image below to view a larger picture of our blocks, common areas, and typical room layouts.</p>
+        <div class="section">
+            <h2>Gallery</h2>
             <div class="gallery-grid">
                 <div class="gallery-item" onclick="openModal('Images/Boniville cover.jpg')">
-                    <img src="Images/Boniville cover.jpg" alt="ResOne Block A Exterior" loading="lazy">
+                    <img src="Images/Boniville cover.jpg" alt="Exterior">
                 </div>
                 <div class="gallery-item" onclick="openModal('Images/boniville5.jpg')">
-                    <img src="Images/boniville5.jpg" alt="Typical Shared Student Room" loading="lazy">
+                    <img src="Images/boniville5.jpg" alt="Student Room">
                 </div>
                 <div class="gallery-item" onclick="openModal('Images/Boniville4.jpg')">
-                    <img src="Images/Boniville4.jpg" alt="Communal Study Lounge" loading="lazy">
+                    <img src="Images/Boniville4.jpg" alt="Study Lounge">
                 </div>
                 <div class="gallery-item" onclick="openModal('Images/Boniville3.jpg')">
-                    <img src="Images/Boniville3.jpg" alt="ResOne Dining Hall Interior" loading="lazy">
+                    <img src="Images/Boniville3.jpg" alt="Dining Interior">
                 </div>
                 <div class="gallery-item" onclick="openModal('Images/Boniville2.jpg')">
-                    <img src="Images/Boniville2.jpg" alt="ResOne Security Gate" loading="lazy">
+                    <img src="Images/Boniville2.jpg" alt="Security Gate">
                 </div>
-                
-                </div>
-                <p><b>Available Beds:</b></p>
             </div>
-            
         </div>
         
-        <div class="section floor-plan" id="layout">
-            <h2>Want to save yourself a room?</h2>
-            <p>If you like what you see, then don't hesitate to click  <a href="https://wa.me/27774377288?text=Hi%20I%20would%20like%20to%20apply%20at%20Boniville%2C%20please%20tell%20me%20the%20next%20steps%20to%20continue%20my%20application%2C%20and%20move%20in." 
-           target="_blank">
-           <button>Apply</button>
-        </a>  </p>
+        <div class="section" style="text-align: center;">
+            <h2>Save your room</h2>
+            <p>Ready to move in? Click below to start your application via WhatsApp.</p>
             
-            <p style="text-align: center; font-style: italic; margin-top: 15px;">**Note:** Self funded student can move in at anytime, but NSFAS funded should wait for moving in cycle to be open by NSFAS.</p>
+            <a href="https://wa.me/27774377288?text=Hi%20I%20would%20like%20to%20apply%20at%20Boniville" class="apply-btn">
+                Apply Now
+            </a>
+            
+            <p style="font-size: 0.85rem; font-style: italic; color: #666; margin-top: 10px;">
+                Note: NSFAS students should wait for the official moving-in cycle.
+            </p>
         </div>
-        
     </div>
     
     <div id="myModal" class="modal">
@@ -305,27 +242,28 @@
     </div>
 
     <script>
-        // Get the modal and the image element inside it
         var modal = document.getElementById("myModal");
         var modalImg = document.getElementById("img01");
 
-        // Function to open the modal
-        function openModal(imageSrc) {
-          modal.style.display = "block";
-          modalImg.src = imageSrc;
+        function openModal(src) {
+            modal.style.display = "block";
+            modalImg.src = src;
         }
 
-        // Function to close the modal
         function closeModal() {
-          modal.style.display = "none";
+            modal.style.display = "none";
+        }
+
+        // Close modal when clicking outside the image
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeModal();
+            }
         }
     </script>
     
+    <footer>
+        &copy; 2025 Campus Collective. All rights reserved.
+    </footer>
 </body>
-<footer>
-
-    <div class="footer-bottom">
-        &copy; 2025 Campus Collective. All rights reserved. | Developed with 🧡 in SA.
-    </div>
-</footer>
 </html>
