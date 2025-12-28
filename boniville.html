@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Boniville - Residence Details</title>
     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.2/photoswipe.min.css">
     <style>
         :root {
             --primary-color: #23569d;
@@ -35,7 +36,7 @@
         .navbar ul {
             list-style: none;
             display: flex;
-            overflow-x: auto; /* Allows swiping the menu on small phones */
+            overflow-x: auto;
             white-space: nowrap;
             padding-bottom: 5px;
         }
@@ -95,24 +96,25 @@
         .info-list { list-style: none; }
         .info-list li { margin-bottom: 10px; padding-left: 5px; }
 
-        /* --- GALLERY (Responsive Grid) --- */
+        /* --- GALLERY --- */
         .gallery-grid {
             display: grid;
-            /* 1 column on mobile, 2 on tablets, 3 on desktop */
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 15px;
         }
 
         .gallery-item {
+            display: block;
             overflow: hidden;
             border-radius: 12px;
-            cursor: pointer;
+            height: 220px;
+            text-decoration: none;
         }
 
         .gallery-item img {
             width: 100%;
-            height: 220px;
-            object-fit: cover;
+            height: 100%;
+            object-fit: cover; /* Prevents stretching */
             display: block;
             transition: transform 0.3s;
         }
@@ -125,7 +127,7 @@
             width: 100%;
             max-width: 300px;
             margin: 20px auto;
-            background-color: #25D366; /* WhatsApp Green */
+            background-color: #25D366;
             color: white;
             border: none;
             padding: 15px;
@@ -134,30 +136,6 @@
             font-weight: bold;
             text-align: center;
             text-decoration: none;
-        }
-
-        /* --- MODAL --- */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.9);
-        }
-
-        .modal-content {
-            margin: auto;
-            display: block;
-            width: 90%;
-            max-width: 800px;
-            margin-top: 10%;
-        }
-
-        .close {
-            position: absolute;
-            top: 20px; right: 30px;
-            color: white; font-size: 40px; font-weight: bold;
         }
 
         footer {
@@ -203,22 +181,22 @@
         
         <div class="section">
             <h2>Gallery</h2>
-            <div class="gallery-grid">
-                <div class="gallery-item" onclick="openModal('Images/Boniville cover.jpg')">
+            <div class="gallery-grid" id="boniville-gallery">
+                <a href="Images/Boniville cover.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
                     <img src="Images/Boniville cover.jpg" alt="Exterior">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/boniville5.jpg')">
+                </a>
+                <a href="Images/boniville5.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
                     <img src="Images/boniville5.jpg" alt="Student Room">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/Boniville4.jpg')">
+                </a>
+                <a href="Images/Boniville4.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
                     <img src="Images/Boniville4.jpg" alt="Study Lounge">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/Boniville3.jpg')">
+                </a>
+                <a href="Images/Boniville3.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
                     <img src="Images/Boniville3.jpg" alt="Dining Interior">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/Boniville2.jpg')">
+                </a>
+                <a href="Images/Boniville2.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
                     <img src="Images/Boniville2.jpg" alt="Security Gate">
-                </div>
+                </a>
             </div>
         </div>
         
@@ -236,30 +214,14 @@
         </div>
     </div>
     
-    <div id="myModal" class="modal">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <img class="modal-content" id="img01">
-    </div>
-
-    <script>
-        var modal = document.getElementById("myModal");
-        var modalImg = document.getElementById("img01");
-
-        function openModal(src) {
-            modal.style.display = "block";
-            modalImg.src = src;
-        }
-
-        function closeModal() {
-            modal.style.display = "none";
-        }
-
-        // Close modal when clicking outside the image
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                closeModal();
-            }
-        }
+    <script type="module">
+        import PhotoSwipeLightbox from 'https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.2/photoswipe-lightbox.esm.min.js';
+        const lightbox = new PhotoSwipeLightbox({
+            gallery: '#boniville-gallery',
+            children: 'a.gallery-item',
+            pswpModule: () => import('https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.2/photoswipe.esm.min.js')
+        });
+        lightbox.init();
     </script>
     
     <footer>

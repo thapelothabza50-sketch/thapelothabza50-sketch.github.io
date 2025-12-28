@@ -4,456 +4,311 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Embizeni - Residence Accommodation Details</title>
-     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.2/photoswipe.min.css">
     <style>
+        :root {
+            --primary-color: #23569d;
+            --accent-color: #ffcc00;
+            --text-color: #333;
+            --bg-color: #f4f7f9;
+            --white: #ffffff;
+        }
 
-.rating-stars {
-  font-size: 24px; /* Adjust size as needed */
-  color: #ccc; /* Default color for unfilled stars */
-}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-.star {
-  cursor: default; /* Optional: prevents the cursor from looking clickable */
-}
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
 
-.star.filled {
-  color: gold; /* Color for filled stars */
-}
-         .navbar {
-            background-color: #23569d;
-            color: #fff;
-            padding: 1em;
-            text-align: center;
+        /* --- MOBILE FRIENDLY NAVBAR --- */
+        .navbar {
+            background-color: var(--primary-color);
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
         
         .navbar ul {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
+            list-style: none;
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 5px;
         }
         
-        .navbar li {
-            display: inline-block;
-            margin-right: 20px;
-        }
+        .navbar li { margin-right: 15px; }
         
         .navbar a {
             color: #fff;
             text-decoration: none;
-        }
-        :root {
-            /* Define a primary color for the Res theme */
-            --primary-color: #004d99; /* Deep Blue */
-            --accent-color: #ffcc00; /* Yellow/Gold */
-            --text-color: #333;
-            --bg-color: #f4f7f9;
+            font-size: 0.9rem;
+            font-weight: bold;
         }
 
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+        /* --- HERO SECTION --- */
+        .res-header {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 0 0 25px 25px;
         }
 
+        .res-header h1 { font-size: 2.2rem; margin-bottom: 10px; }
+        .res-header p { font-size: 1rem; opacity: 0.9; }
+
+        /* --- MAIN CONTENT --- */
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
 
-        /* --- Header/Hero Section --- */
-        .res-header {
-            background-color: var(--primary-color);
-            color: #fff;
-            padding: 40px 0;
-            text-align: center;
-            margin-bottom: 30px;
-            border-radius: 0 0 15px 15px;
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: bold;
         }
 
-        .res-header h1 {
-            font-size: 2.5em;
-            margin-bottom: 5px;
-        }
-
-        .res-header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-
-        /* --- Main Content Sections --- */
         .section {
-            background-color: #fff;
-            padding: 30px;
-            margin-bottom: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background-color: var(--white);
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         .section h2 {
             color: var(--primary-color);
             border-bottom: 3px solid var(--accent-color);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
         }
 
-        /* --- Gallery Section --- */
+        /* Rating Stars */
+        .rating-stars { font-size: 24px; color: #ccc; margin-top: 5px; }
+        .star.filled { color: gold; }
+
+        /* --- GALLERY --- */
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 15px;
         }
 
         .gallery-item {
+            display: block;
             overflow: hidden;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .gallery-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            height: 220px;
+            text-decoration: none;
         }
 
         .gallery-item img {
             width: 100%;
-            height: 200px;
-            object-fit: cover; /* Ensures images fill the space without distortion */
+            height: 100%;
+            object-fit: cover;
             display: block;
+            transition: transform 0.3s ease;
         }
-        
-        /* Optional: Floor Plan Image Styling */
-        .floor-plan img {
-            max-width: 100%;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+
+        .gallery-item img:hover { transform: scale(1.05); }
+
+        /* --- APPLY BUTTON --- */
+        .apply-btn {
             display: block;
-            margin: 20px auto; /* Center the floor plan image */
-        }
-        
-        /* --- Modal for Larger Image View --- */
-        .modal {
-            display: none; /* Hidden by default */
-            position: fixed;
-            z-index: 100; 
-            padding-top: 60px; 
-            left: 0;
-            top: 0;
-            width: 100%; 
-            height: 100%; 
-            overflow: auto; 
-            background-color: rgba(0,0,0,0.9); 
-        }
-
-        .modal-content {
-            margin: auto;
-            display: block;
-            width: 80%;
-            max-width: 700px;
-        }
-
-        .modal-content, .caption { 
-            animation-name: zoom;
-            animation-duration: 0.6s;
-        }
-
-        @keyframes zoom {
-            from {transform:scale(0)} 
-            to {transform:scale(1)}
-        }
-
-        .close {
-            position: absolute;
-            top: 15px;
-            right: 35px;
-            color: #f1f1f1;
-            font-size: 40px;
+            width: 100%;
+            max-width: 300px;
+            margin: 20px auto;
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
             font-weight: bold;
-            transition: 0.3s;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: #bbb;
+            text-align: center;
             text-decoration: none;
             cursor: pointer;
         }
-         footer {
-            background-color: #1a4178; 
+
+        /* --- SELECTION MODAL --- */
+        .selection-modal {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            align-items: center; justify-content: center;
+        }
+        .selection-content {
+            background: white; padding: 30px; border-radius: 15px;
+            width: 90%; max-width: 400px; position: relative;
+        }
+        .selection-content h3 { margin-bottom: 20px; color: var(--primary-color); text-align: center; }
+        .res-option {
+            margin-bottom: 15px; display: flex; align-items: center;
+            font-size: 1.1rem; cursor: pointer; border-bottom: 1px solid #eee; padding-bottom: 5px;
+        }
+        .res-option input { margin-right: 15px; width: 20px; height: 20px; }
+        .confirm-btn {
+            background: #25D366; color: white; border: none; padding: 12px;
+            border-radius: 8px; width: 100%; margin-top: 10px; cursor: pointer; font-weight: bold;
+        }
+        .close-selection { position: absolute; top: 10px; right: 15px; font-size: 28px; cursor: pointer; color: #666; }
+
+        footer {
+            background-color: #1a4178;
             color: #fff;
             padding: 30px 20px;
-            margin-top: 0; /* FIX: Remove the margin-top here */
-            font-size: 0.9em;
-            line-height: 1.6;
-
-            /* FIX: Removed position: absolute; bottom: 0; to make it flow naturally after content */
-            width: 100%;
-        }
-
-        .footer-content {
-            max-width: 1000px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap; 
-        }
-
-        .footer-section {
-            padding: 10px;
-            min-width: 200px;
-            margin-bottom: 20px;
-        }
-
-        .footer-section h4 {
-            color: #ff6600; 
-            margin-bottom: 15px;
-            border-bottom: 1px solid #3b669e; 
-            padding-bottom: 5px;
-            font-size: 1.1em;
-        }
-
-        .footer-section p, .footer-section a {
-            color: #ccc;
-            text-decoration: none;
-            display: block; 
-            margin-bottom: 5px;
-        }
-
-        .footer-section a:hover {
-            color: #fff;
-            text-decoration: underline;
-        }
-        .footer-bottom {
             text-align: center;
-            padding-top: 20px;
-            border-top: 1px solid #3b669e;
-            margin-top: 20px;
-        } footer {
-            background-color: #1a4178; 
-            color: #fff;
-            padding: 30px 20px;
-            margin-top: 0; /* FIX: Remove the margin-top here */
             font-size: 0.9em;
-            line-height: 1.6;
-
-            /* FIX: Removed position: absolute; bottom: 0; to make it flow naturally after content */
-            width: 100%;
-        }
-
-        .footer-content {
-            max-width: 1000px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap; 
-        }
-
-        .footer-section {
-            padding: 10px;
-            min-width: 200px;
-            margin-bottom: 20px;
-        }
-
-        .footer-section h4 {
-            color: #ff6600; 
-            margin-bottom: 15px;
-            border-bottom: 1px solid #3b669e; 
-            padding-bottom: 5px;
-            font-size: 1.1em;
-        }
-
-        .footer-section p, .footer-section a {
-            color: #ccc;
-            text-decoration: none;
-            display: block; 
-            margin-bottom: 5px;
-        }
-
-        .footer-section a:hover {
-            color: #fff;
-            text-decoration: underline;
-        }
-        .footer-bottom {
-            text-align: center;
-            padding-top: 20px;
-            border-top: 1px solid #3b669e;
-            margin-top: 20px;
         }
     </style>
 </head>
-<header> <nav class="navbar">
-         
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="apply at uni.html">Apply@Universities</a></li>
-                <li><a href="czra more about us.html">About Us</a></li>
-                <li><a href="czra contact.html">Contact</a></li>
-                <li><a href="choose login.html">Login</a></li>
-                <li><a href="campus shop.html">Campus Store</a></li>
-                <li><a href="Learn More.html">Accomodations</a></li>
-            </ul>
-        </nav>
-    </header>
-
 <body>
-    
+
+    <nav class="navbar">
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="apply at uni.html">Apply@Uni</a></li>
+            <li><a href="Learn More.html">Accommodations</a></li>
+            <li><a href="czra contact.html">Contact</a></li>
+            <li><a href="campus shop.html">Campus Store</a></li>
+        </ul>
+    </nav>
+
     <div class="res-header">
-        <h1>Welcome to Embizeni.</h1>
+        <h1>Welcome to Embizeni</h1>
         <p>Your home away from home on campus.</p>
     </div>
-    <a href="Learn More.html" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-600 font-medium mb-4 inline-block">
-                &larr; Back to Accomodations
-            </a>
 
     <div class="container">
+        <a href="Learn More.html" class="back-link">← Back to Accommodations</a>
         
         <div class="section" id="info">
             <h2>Residence Information</h2>
-            <p>Embizeni offers modern, secure, and fully catered living spaces tailored for first-year students. We focus on a supportive community environment, ensuring a smooth transition into university life.</p>
-            <ul>
-                <li><strong>Room Types:</strong> Single and Shared Rooms available.</li>
-                <li><strong>Facilities:</strong> High-speed Wi-Fi, laundry facilities, common study areas, a recreation lounge(gym), and a swimming pool.</li>
-                <li><strong>Security:</strong> 24-hour security, and CCTV monitoring.</li>
-                <li><strong>Location:</strong> Likazi, Mattafin, and Entokozweni</li>
-                <li><strong>Accomodates:</strong> Both UMP and TUT students (bursary/NSFAS funded and self-funded) </li>
-                <li><strong>Beds:</strong>  </li>
-                <li><strong>Rating:</strong>
-                <div class="rating-stars">
-                 <span class="star filled">&#9733;</span>
-                 <span class="star filled">&#9733;</span>
-                 <span class="star filled">&#9733;</span>
-                 <span class="star filled">&#9733;</span>
-                 <span class="star">&#9734;</span>
-                 <span class="star">&#9734;</span>
-                </div> </li>
+            <p style="margin-bottom: 15px;">Embizeni offers modern, secure, and fully catered living spaces tailored for first-year students. We focus on a supportive community environment, ensuring a smooth transition into university life.</p>
+            <ul style="list-style: none;">
+                <li><strong>📍 Location:</strong> Likazi, Mattafin, and Entokozweni</li>
+                <li><strong>🛏️ Room Types:</strong> Single and Shared Rooms available.</li>
+                <li><strong>📡 Facilities:</strong> High-speed Wi-Fi, laundry, gym, and pool.</li>
+                <li><strong>🛡️ Security:</strong> 24-hour security & CCTV monitoring.</li>
+                <li><strong>🎓 Accommodates:</strong> UMP and TUT students (NSFAS & Self-funded)</li>
+                <li><strong>⭐ Rating:</strong>
+                    <div class="rating-stars">
+                        <span class="star filled">&#9733;</span>
+                        <span class="star filled">&#9733;</span>
+                        <span class="star filled">&#9733;</span>
+                        <span class="star filled">&#9733;</span>
+                        <span class="star">&#9734;</span>
+                        <span class="star">&#9734;</span>
+                    </div>
+                </li>
             </ul>
         </div>
-        
-        <div class="section" id="gallery">
-            <h2>Likazi 1 Blocks & Rooms (Select to View)</h2>
-            <p>Click on any image below to view a larger picture of our blocks, common areas, and typical room layouts.</p>
-            <p><b>Sharing and single rooms</b></p>
-            <div class="gallery-grid">
-                <div class="gallery-item" onclick="openModal('Images/likazi main.jpg')">
-                    <img src="Images/likazi main.jpg" alt="ResOne Block A Exterior" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/likazi pool.jpg')">
-                    <img src="Images/likazi pool.jpg" alt="Typical Shared Student Room" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/likazi sitt em.jpg')">
-                    <img src="Images/likazi sitt em.jpg" alt="Communal Study Lounge" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/likazi bed room.jpg')">
-                    <img src="Images/likazi bed room.jpg" alt="ResOne Dining Hall Interior" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/likazi 1 bed2.jpg')">
-                    <img src="Images/likazi 1 bed2.jpg" alt="ResOne Security Gate" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/shoprite lik.jpg')">
-                    <img src="Images/shoprite lik.jpg" alt="Next door complex" loading="lazy">
+
+        <div id="gallery-container">
+            <div class="section">
+                <h2>Likazi 1 Blocks & Rooms</h2>
+                <div class="gallery-grid">
+                    <a href="Images/likazi main.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/likazi main.jpg" alt="Likazi Main"></a>
+                    <a href="Images/likazi pool.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/likazi pool.jpg" alt="Pool Area"></a>
+                    <a href="Images/likazi sitt em.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/likazi sitt em.jpg" alt="Lounge"></a>
+                    <a href="Images/likazi bed room.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/likazi bed room.jpg" alt="Bedroom"></a>
+                    <a href="Images/likazi 1 bed2.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/likazi 1 bed2.jpg" alt="Bedroom 2"></a>
+                    <a href="Images/shoprite lik.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/shoprite lik.jpg" alt="Nearby Shops"></a>
                 </div>
             </div>
-            <p><b>Available Beds:</b></p>
-        </div>
 
-         <div class="section" id="gallery">
-            <h2>Mattafin Blocks & Rooms(Select to View)</h2>
-            <p>Click on any image below to view a larger picture of our blocks, common areas, and typical room layouts.</p>
-            <p><b>Sharing and single rooms</b></p>
-            <div class="gallery-grid">
-                <div class="gallery-item" onclick="openModal('Images/mattafin mbizeni.jpg')">
-                    <img src="Images/mattafin mbizeni.jpg" alt="Mbizeni Security Gate" loading="lazy">
+            <div class="section">
+                <h2>Mattafin Blocks & Rooms</h2>
+                <div class="gallery-grid">
+                    <a href="Images/mattafin mbizeni.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/mattafin mbizeni.jpg" alt="Mattafin Exterior"></a>
+                    <a href="Images/embizeni sharing matt.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/embizeni sharing matt.jpg" alt="Shared Room"></a>
+                    <a href="Images/mattafin TV.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/mattafin TV.jpg" alt="TV Area"></a>
+                    <a href="Images/matt gym.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/matt gym.jpg" alt="Gym"></a>
+                    <a href="Images/Mbizeni pool tff.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/Mbizeni pool tff.jpg" alt="Pool"></a>
+                    <a href="Images/embizeni single matt.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/embizeni single matt.jpg" alt="Single Room"></a>
                 </div>
-                <div class="gallery-item" onclick="openModal('Images/embizeni sharing matt.jpg')">
-                    <img src="Images/embizeni sharing matt.jpg"Typical Shared Student Room" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/mattafin TV.jpg')">
-                    <img src="Images/mattafin TV.jpg" alt="Communal Study Lounge" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/matt gym.jpg')">
-                    <img src="Images/matt gym.jpg" alt="Embizeni gym" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/Mbizeni pool tff.jpg')">
-                    <img src="Images/Mbizeni pool tff.jpg" alt="Mbizeni pool " loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/embizeni single matt.jpg')">
-                    <img src="Images/embizeni single matt.jpg" alt="Typical Single Student Room" loading="lazy">
-                </div>
-
-                
             </div>
-            <p><b>Available Beds:</b></p>
-        </div>
 
-        <div class="section" id="gallery">
-            <h2>Likazi 2 Blocks & Rooms (Select to View)</h2>
-            <p>Click on any image below to view a larger picture of our blocks, common areas, and typical room layouts.</p>
-            <p><b>Sharing rooms</b></p>
-            <div class="gallery-grid">
-                <div class="gallery-item" onclick="openModal('Images/likazi2.jpg')">
-                    <img src="Images/likazi2.jpg" alt="ResOne Block A Exterior" loading="lazy">
+            <div class="section">
+                <h2>Likazi 2 Blocks & Rooms</h2>
+                <div class="gallery-grid">
+                    <a href="Images/likazi2.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/likazi2.jpg" alt="Likazi 2 Exterior"></a>
+                    <a href="Images/likazi2 laundry.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/likazi2 laundry.jpg" alt="Laundry"></a>
+                    <a href="Images/images likazi2 pool.png.jpg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900"><img src="Images/images likazi2 pool.png.jpg" alt="Pool"></a>
                 </div>
-                <div class="gallery-item" onclick="openModal('Images/likazi2 laundry.jpg')">
-                    <img src="Images/likazi2 laundry.jpg" alt="Typical Shared Student Room" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Image/Study_Lounge.jpg')">
-                    <img src="Images/" alt="Communal Study Lounge" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/matt gym.jpg')">
-                    <img src="Images/matt gym.jpg" alt="ResOne Dining Hall Interior" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Images/images likazi2 pool.png.jpg')">
-                    <img src="Images/images likazi2 pool.png.jpg" alt="ResOne Security Gate" loading="lazy">
-                </div>
-                <div class="gallery-item" onclick="openModal('Image/Single_Room.jpg')">
-                    <img src="Image/Single_Room.jpg" alt="Typical Single Student Room" loading="lazy">
-                </div>
-
-                
             </div>
-            <p><b>Available Beds:</b>5 Beds</p>
         </div>
-        
-        
-       <div class="section floor-plan" id="layout">
-            <h2>Want to save yourself a room?</h2>
-            <p>If you like what you see, then don't hesitate to click <a href=""><button>Apply</button></a> </p>
-            
-            <p style="text-align: center; font-style: italic; margin-top: 15px;">**Note:** Self funded student can move in at anytime, but NSFAS funded should wait for moving in cycle to be open by NSFAS.</p>
+
+        <div class="section" style="text-align: center;">
+            <h2>Save your room</h2>
+            <p>Ready to move in? Choose your preferred location and apply via WhatsApp.</p>
+            <button onclick="openSelectionModal()" class="apply-btn">Apply Now</button>
+            <p style="font-size: 0.85rem; font-style: italic; color: #666; margin-top: 10px;">
+                Note: NSFAS students should wait for the official moving-in cycle.
+            </p>
         </div>
-        
     </div>
-    
-    <div id="myModal" class="modal">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <img class="modal-content" id="img01">
+
+    <div id="selectionModal" class="selection-modal">
+        <div class="selection-content">
+            <span class="close-selection" onclick="closeSelectionModal()">&times;</span>
+            <h3>Choose your Location</h3>
+            <label class="res-option"><input type="radio" name="loc-choice" value="Embizeni Likazi 1"> Embizeni Likazi 1</label>
+            <label class="res-option"><input type="radio" name="loc-choice" value="Embizeni Mattafin"> Embizeni Mattafin</label>
+            <label class="res-option"><input type="radio" name="loc-choice" value="Embizeni Likazi 2"> Embizeni Likazi 2</label>
+            <label class="res-option"><input type="radio" name="loc-choice" value="Embizeni Entokozweni"> Embizeni Entokozweni</label>
+            <button class="confirm-btn" onclick="sendWhatsApp()">Confirm & Apply</button>
+        </div>
     </div>
+
+    <script type="module">
+        import PhotoSwipeLightbox from 'https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.2/photoswipe-lightbox.esm.min.js';
+        const lightbox = new PhotoSwipeLightbox({
+            gallery: '#gallery-container',
+            children: 'a.gallery-item',
+            pswpModule: () => import('https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.2/photoswipe.esm.min.js')
+        });
+        lightbox.init();
+    </script>
 
     <script>
-        // Get the modal and the image element inside it
-        var modal = document.getElementById("myModal");
-        var modalImg = document.getElementById("img01");
-
-        // Function to open the modal
-        function openModal(imageSrc) {
-          modal.style.display = "block";
-          modalImg.src = imageSrc;
+        function openSelectionModal() {
+            document.getElementById("selectionModal").style.display = "flex";
         }
-
-        // Function to close the modal
-        function closeModal() {
-          modal.style.display = "none";
+        function closeSelectionModal() {
+            document.getElementById("selectionModal").style.display = "none";
+        }
+        function sendWhatsApp() {
+            const selected = document.querySelector('input[name="loc-choice"]:checked');
+            if (selected) {
+                const locName = encodeURIComponent(selected.value);
+                const url = `https://wa.me/27774377288?text=Hi%20I%20would%20like%20to%20apply%20for%20${locName}`;
+                window.open(url, '_blank');
+                closeSelectionModal();
+            } else {
+                alert("Please select a location first.");
+            }
+        }
+        window.onclick = function(event) {
+            if (event.target == document.getElementById("selectionModal")) closeSelectionModal();
         }
     </script>
-</body>
-<footer>
 
-    <div class="footer-bottom">
+    <footer>
         &copy; 2025 Campus Collective. All rights reserved. | Developed with 🧡 in SA.
-    </div>
-</footer>
+    </footer>
+</body>
 </html>
