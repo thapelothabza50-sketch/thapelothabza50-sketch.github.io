@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 8080;
 app.use(cors()); 
 app.use(express.json()); 
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, './')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
@@ -31,7 +31,7 @@ app.use('/api/shop', shopRoutes);
 app.use('/api/orders', orderRoutes);      
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 const startServer = async () => {
