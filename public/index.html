@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> CAMPUS COLLECTIVE</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.95);
+            --primary: #1a1a1a;
+            --accent: #ffcc00;
+            --radius: 20px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            animation: slideshow 42s infinite;
+        }
+
+        @keyframes slideshow {
+            0%, 14.28% { background-image: url('Images/ump 1.jpg'); }
+            14.29%, 28.56% { background-image: url('Images/ump 3.jpg'); }
+            28.57%, 42.84% { background-image: url('Images/ump bld6.jpg'); }
+            42.85%, 57.12% { background-image: url('Images/ump caf 2.jpg'); }
+            57.13%, 71.4% { background-image: url('Images/ump gate.jpg'); }
+            71.41%, 85.68% { background-image: url('Images/university-student-accommodation.jpg'); }
+            85.69%, 100% { background-image: url('Images/cecil.jpg'); }
+        }
+
+        /* --- NAVIGATION --- */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 70px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 5%;
+            z-index: 2000;
+        }
+
+        .nav-logo-text { color: white; font-weight: 800; letter-spacing: 1px; }
+
+        /* Desktop Menu: Visible by default */
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 20px;
+        }
+
+        .nav-links li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .nav-links li a:hover { color: var(--accent); }
+
+        /* Close Button (X) - Hidden on desktop */
+        .close-btn {
+            display: none;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Hamburger - Hidden on desktop */
+        .hamburger {
+            display: none;
+            cursor: pointer;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        /* --- MOBILE STYLES --- */
+        @media (max-width: 850px) {
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 70%;
+                height: 100vh;
+                background: var(--primary);
+                flex-direction: column;
+                padding: 100px 40px;
+                transition: 0.4s ease;
+                box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            }
+
+            .nav-links.active { right: 0; }
+            .hamburger { display: flex; }
+            .close-btn { display: block; }
+            .nav-links li { margin: 15px 0; border-bottom: 1px solid #333; padding-bottom: 10px; }
+            .nav-links li a { font-size: 1.1rem; }
+        }
+
+        /* --- CONTENT AREA --- */
+        .main-wrapper { flex: 1; padding-top: 100px; }
+
+        .container {
+            width: 92%;
+            max-width: 1000px;
+            margin: 0 auto 40px;
+            padding: 40px 20px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .main-logo {
+            width: 180px; /* Decreased size as requested */
+            margin-bottom: 20px;
+        }
+
+        h1 { font-size: 1.8rem; margin-bottom: 30px; color: #111; }
+
+        .feature-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: left;
+            border: 1px solid #eee;
+        }
+
+        .card-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            width: 100%;
+            margin-top: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            background: rgba(0,0,0,0.85);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-logo-text">CAMPUS COLLECTIVE</div>
+        
+        <ul class="nav-links" id="navLinks">
+            <span class="close-btn" id="closeBtn">&times;</span>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="czra more about us.html">About Us</a></li>
+            <li><a href="czra contact.html">Contact Us</a></li>
+            <li><a href="apply at uni.html">Apply@Universities</a></li>
+            <li><a href="choose login.html">Login</a></li>
+            <li><a href="campus shop.html">Campus Shop</a></li>
+            <li><a href="Learn More.html">Accommodations</a></li>
+        </ul>
+
+        <div class="hamburger" id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </nav>
+
+    <div class="main-wrapper">
+        <div class="container">
+            <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="main-logo">
+            <h1>Find Your Home on Campus</h1>
+            <div class="feature-cards-container">
+                <div class="feature-card">
+                    <h2>Browse Listings</h2>
+                    <p>Explore student accommodations near campus.</p>
+                    <a href="Learn More.html"><button class="card-button">View Now</button></a>
+                </div>
+                <div class="feature-card">
+                    <h2>Join Our Network</h2>
+                    <p>Register your Accommodation and Business to reach students.</p>
+                    <a href="join us.html"><button class="card-button">Register</button></a>
+                </div>
+                <div class="feature-card">
+                    <h2>Campus Shop</h2>
+                    <p>Essentials provided by fellow students.</p>
+                    <a href="campus shop.html"><button class="card-button">Visit Shop</button></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Campus Collective. All rights reserved | Developed with 🧡 in SA.</p>
+    </footer>
+
+    <script>
+        const hamburger = document.getElementById('hamburger');
+        const closeBtn = document.getElementById('closeBtn');
+        const navLinks = document.getElementById('navLinks');
+
+        // Open Menu
+        hamburger.addEventListener('click', () => {
+            navLinks.classList.add('active');
+        });
+
+        // Close Menu via X button
+        closeBtn.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+        });
+
+        // Close Menu by clicking outside
+        document.addEventListener('click', (event) => {
+            const isClickInsideMenu = navLinks.contains(event.target);
+            const isClickOnHamburger = hamburger.contains(event.target);
+
+            if (!isClickInsideMenu && !isClickOnHamburger && navLinks.classList.contains('active')) {
+                navLinks.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
