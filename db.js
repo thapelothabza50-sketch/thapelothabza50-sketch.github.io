@@ -17,10 +17,7 @@ const connectDB = async () => {
     try {
         // 3. Connect to MongoDB using Mongoose
         // CRITICAL FIX: Increase Mongoose timeouts for better stability
-        await mongoose.connect(dbURI, {
-            serverSelectionTimeoutMS: 30000, // Increase server selection timeout to 30 seconds
-            socketTimeoutMS: 45000,          // Increase socket timeout to 45 seconds
-        });
+        await mongoose.connect(dbURI);
         
         // Use the connection object to confirm success
         const dbName = mongoose.connection.name;
