@@ -124,9 +124,9 @@ router.post('/admin-agent/login', async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Login Error:', err.message);
-        res.status(500).send('Server Error');
-    }
+    console.error(err); // This helps you see the REAL error in Azure Logs
+    res.status(500).json({ message: 'Internal Server Error' });
+}
 });
 
 /**
