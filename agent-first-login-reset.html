@@ -3,72 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <title>Complete Your Profile | Campus Collective</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-blue-900 min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-2xl">
-        <h2 class="text-2xl font-black text-blue-900 mb-2">Welcome Agent!</h2>
-        <p class="text-gray-500 text-sm mb-6">Please complete your details and set a secure password.</p>
+    <style>
+        /* --- MATCHING 3D SPINNING LOADER STYLES --- */
+        #loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ffffff; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+            transition: opacity 0.8s ease-out, visibility 0.8s;
+            visibility: hidden; opacity: 0;
+        }
+        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .loader-ring {
+            position: absolute; width: 150px; height: 150px;
+            border: 3px solid transparent; border-top: 3px solid #2563eb;
+            border-bottom: 3px solid #ff6600; border-radius: 50%;
+            animation: spin-ring 1.5s linear infinite;
+        }
+        .loader-logo { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; animation: spin-3d 3s infinite ease-in-out; }
+        
+        @keyframes spin-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-3d { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
 
-        <form id="setup-form" class="space-y-4">
+        #main-content { opacity: 0; transition: opacity 1s ease-out; }
+        .content-visible { opacity: 1 !important; }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+
+    <div id="loader-overlay">
+        <div class="logo-container">
+            <div class="loader-ring"></div>
+            <img src="Images/Campus collective logo origin.jpg" alt="Loading..." class="loader-logo">
+        </div>
+        <p id="loader-text" class="mt-8 text-blue-600 font-black uppercase tracking-widest animate-pulse">Setting up your profile...</p>
+    </div>
+
+    <div id="main-content" class="max-w-md w-full bg-white p-8 rounded-2xl shadow-2xl border border-gray-100">
+        <div class="flex items-center gap-4 mb-6 border-b pb-4">
+             <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="w-12 h-12 rounded-full shadow-md">
+             <div>
+                 <h2 class="text-2xl font-black text-blue-900 leading-tight">Welcome Agent!</h2>
+                 <p class="text-gray-400 text-xs font-bold uppercase tracking-tight">Complete your profile setup</p>
+             </div>
+        </div>
+
+        <div id="msg" class="hidden p-3 mb-4 rounded text-sm font-bold"></div>
+
+        <form id="setup-form" class="space-y-5">
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="text-xs font-bold text-gray-400">First Name</label>
-                    <input type="text" id="firstName" required class="w-full p-2 border rounded">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">First Name</label>
+                    <input type="text" id="firstName" required class="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="First Name">
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-gray-400">Surname</label>
-                    <input type="text" id="surname" required class="w-full p-2 border rounded">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Surname</label>
+                    <input type="text" id="surname" required class="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="Surname">
                 </div>
             </div>
+
             <div>
-                <label class="text-xs font-bold text-gray-400">Phone Number (Auto-filled)</label>
-                <input type="text" id="phone" readonly class="w-full p-2 bg-gray-100 border rounded cursor-not-allowed">
+                <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Phone Number (Auto-filled)</label>
+                <input type="text" id="phone" readonly class="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-gray-400 cursor-not-allowed text-sm">
             </div>
-            <hr>
-            <div>
-                <label class="text-xs font-bold text-gray-400">New Password</label>
-                <input type="password" id="newPassword" required class="w-full p-2 border rounded" placeholder="Minimum 6 characters">
+
+            <div class="pt-2">
+                <label class="block text-[10px] font-black text-blue-600 uppercase mb-1">Set New Secure Password</label>
+                <input type="password" id="newPassword" required minlength="6" class="w-full p-3 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm shadow-inner" placeholder="Minimum 6 characters">
             </div>
-            <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700">
-                Activate Account
+
+            <button type="submit" class="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all uppercase tracking-widest shadow-xl active:scale-95">
+                Activate My Account
             </button>
         </form>
     </div>
 
     <script>
-        // On load, we need to fetch their temporary data to auto-fill the phone
+        const loader = document.getElementById('loader-overlay');
+        const loaderText = document.getElementById('loader-text');
+        const content = document.getElementById('main-content');
+        const msg = document.getElementById('msg');
+
+        // Initial Load Animation
+        window.onload = () => {
+            loader.style.visibility = 'visible';
+            loader.style.opacity = '1';
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                loader.style.visibility = 'hidden';
+                content.classList.add('content-visible');
+            }, 1200);
+        };
+
+        function showLoading(text) {
+            loaderText.textContent = text;
+            loader.style.visibility = 'visible';
+            loader.style.opacity = '1';
+        }
+
         async function loadDraftData() {
-            const token = localStorage.getItem('jwtToken');
-            const res = await fetch('/api/auth/current-user', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const user = await res.json();
-            document.getElementById('phone').value = user.phone;
+            try {
+                const token = localStorage.getItem('jwtToken');
+                const res = await fetch('/api/auth/current-user', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const user = await res.json();
+                document.getElementById('phone').value = user.phone || "Not provided";
+            } catch (err) {
+                console.error("Failed to load user data");
+            }
         }
 
         document.getElementById('setup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            msg.classList.add('hidden');
+            showLoading("Securing your profile...");
+
             const payload = {
                 firstName: document.getElementById('firstName').value,
                 surname: document.getElementById('surname').value,
                 password: document.getElementById('newPassword').value
             };
 
-            const res = await fetch('/api/auth/complete-agent-setup', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
-                },
-                body: JSON.stringify(payload)
-            });
+            try {
+                const res = await fetch('/api/auth/complete-agent-setup', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+                    },
+                    body: JSON.stringify(payload)
+                });
 
-            if(res.ok) {
-                alert("Profile Activated! Redirecting to your dashboard...");
-                window.location.href = 'Agent profil.html';
-            } else {
-                alert("Error updating profile.");
+                const data = await res.json();
+
+                if(res.ok) {
+                    msg.className = "p-3 mb-4 rounded text-sm font-bold bg-green-100 text-green-700";
+                    msg.textContent = "✅ Success! Profile activated. Redirecting...";
+                    msg.classList.remove('hidden');
+                    setTimeout(() => window.location.href = 'Agent profil.html', 1500);
+                } else {
+                    throw new Error(data.message || "Activation failed");
+                }
+            } catch (err) {
+                loader.style.opacity = '0';
+                loader.style.visibility = 'hidden';
+                msg.className = "p-3 mb-4 rounded text-sm font-bold bg-red-100 text-red-700";
+                msg.textContent = "❌ " + err.message;
+                msg.classList.remove('hidden');
             }
         });
 
