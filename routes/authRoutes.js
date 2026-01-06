@@ -62,19 +62,28 @@ router.post('/register-agent', auth, hasRole(['Admin']), async (req, res) => {
 
         await agent.save();
 
-        const mailOptions = {
-           from: '"Campus Collective" <thapelothabza50@gmail.com>',
-            to: email,
-            subject: 'Welcome to Campus Collective - Agent Portal Access',
-            html: `
-                <h1>Welcome, ${fullName}!</h1>
-                <p>You have been registered as an official Campus Collective Agent.</p>
-                <p><strong>Your Agent ID (Login ID):</strong> ${agentId}</p>
-                <p><strong>Temporary Password:</strong> ${temporaryPassword}</p>
-                <p>Please log in here: <a href="https://campuscollective.co.za/agent-login.html">Agent Portal</a></p>
-                <p><i>You will be required to change your password upon first login.</i></p>
-            `
-        };
+       try {
+            const mailOptions = {
+                from: '"Campus Collective" <thapelothabza50@gmail.com>', 
+                to: email,
+                subject: 'Welcome to Campus Collective',
+                html: `<p>Hello ${fullName}, your temporary password is <b>${temporaryPassword}</b></p>`
+            };
+
+            console.log("Attempting to send email via Brevo...");
+            await transporter.sendMail(mailOptions);
+            console.log("Email sent successfully!");
+
+        } catch (emailError) {
+            console.error("BREVO EMAIL ERROR:", emailError.message);
+            // This prevents the server from crashing even if the email fails
+            return res.status(201).json({ 
+                message: 'Agent created, but welcome email failed to send.', 
+                error: emailError.message 
+            });
+        }
+
+        
 
         await transporter.sendMail(mailOptions);
         res.status(201).json({ message: 'Agent registered and email sent successfully.' });
