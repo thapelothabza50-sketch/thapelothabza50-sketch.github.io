@@ -20,12 +20,15 @@ const { auth, hasRole } = require('../middleware/auth');
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: Number(process.env.EMAIL_PORT),
-    secure: false, // 587 is false
+    secure: true, // MUST be true for port 465
     auth: {
-        // This will now correctly pull 9eeab8001@smtp-brevo.com from Azure
-        user: process.env.EMAIL_USER, 
+        user: process.env.EMAIL_USER, // Ensure this is 9eeab8001@smtp-brevo.com
         pass: process.env.EMAIL_PASS,
-    }
+    },
+    tls: {
+        rejectUnauthorized: false // This helps bypass Azure's network restrictions
+    },
+    connectionTimeout: 10000 // Wait 10 seconds for the greeting
 });
 
 // =========================================================================
