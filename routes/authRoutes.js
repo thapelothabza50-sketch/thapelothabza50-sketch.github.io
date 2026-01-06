@@ -64,7 +64,7 @@ router.post('/register-agent', auth, hasRole(['Admin']), async (req, res) => {
 
        try {
             const mailOptions = {
-                from: '"Campus Collective" <thapelothabza50@gmail.com>', 
+                from: '"Campus Collective" <no-reply@mycampuscollective.me>', 
                 to: email,
                 subject: 'Welcome to Campus Collective',
                 html: `<p>Hello ${fullName}, your temporary password is <b>${temporaryPassword}</b></p>`
