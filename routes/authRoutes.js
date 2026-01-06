@@ -83,10 +83,7 @@ router.post('/register-agent', auth, hasRole(['Admin']), async (req, res) => {
             });
         }
 
-        
-
-        await transporter.sendMail(mailOptions);
-        res.status(201).json({ message: 'Agent registered and email sent successfully.' });
+    
 
     } catch (err) {
         console.error(err.message);
