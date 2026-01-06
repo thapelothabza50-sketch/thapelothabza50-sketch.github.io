@@ -19,12 +19,16 @@ const { auth, hasRole } = require('../middleware/auth');
 // --------------------------------------------------------------------------
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
-    secure: process.env.EMAIL_PORT == 465, 
+    port: Number(process.env.EMAIL_PORT), // Force it to be a number
+    secure: Number(process.env.EMAIL_PORT) === 465, 
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
+    tls: {
+        rejectUnauthorized: false // Helps prevent connection blocks on cloud servers
+    },
+    connectionTimeout: 10000 // Wait 10 seconds before giving up
 });
 
 // =========================================================================
