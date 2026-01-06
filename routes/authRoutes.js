@@ -59,7 +59,7 @@ router.post('/register-agent', auth, hasRole(['Admin']), async (req, res) => {
         await agent.save();
 
         const mailOptions = {
-            from: `"no-reply@mycampuscollective.me" <${process.env.EMAIL_USER}>`,
+            from: `"thapelothabza50@gmail.com" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Welcome to Campus Collective - Agent Portal Access',
             html: `
