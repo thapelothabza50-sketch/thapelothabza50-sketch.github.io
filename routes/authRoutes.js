@@ -107,7 +107,7 @@ const mailOptions = {
     attachments: [
         {
             filename: 'logo.png',
-            path: './assets/logo.png', // CRITICAL: Ensure your logo is in this folder on your server
+            path: 'Images/Campus collective logo origin.jpg', // CRITICAL: Ensure your logo is in this folder on your server
             cid: 'campus_logo' // This matches the <img src="cid:campus_logo"> above
         }
     ]
