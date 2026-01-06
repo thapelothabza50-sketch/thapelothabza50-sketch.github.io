@@ -50,6 +50,11 @@
 
         <form id="create-agent-form" class="space-y-4">
             <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase">Full Name</label>
+                <input type="text" id="fullName" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter full name">
+            </div>
+
+            <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase">Student Email</label>
                 <input type="email" id="email" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="student@university.ac.za">
             </div>
@@ -106,6 +111,8 @@
             triggerLoader("Creating Account & Sending Email...");
 
             const payload = {
+                // ➕ ADDED: fullName to the payload
+                fullName: document.getElementById('fullName').value,
                 email: document.getElementById('email').value,
                 agentId: document.getElementById('agentId').value,
                 phone: document.getElementById('phone').value,
@@ -124,8 +131,6 @@
 
                 const data = await res.json();
                 
-                // Pause slightly so the user can see the "Success" state of the loader if you wanted, 
-                // but here we just hide it and show the message.
                 hideLoader();
 
                 if(!res.ok) throw new Error(data.message);
