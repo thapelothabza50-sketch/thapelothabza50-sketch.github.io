@@ -18,11 +18,11 @@ const { auth, hasRole } = require('../middleware/auth');
 // NODEMAILER CONFIGURATION 
 // --------------------------------------------------------------------------
 const transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
+    host: process.env.EMAIL_HOST,
     port: Number(process.env.EMAIL_PORT), // Force it to be a number
     secure: Number(process.env.EMAIL_PORT) === 465, 
     auth: {
-        user: "no-reply@mycampuscollective.me", // Use the verified sender email here
+        user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
     tls: {
