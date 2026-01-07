@@ -301,7 +301,13 @@ router.post('/complete-agent-setup', auth, async (req, res) => {
 
         await agent.save();
 
-        res.json({ message: 'Profile updated successfully!' });
+       res.json({ 
+            message: 'Profile updated successfully!',
+            user: {
+                fullName: agent.fullName,
+                agentId: agent.agentId
+            }
+        });
     } catch (err) {
         console.error("SETUP ERROR:", err.message);
         res.status(500).json({ message: 'Server Error during setup' });

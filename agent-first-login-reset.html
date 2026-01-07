@@ -128,24 +128,25 @@
 
             try {
                 const res = await fetch('/api/auth/complete-agent-setup', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
-                    },
-                    body: JSON.stringify(payload)
-                });
+    method: 'POST',
+    headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+    },
+    body: JSON.stringify(payload)
+});
 
-                const data = await res.json();
+const data = await res.json();
 
-                if(res.ok) {
-                    msg.className = "p-3 mb-4 rounded text-sm font-bold bg-green-100 text-green-700";
-                    msg.textContent = "✅ Success! Profile activated. Redirecting...";
-                    msg.classList.remove('hidden');
-                    setTimeout(() => window.location.href = 'Agent profil.html', 1500);
-                } else {
-                    throw new Error(data.message || "Activation failed");
-                }
+if (res.ok) {
+    // --- FIXED: Save the new user data to localStorage right here ---
+    localStorage.setItem('userData', JSON.stringify(data.user));
+    
+    alert("✅ Success! Profile activated. Redirecting...");
+    window.location.href = 'Agent profil.html';
+} else {
+    alert(data.message || "Activation failed");
+}
             } catch (err) {
                 loader.style.opacity = '0';
                 loader.style.visibility = 'hidden';
