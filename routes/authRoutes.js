@@ -115,7 +115,7 @@ const mailOptions = {
         {
             filename: 'Campus_Collective_Agent_Guide.pdf',
             // This path goes up one level from 'routes' and into 'documents'
-            path: 'C:\\Users\\Tapel\\Desktop\\czra website\\documents\\Agent_Guide.pdf.pdf'
+            path: path.join(__dirname, '../documents/Agent_Guide.pdf')
         }
         
     ]
