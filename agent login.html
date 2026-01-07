@@ -70,68 +70,78 @@
     </div>
 
     <script>
-        const form = document.getElementById('login-form');
-        const loader = document.getElementById('loader-overlay');
-        const loaderText = document.getElementById('loader-text');
+    const form = document.getElementById('login-form');
+    const loader = document.getElementById('loader-overlay');
+    const loaderText = document.getElementById('loader-text');
 
-        window.onload = () => {
-            loader.style.visibility = 'visible';
-            loader.style.opacity = '1';
-            setTimeout(() => {
-                loader.style.opacity = '0';
-                loader.style.visibility = 'hidden';
-            }, 1000);
-        };
+    window.onload = () => {
+        loader.style.visibility = 'visible';
+        loader.style.opacity = '1';
+        setTimeout(() => {
+            loader.style.opacity = '0';
+            loader.style.visibility = 'hidden';
+        }, 1000);
+    };
 
-        function showLoader(text) {
-            loaderText.textContent = text;
-            loader.style.visibility = 'visible';
-            loader.style.opacity = '1';
-        }
+    function showLoader(text) {
+        loaderText.textContent = text;
+        loader.style.visibility = 'visible';
+        loader.style.opacity = '1';
+    }
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            showLoader("VERIFYING CREDENTIALS...");
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showLoader("VERIFYING CREDENTIALS...");
 
-            const loginId = document.getElementById('loginId').value;
-            const password = document.getElementById('password').value;
+        const loginId = document.getElementById('loginId').value;
+        const password = document.getElementById('password').value;
 
-            try {
-                const response = await fetch('/api/auth/admin-agent/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ loginId, password })
-                });
+        try {
+            const response = await fetch('/api/auth/admin-agent/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ loginId, password })
+            });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (!response.ok) {
-                    // --- VERIFIED: REDIRECTION LOGIC FOR FIRST LOGIN ---
-                    if (data.action === 'MANDATORY_RESET') {
-                        localStorage.setItem('jwtToken', data.token);
-                        showLoader("NEW AGENT DETECTED...");
-                        // Successfully redirects to the profile completion page
-                        setTimeout(() => { window.location.href = 'agent-first-login-reset.html'; }, 1500);
-                        return;
-                    }
-                    throw new Error(data.message || 'Login Failed');
-                }
-
+            // --- FIXED: CHECK FOR RESET ACTION ON SUCCESSFUL (200) RESPONSE ---
+            if (response.ok && data.action === 'MANDATORY_RESET') {
                 localStorage.setItem('jwtToken', data.token);
-                localStorage.setItem('userData', JSON.stringify(data.user));
-                
-                showLoader("ACCESS GRANTED...");
-                
-                setTimeout(() => {
-                    window.location.href = 'Agent profil.html';
+                showLoader("NEW AGENT DETECTED...");
+                setTimeout(() => { 
+                    window.location.href = 'agent-first-login-reset.html'; 
                 }, 1500);
-
-            } catch (err) {
-                loader.style.visibility = 'hidden';
-                loader.style.opacity = '0';
-                alert(err.message);
+                return;
             }
-        });
-    </script>
+
+            if (!response.ok) {
+                // Keep this for safety in case your backend status codes change
+                if (data.action === 'MANDATORY_RESET') {
+                    localStorage.setItem('jwtToken', data.token);
+                    showLoader("NEW AGENT DETECTED...");
+                    setTimeout(() => { window.location.href = 'agent-first-login-reset.html'; }, 1500);
+                    return;
+                }
+                throw new Error(data.message || 'Login Failed');
+            }
+
+            // Normal login success
+            localStorage.setItem('jwtToken', data.token);
+            localStorage.setItem('userData', JSON.stringify(data.user));
+            
+            showLoader("ACCESS GRANTED...");
+            
+            setTimeout(() => {
+                window.location.href = 'Agent profil.html';
+            }, 1500);
+
+        } catch (err) {
+            loader.style.visibility = 'hidden';
+            loader.style.opacity = '0';
+            alert(err.message);
+        }
+    });
+</script>
 </body>
 </html>

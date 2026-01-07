@@ -91,7 +91,7 @@ const mailOptions = {
             </p>
 
             <p style="font-size: 0.9em; color: #666; font-style: italic;"><strong>Security Note:</strong> You will be prompted to create a new permanent password upon your first login for security purposes.</p>
-            
+            <p>If you have any questions or need assistance, feel free to reach out to our support team at <a href="mailto:info@mycampuscollective.me">info@mycampuscollective.me</a></p>
             <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 25px 0;">
             
             <p style="margin: 0; font-weight: bold; color: #2c3e50;">Regards,</p>
@@ -99,7 +99,7 @@ const mailOptions = {
             
             <p style="font-size: 0.75em; color: #999; text-align: center; margin-top: 30px;">
                 &copy; 2026 Campus Collective. All rights reserved.<br>
-                This is an automated message, please do not reply directly to this email. For enquiries, email us at <a href="mailto:info@mycampuscollective.me
+                This is an automated message, please do not reply directly to this email.
             </p>
         </div>
     `,
@@ -109,7 +109,13 @@ const mailOptions = {
             filename: 'logo.png',
             path: 'Images/Campus collective logo origin.jpg', // CRITICAL: Ensure your logo is in this folder on your server
             cid: 'campus_logo' // This matches the <img src="cid:campus_logo"> above
+        },
+        {
+            filename: 'Campus_Collective_Agent_Guide.pdf',
+            // This path goes up one level from 'routes' and into 'documents'
+            path: path.join(__dirname, '../documents/Agent_Guide.pdf')
         }
+        
     ]
 };
 
