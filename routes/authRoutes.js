@@ -106,18 +106,19 @@ const mailOptions = {
         </div>
     `,
     // THIS PART ATTACHES THE LOGO TO THE EMAIL
+    // THIS PART ATTACHES THE LOGO AND PDF TO THE EMAIL
     attachments: [
         {
-            filename: 'logo.png',
-            path: 'Images/Campus collective logo origin.jpg', // CRITICAL: Ensure your logo is in this folder on your server
-            cid: 'campus_logo' // This matches the <img src="cid:campus_logo"> above
+            filename: 'logo.jpg',
+            // --- FIXED: Added path.join and corrected the folder jump ---
+            path: path.join(__dirname, '../Images/Campus collective logo origin.jpg'), 
+            cid: 'campus_logo' 
         },
         {
             filename: 'Campus_Collective_Agent_Guide.pdf',
-            // This path goes up one level from 'routes' and into 'documents'
+            // This path is already correct
             path: path.join(__dirname, '../documents/Agent_Guide.pdf')
         }
-        
     ]
 };
 
