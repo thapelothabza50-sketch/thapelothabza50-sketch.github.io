@@ -78,7 +78,8 @@ const mailOptions = {
 
             <h2 style="color: #2c3e50; text-align: center; margin-top: 0;">Welcome to Campus Collective!</h2>
             <p>Hello <strong>${fullName}</strong>,</p>
-            <p>We are thrilled to welcome you to the team. Your agent account is now active and ready for use. Below are your official login details to access the agent portal.</p>
+            <p>We are thrilled to welcome you to the team. Your agent account is now active and ready for use. Please check the attached document about the roles of a campus collective agent.
+             Below are your official login details to access the agent portal.</p>
             
             <div style="background-color: #f4f7f9; padding: 20px; border-radius: 6px; margin: 25px 0; border-left: 5px solid #3498db;">
                 <p style="margin: 0; font-weight: bold; color: #2c3e50;">Access Credentials:</p>
@@ -113,7 +114,7 @@ const mailOptions = {
         {
             filename: 'Campus_Collective_Agent_Guide.pdf',
             // This path goes up one level from 'routes' and into 'documents'
-            path: path.join(__dirname, '../documents/Agent_Guide.pdf')
+            path: 'C:\\Users\\Tapel\\Desktop\\czra website\\documents\\Agent_Guide.pdf.pdf'
         }
         
     ]
