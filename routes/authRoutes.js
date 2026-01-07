@@ -65,7 +65,7 @@ router.post('/register-agent', auth, hasRole(['Admin']), async (req, res) => {
 
        // --- INSIDE THE REGISTRATION ROUTE ---
 
-const loginUrl = "https://your-portal-link.me/login"; // Replace with your real URL
+const loginUrl = "https://www.mycampuscollective.me/agent%20login.html"; // Replace with your real URL
 
 const mailOptions = {
     from: '"Campus Collective" <no-reply@mycampuscollective.me>',
