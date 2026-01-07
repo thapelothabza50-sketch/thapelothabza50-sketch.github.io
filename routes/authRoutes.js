@@ -10,6 +10,7 @@ const Seller = require('../models/Seller');
 const Agent = require('../models/Agent'); 
 const User = require('../models/User'); 
 const Recruit = require('../models/Recruit'); 
+const path = require('path');
 require('dotenv').config();
 
 const { auth, hasRole } = require('../middleware/auth'); 
