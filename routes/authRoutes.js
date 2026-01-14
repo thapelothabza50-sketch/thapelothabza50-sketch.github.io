@@ -14,6 +14,10 @@ const path = require('path');
 require('dotenv').config();
 
 const { auth, hasRole } = require('../middleware/auth'); 
+const multer = require('multer');
+const fs = require('fs');
+
+
 
 // --------------------------------------------------------------------------
 // NODEMAILER CONFIGURATION 
@@ -322,4 +326,58 @@ router.get('/current-user', auth, async (req, res) => {
     }
 });
 
+/**
+ * @route   POST /api/auth/announce-residence
+ * @desc    Sends an email to all agents about a new residence using Brevo Template
+ * @access  Private (Admin Only)
+ */
+const multer = require('multer');
+const fs = require('fs');
+
+// 1. Configure storage (using your existing 'uploads' folder)
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); // Saves to the folder your server.js is watching
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+
+const upload = multer({ storage: storage });
+
+// 2. The Announcement Route
+router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resImage'), async (req, res) => {
+    const { resName, location, rooms, funding, agentEmail, agentName, resSlug } = req.body;
+
+    try {
+        // Construct the URL Brevo will use to fetch the image
+        const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+        const mailOptions = {
+            from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+            to: agentEmail,
+            subject: `New Residence Alert: ${resName}`,
+            headers: {
+                'X-Mailin-Template-Id': '1', // Ensure this matches your Brevo Template ID
+                'X-Mailin-Parameter': JSON.stringify({
+                    "Agent": agentName,
+                    "RES_NAME": resName,
+                    "LOCATION": location,
+                    "ROOM_TYPES": rooms,
+                    "FUNDING_INFO": funding,
+                    "IMAGE_URL_1": imageUrl, // Dynamic link to the file just uploaded
+                    "RES_SLUG": resSlug
+                })
+            }
+        };
+
+        await transporter.sendMail(mailOptions);
+        res.status(200).json({ message: 'Announcement sent with image!' });
+
+    } catch (err) {
+        console.error("ANNOUNCEMENT ERROR:", err.message);
+        res.status(500).json({ message: 'Error processing announcement' });
+    }
+});
 module.exports = router;

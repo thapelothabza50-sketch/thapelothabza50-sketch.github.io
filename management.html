@@ -66,8 +66,8 @@
             <h1 class="text-2xl font-black text-gray-800 uppercase tracking-tight">Management Command Center</h1>
         </div>
         <div class="flex gap-4">
-            <button onclick="triggerLoader('Syncing Data...', 1200).then(()=>location.reload())" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-bold border hover:bg-gray-200 transition">🔄 Refresh</button>
-            <button onclick="openCalculator()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-bold border border-blue-300 hover:bg-blue-200 transition">🧮 Commission Calcs</button>
+            <button onclick="triggerLoader('Syncing Data...', 1200).then(()=>location.reload())" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-bold border hover:bg-gray-200 transition">売 Refresh</button>
+            <button onclick="openCalculator()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-bold border border-blue-300 hover:bg-blue-200 transition">ｧｮ Commission Calcs</button>
             <button onclick="logout()" class="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition">Secure Logout</button>
         </div>
     </div>
@@ -93,7 +93,7 @@
 
     <div class="mb-4 flex justify-between">
         <input type="text" id="globalSearch" onkeyup="handleGlobalSearch()" placeholder="Search..." class="w-1/3 p-2 border-2 border-blue-100 rounded-lg outline-none text-sm shadow-sm">
-        <button onclick="printAllRecruitsPDF()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-green-700 transition">📄 Print Master Recruit List</button>
+        <button onclick="printAllRecruitsPDF()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-green-700 transition">塘 Print Master Recruit List</button>
     </div>
 
     <div class="flex justify-between items-center mb-6 border-b border-gray-200">
@@ -102,6 +102,7 @@
             <button onclick="switchTab('profiles')" id="tab-profiles" class="py-2 px-4">Marketplace Sellers</button>
             <button onclick="switchTab('recruits')" id="tab-recruits" class="py-2 px-4">Student Recruits</button>
             <button onclick="switchTab('escrow')" id="tab-escrow" class="py-2 px-4">Escrow Tracker</button>
+            <button onclick="switchTab('residences')" id="tab-residences" class="py-2 px-4">Residence Alerts</button>
         </div>
         <button onclick="addNewAccount()" class="bg-black text-white px-4 py-2 rounded-lg font-bold mb-2 hover:bg-gray-800 transition">+Add New Agent</button>
     </div>
@@ -154,11 +155,33 @@
             </table>
         </div>
     </div>
+
+    <div id="section-residences" class="hidden space-y-6">
+        <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h2 class="text-xl font-black text-blue-600 mb-4 uppercase">🚀 Create Residence Announcement</h2>
+            <form id="residenceForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" id="resName" placeholder="Residence Name" class="p-3 border rounded-xl" required>
+                <input type="text" id="resLocation" placeholder="Location" class="p-3 border rounded-xl" required>
+                <input type="text" id="resRooms" placeholder="Room Types (e.g. Single, Double)" class="p-3 border rounded-xl">
+                <input type="text" id="resFunding" placeholder="Funding Info" class="p-3 border rounded-xl">
+                <input type="text" id="resSlug" placeholder="Residence URL Slug" class="p-3 border rounded-xl">
+                <div class="flex flex-col">
+                    <label class="text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Upload Property Image</label>
+                    <input type="file" id="resImage" class="p-2 border rounded-xl text-sm" accept="image/*" required>
+                </div>
+                
+                <div class="md:col-span-2 flex gap-3 mt-4">
+                    <button type="button" onclick="handleResidence('draft')" class="bg-gray-500 text-white px-6 py-3 rounded-xl font-bold uppercase text-sm shadow-md hover:bg-gray-600 transition">Save Draft</button>
+                    <button type="button" onclick="handleResidence('send')" class="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold uppercase text-sm shadow-md hover:bg-yellow-600 transition">Send To All Agents</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <div id="calc-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-[2000]">
     <div class="bg-white p-8 rounded-3xl w-96 shadow-2xl">
-        <h2 class="text-2xl font-black mb-6 flex items-center gap-2">🧮 Commission <span class="text-blue-600">Pro</span></h2>
+        <h2 class="text-2xl font-black mb-6 flex items-center gap-2">ｧｮ Commission <span class="text-blue-600">Pro</span></h2>
         <div class="space-y-4">
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Calculation Type</label>
@@ -197,6 +220,7 @@
 
 <script>
     const API_BASE_URL = '/api/admin';
+    const API_AUTH_URL = '/api/auth';
     const token = localStorage.getItem('jwtToken');
     const loader = document.getElementById('loader-overlay');
     const loaderText = document.getElementById('loader-text');
@@ -214,7 +238,7 @@
     }
 
     function switchTab(tab) {
-        ['profiles', 'recruits', 'escrow', 'agents'].forEach(t => {
+        ['profiles', 'recruits', 'escrow', 'agents', 'residences'].forEach(t => {
             document.getElementById('section-' + t).classList.add('hidden');
             document.getElementById('tab-' + t).classList.remove('tab-active');
         });
@@ -224,6 +248,30 @@
         if(tab === 'profiles' || tab === 'agents') fetchProfiles();
         if(tab === 'recruits') fetchRecruits();
         if(tab === 'escrow') fetchEscrowOrders();
+    }
+
+    async function handleResidence(mode) {
+        const fileInput = document.getElementById('resImage');
+        const formData = new FormData();
+        
+        if (fileInput.files[0]) formData.append('resImage', fileInput.files[0]);
+        formData.append('resName', document.getElementById('resName').value);
+        formData.append('location', document.getElementById('resLocation').value);
+        formData.append('rooms', document.getElementById('resRooms').value);
+        formData.append('funding', document.getElementById('resFunding').value);
+        formData.append('resSlug', document.getElementById('resSlug').value);
+        formData.append('mode', mode);
+
+        await triggerLoader(mode === 'send' ? "Broadcasting Emails..." : "Saving Draft...");
+        try {
+            const res = await fetch(`${API_AUTH_URL}/announce-residence`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            const data = await res.json();
+            alert(data.message);
+        } catch (err) { alert("Error: " + err.message); }
     }
 
     async function fetchProfiles() {
@@ -305,7 +353,6 @@
         }).join('');
     }
 
-    // PDF REQUISITIONS
     function printAllRecruitsPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -336,7 +383,6 @@
         doc.save(`Agent_${agentName}.pdf`);
     }
 
-    // FIXED: OPEN PAYOUT MODAL WITH BANK PHONE & PAYSTACK CALL
     function openAgentPayment(userId) {
         const agent = allUsers.find(u => u._id === userId);
         if(!agent) return;
@@ -370,18 +416,17 @@
                 class="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 shadow-lg transition uppercase">
                 Authorize Bank Payout
             </button>
-            <button onclick="printAgentPDF('${agent.fullName}', '${agent._id}')" class="w-full text-gray-400 text-xs uppercase font-bold hover:text-gray-800 transition">📄 Generate Report PDF</button>
+            <button onclick="printAgentPDF('${agent.fullName}', '${agent._id}')" class="w-full text-gray-400 text-xs uppercase font-bold hover:text-gray-800 transition">塘 Generate Report PDF</button>
         `;
         modal.style.display = 'flex';
     }
 
     function closePaymentModal() { document.getElementById('payment-modal').style.display = 'none'; }
 
-    // FIXED: PAYSTACK INTEGRATION
     function payWithPaystack(email, amount) {
         if(amount <= 0) { alert("Balance is zero."); return; }
         const handler = PaystackPop.setup({
-            key: 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxx', // Replace with your key
+            key: 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxx', 
             email: email,
             amount: amount * 100,
             currency: "ZAR",
