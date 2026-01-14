@@ -370,7 +370,7 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
         // 2. Loop through all agents and send individual emails using the template
         const emailPromises = agents.map(agent => {
             const mailOptions = {
-                from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+                from: '"Campus Collective Updates" <no-reply@mycampuscollective.me>',
                 to: agent.email, // Dynamic email from database
                 subject: `New Residence Alert: ${resName}`,
                 headers: {
