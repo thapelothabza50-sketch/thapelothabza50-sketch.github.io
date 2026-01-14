@@ -326,18 +326,12 @@ router.get('/current-user', auth, async (req, res) => {
     }
 });
 
-/**
- * @route   POST /api/auth/announce-residence
- * @desc    Sends an email to all agents about a new residence using Brevo Template
- * @access  Private (Admin Only)
- */
-const multer = require('multer');
-const fs = require('fs');
-
-// 1. Configure storage (using your existing 'uploads' folder)
+// --------------------------------------------------------------------------
+// 1. MULTER CONFIGURATION (Fixed: Declared only once)
+// --------------------------------------------------------------------------
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // Saves to the folder your server.js is watching
+        cb(null, 'uploads/'); 
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + '-' + file.originalname);
@@ -346,38 +340,65 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// 2. The Announcement Route
+// --------------------------------------------------------------------------
+// 2. THE ANNOUNCEMENT ROUTE (Fixed: Added Agent Loop & Broadcast Logic)
+// --------------------------------------------------------------------------
+/**
+ * @route   POST /api/auth/announce-residence
+ * @desc    Broadcasts a residence alert to ALL agents in the database
+ * @access  Private (Admin Only)
+ */
 router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resImage'), async (req, res) => {
-    const { resName, location, rooms, funding, agentEmail, agentName, resSlug } = req.body;
+    const { resName, location, rooms, funding, resSlug, mode } = req.body;
 
     try {
+        // If mode is 'draft', we just confirm receipt and don't send emails
+        if (mode === 'draft') {
+            return res.status(200).json({ message: 'Residence draft saved successfully!' });
+        }
+
+        // 1. Fetch all Agents from your database
+        const agents = await Agent.find({ role: 'Agent' });
+        
+        if (!agents || agents.length === 0) {
+            return res.status(404).json({ message: 'No agents found to notify.' });
+        }
+
         // Construct the URL Brevo will use to fetch the image
         const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
 
-        const mailOptions = {
-            from: '"Campus Collective" <no-reply@mycampuscollective.me>',
-            to: agentEmail,
-            subject: `New Residence Alert: ${resName}`,
-            headers: {
-                'X-Mailin-Template-Id': '1', // Ensure this matches your Brevo Template ID
-                'X-Mailin-Parameter': JSON.stringify({
-                    "Agent": agentName,
-                    "RES_NAME": resName,
-                    "LOCATION": location,
-                    "ROOM_TYPES": rooms,
-                    "FUNDING_INFO": funding,
-                    "IMAGE_URL_1": imageUrl, // Dynamic link to the file just uploaded
-                    "RES_SLUG": resSlug
-                })
-            }
-        };
+        // 2. Loop through all agents and send individual emails using the template
+        const emailPromises = agents.map(agent => {
+            const mailOptions = {
+                from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+                to: agent.email, // Dynamic email from database
+                subject: `New Residence Alert: ${resName}`,
+                headers: {
+                    'X-Mailin-Template-Id': '1', 
+                    'X-Mailin-Parameter': JSON.stringify({
+                        "Agent": agent.fullName || "Agent", // Dynamic name from database
+                        "RES_NAME": resName,
+                        "LOCATION": location,
+                        "ROOM_TYPES": rooms,
+                        "FUNDING_INFO": funding,
+                        "IMAGE_URL_1": imageUrl,
+                        "RES_SLUG": resSlug
+                    })
+                }
+            };
+            return transporter.sendMail(mailOptions);
+        });
 
-        await transporter.sendMail(mailOptions);
-        res.status(200).json({ message: 'Announcement sent with image!' });
+        // Wait for all emails to be processed
+        await Promise.all(emailPromises);
+        
+        res.status(200).json({ message: `Announcement broadcasted to ${agents.length} agents!` });
 
     } catch (err) {
         console.error("ANNOUNCEMENT ERROR:", err.message);
-        res.status(500).json({ message: 'Error processing announcement' });
+        res.status(500).json({ message: 'Error processing announcement', error: err.message });
     }
 });
+
+// IMPORTANT: Ensure no other 'storage', 'upload', or 'announce-residence' blocks exist below this line.
 module.exports = router;
