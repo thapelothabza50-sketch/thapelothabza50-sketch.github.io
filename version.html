@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision & Mission | Campus Collective</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.95);
+            --primary: #1a1a1a;
+            --accent: #ffcc00;
+            --radius: 20px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            animation: slideshow 42s infinite;
+            padding-top: 100px;
+        }
+
+        /* Using your existing slideshow images */
+        @keyframes slideshow {
+            0%, 14.28% { background-image: url('Images/ump 1.jpg'); }
+            14.29%, 28.56% { background-image: url('Images/ump 3.jpg'); }
+            28.57%, 42.84% { background-image: url('Images/ump bld6.jpg'); }
+            42.85%, 57.12% { background-image: url('Images/ump caf 2.jpg'); }
+            57.13%, 71.4% { background-image: url('Images/ump gate.jpg'); }
+            71.41%, 85.68% { background-image: url('Images/university-student-accommodation.jpg'); }
+            85.69%, 100% { background-image: url('Images/cecil.jpg'); }
+        }
+
+        nav {
+            position: fixed; top: 0; width: 100%; height: 70px;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 5%; z-index: 2000;
+        }
+
+        .nav-logo-text { color: white; font-weight: 800; letter-spacing: 1px; }
+        .nav-links { display: flex; list-style: none; gap: 20px; }
+        .nav-links li a { color: white; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+        .nav-links li a:hover { color: var(--accent); }
+
+        .container {
+            width: 92%; max-width: 900px; margin: 0 auto 40px;
+            padding: 50px 30px; background: var(--glass);
+            backdrop-filter: blur(10px); border-radius: var(--radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .mission-header { text-align: center; margin-bottom: 40px; }
+        .mission-header h1 { font-size: 2.5rem; color: var(--primary); }
+        .mission-header .highlight { color: #1a4178; font-weight: 800; border-bottom: 3px solid var(--accent); }
+
+        .vision-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px; margin-top: 30px;
+        }
+
+        .vision-card {
+            background: #fff; padding: 25px; border-radius: 15px;
+            border-top: 5px solid var(--accent); box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+
+        .vision-card h3 { color: #1a4178; margin-bottom: 15px; }
+        .vision-card p { line-height: 1.6; color: #444; font-size: 0.95rem; }
+
+        footer { background: rgba(0,0,0,0.85); color: white; text-align: center; padding: 20px; margin-top: auto; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-logo-text">CAMPUS COLLECTIVE</div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="vision.html" style="color:var(--accent)">Vision</a></li>
+            <li><a href="czra more about us.html">About Us</a></li>
+            <li><a href="Learn More.html">Accommodations</a></li>
+            <li><a href="campus shop.html">Shop</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="mission-header">
+            <h1>Our <span class="highlight">Vision 2026</span></h1>
+            <p style="margin-top:15px; font-size: 1.2rem;">Empowering the next generation of South African students.</p>
+        </div>
+
+        <p style="text-align: center; font-size: 1.1rem; margin-bottom: 40px;">
+            We are looking forward to helping more than <b>10,000 students of UMP</b> by increasing accommodation access and simplifying the application process.
+        </p>
+
+        <div class="vision-grid">
+            <div class="vision-card">
+                <h3>National Expansion</h3>
+                <p>We are expanding to other universities to build lasting relations with accommodation providers, adding new institutions and colleges to our network every year.</p>
+            </div>
+            <div class="vision-card">
+                <h3>The Central Hub</h3>
+                <p>Campus Collective aims to be the central hub for SA students—offering free services that help you grow alongside our community.</p>
+            </div>
+            <div class="vision-card">
+                <h3>Student Commerce</h3>
+                <p>Through the Campus Shop, we provide a free platform for students to sell goods and services, making essential items accessible to everyone on campus.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Campus Collective. All rights reserved | Developed with 🧡 in SA.</p>
+    </footer>
+
+</body>
+</html>
