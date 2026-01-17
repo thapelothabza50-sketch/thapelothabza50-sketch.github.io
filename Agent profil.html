@@ -140,6 +140,7 @@
                 <input type="text" name="studentName" placeholder="First Name" required class="w-full p-2 border rounded">
                 <input type="text" name="studentSurname" placeholder="Surname" required class="w-full p-2 border rounded">
                 <input type="email" name="studentEmail" placeholder="Student Email" required class="w-full p-2 border rounded">
+                <input type="tel" name="studentPhone" placeholder="Student Phone Number" required class="w-full p-2 border rounded">
                 <select name="accommodation" id="acc-select" required class="w-full p-2 border rounded" onchange="checkOther(this)">
                     <option value="" disabled selected>Select Accommodation</option>
                     <option value="Vuyani Student Accomodation">Vuyani Student Accomodation</option>
@@ -263,7 +264,7 @@
             doc.text("Agent: " + document.getElementById('side-name').innerText, 14, 50);
             doc.text("Date Generated: " + dateStr, 14, 57);
 
-            const tableColumn = ["Student Name", "Surname", "Accommodation", "Move-in", "Status", "Comm."];
+            const tableColumn = ["Student Name", "Surname", "Phone", "Accommodation", "Move-in", "Status", "Comm."];
             const tableRows = [];
             let totalComm = 0;
 
@@ -273,6 +274,7 @@
                 tableRows.push([
                     r.studentName,
                     r.studentSurname,
+                    r.studentPhone,
                     r.accommodation,
                     new Date(r.moveInDate).toLocaleDateString(),
                     r.status,

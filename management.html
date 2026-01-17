@@ -138,8 +138,8 @@
         <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
             <table class="w-full border-collapse">
                 <thead>
-                    <tr><th>Student</th><th>Accommodation</th><th>Agent</th><th>Date Applied</th><th>Status</th><th>Control</th></tr>
-                </thead>
+                 <tr><th>Student</th><th>Phone</th><th>Accommodation</th><th>Agent</th><th>Date Applied</th><th>Status</th><th>Control</th></tr>
+                </thead> 
                 <tbody id="recruit-table-body"></tbody>
             </table>
         </div>
@@ -332,35 +332,47 @@
     }
 
     function renderRecruits(recruits) {
-        const body = document.getElementById('recruit-table-body');
-        body.innerHTML = recruits.map(r => {
-            let agentName = "System/Direct";
-            if (r.agent && r.agent.fullName) agentName = r.agent.fullName;
-            else if (typeof r.agent === 'string') {
-                const found = allUsers.find(u => u._id === r.agent);
-                if (found) agentName = found.fullName;
-            }
+    const body = document.getElementById('recruit-table-body');
+    body.innerHTML = recruits.map(r => {
+        let agentName = "System/Direct";
+        if (r.agent && r.agent.fullName) agentName = r.agent.fullName;
+        else if (typeof r.agent === 'string') {
+            const found = allUsers.find(u => u._id === r.agent);
+            if (found) agentName = found.fullName;
+        }
 
-            return `
-            <tr>
-                <td><b>${r.studentName} ${r.studentSurname}</b><br><small>${r.studentEmail}</small></td>
-                <td>${r.accommodation}</td>
-                <td class="text-blue-600 font-bold">${agentName}</td>
-                <td>${new Date(r.createdAt).toLocaleDateString()}</td>
-                <td><span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${r.status}</span></td>
-                <td><select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded"><option value="">Update...</option><option value="Approved">Approve</option><option value="Cancelled">Cancel</option></select></td>
-            </tr>`;
-        }).join('');
-    }
+        return `
+        <tr>
+            <td><b>${r.studentName} ${r.studentSurname}</b><br><small>${r.studentEmail}</small></td>
+            <td class="text-xs font-mono">${r.studentPhone || 'N/A'}</td> <td>${r.accommodation}</td>
+            <td class="text-blue-600 font-bold">${agentName}</td>
+            <td>${new Date(r.createdAt).toLocaleDateString()}</td>
+            <td><span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${r.status}</span></td>
+            <td><select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded"><option value="">Update...</option><option value="Approved">Approve</option><option value="Cancelled">Cancel</option></select></td>
+        </tr>`;
+    }).join('');
+}
 
     function printAllRecruitsPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text("CAMPUS COLLECTIVE - MASTER RECRUIT LIST", 14, 20);
-        const rows = allRecruits.map(r => [`${r.studentName} ${r.studentSurname}`, r.accommodation, r.agent?.fullName || 'Direct', r.status, new Date(r.createdAt).toLocaleDateString()]);
-        doc.autoTable({ head: [['Student', 'Accommodation', 'Agent', 'Status', 'Date']], body: rows, startY: 25 });
-        doc.save('All_Recruits.pdf');
-    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("CAMPUS COLLECTIVE - MASTER RECRUIT LIST", 14, 20);
+    // Add 'Phone' to the mapping logic
+    const rows = allRecruits.map(r => [
+        `${r.studentName} ${r.studentSurname}`, 
+        r.studentPhone || 'N/A', // Added
+        r.accommodation, 
+        r.agent?.fullName || 'Direct', 
+        r.status, 
+        new Date(r.createdAt).toLocaleDateString()
+    ]);
+    doc.autoTable({ 
+        head: [['Student', 'Phone', 'Accommodation', 'Agent', 'Status', 'Date']], // Added 'Phone' here
+        body: rows, 
+        startY: 25 
+    });
+    doc.save('All_Recruits.pdf');
+}
 
     function printAccPDF() {
         const val = document.getElementById('acc-filter').value;
