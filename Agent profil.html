@@ -154,6 +154,7 @@
                     <option value="Cecil Complex">Cecil Complex</option>
                     <option value="Boniville Student Acc">Boniville Student Acc</option>
                     <option value="Paballo Student Acc">Paballo Student Acc</option>
+                    <option value="EGP-holdings">EGP-holdings</option>
                     <option value="not listed">Not Listed...</option>
                 </select>
                 <input type="text" id="manual-acc" name="manualAccommodation" placeholder="Type Accommodation Name" class="w-full p-2 border border-blue-500 rounded hidden">
@@ -391,10 +392,16 @@
         triggerLoader("Saving Recruit...");
         const formData = new FormData(e.target);
         const payload = Object.fromEntries(formData);
-        if (!payload.studentPhone) {
-        // Manually grab it if the automatic conversion missed it
-        payload.studentPhone = e.target.querySelector('[name="studentPhone"]').value;
-    }
+        const phoneInput = e.target.querySelector('[name="studentPhone"]');
+payload.studentPhone = phoneInput ? phoneInput.value.trim() : "";
+
+console.log("Payload to be sent:", payload); // Debugging: Check your browser console!
+
+if (!payload.studentPhone) {
+    alert("Phone number is missing!");
+    return;
+}
+        
         if (payload.accommodation === 'not listed') payload.accommodation = payload.manualAccommodation;
         delete payload.manualAccommodation;
 

@@ -399,16 +399,24 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
         res.status(500).json({ message: 'Error processing announcement', error: err.message });
     }
 });
+// In authRoutes.js
 router.post('/submit-recruit', auth, async (req, res) => {
     try {
+        console.log("Data received on server:", req.body); // Check your terminal/logs
+
         const { 
             studentName, 
             studentSurname, 
             studentEmail, 
-            studentPhone, // <--- MAKE SURE THIS IS HERE
+            studentPhone, // Mongoose says this is coming in as empty/null
             accommodation, 
             moveInDate 
         } = req.body;
+
+        // Validation check
+        if (!studentPhone) {
+            return res.status(400).json({ message: "Phone number is required from the frontend." });
+        }
 
         const newRecruit = new Recruit({
             agent: req.user.id,
@@ -416,7 +424,7 @@ router.post('/submit-recruit', auth, async (req, res) => {
             studentName,
             studentSurname,
             studentEmail,
-            studentPhone, // <--- ADD THIS LINE
+            studentPhone, 
             accommodation,
             moveInDate,
             status: 'Pending'
@@ -425,7 +433,7 @@ router.post('/submit-recruit', auth, async (req, res) => {
         await newRecruit.save();
         res.status(201).json({ message: 'Recruit submitted successfully!' });
     } catch (err) {
-        console.error("SUBMIT ERROR:", err.message); // This shows in your Azure terminal
+        console.error("SUBMIT ERROR:", err.message);
         res.status(500).json({ message: 'Server Error', error: err.message });
     }
 });
