@@ -391,6 +391,10 @@
         triggerLoader("Saving Recruit...");
         const formData = new FormData(e.target);
         const payload = Object.fromEntries(formData);
+        if (!payload.studentPhone) {
+        // Manually grab it if the automatic conversion missed it
+        payload.studentPhone = e.target.querySelector('[name="studentPhone"]').value;
+    }
         if (payload.accommodation === 'not listed') payload.accommodation = payload.manualAccommodation;
         delete payload.manualAccommodation;
 
