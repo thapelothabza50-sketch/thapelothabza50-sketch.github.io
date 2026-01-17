@@ -399,6 +399,36 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
         res.status(500).json({ message: 'Error processing announcement', error: err.message });
     }
 });
+router.post('/submit-recruit', auth, async (req, res) => {
+    try {
+        const { 
+            studentName, 
+            studentSurname, 
+            studentEmail, 
+            studentPhone, // <--- MAKE SURE THIS IS HERE
+            accommodation, 
+            moveInDate 
+        } = req.body;
+
+        const newRecruit = new Recruit({
+            agent: req.user.id,
+            agentId: req.user.agentId,
+            studentName,
+            studentSurname,
+            studentEmail,
+            studentPhone, // <--- ADD THIS LINE
+            accommodation,
+            moveInDate,
+            status: 'Pending'
+        });
+
+        await newRecruit.save();
+        res.status(201).json({ message: 'Recruit submitted successfully!' });
+    } catch (err) {
+        console.error("SUBMIT ERROR:", err.message); // This shows in your Azure terminal
+        res.status(500).json({ message: 'Server Error', error: err.message });
+    }
+});
 
 // IMPORTANT: Ensure no other 'storage', 'upload', or 'announce-residence' blocks exist below this line.
 module.exports = router;
