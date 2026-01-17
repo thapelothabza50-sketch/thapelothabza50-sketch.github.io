@@ -26,6 +26,11 @@ const RecruitSchema = new mongoose.Schema({
         required: true,
         lowercase: true
     },
+    studentPhone: {
+        type: String,
+        required: true,
+        trim: true
+    },
     accommodation: {
         type: String,
         required: true
