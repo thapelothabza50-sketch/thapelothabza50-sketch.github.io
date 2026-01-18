@@ -391,23 +391,27 @@
     e.preventDefault();
     triggerLoader("Saving Recruit...");
     
-    const formData = new FormData(e.target);
-    const payload = Object.fromEntries(formData);
-
-    // FORCE GRAB: Use the unique ID we just created
-    const phoneElement = document.getElementById('studentPhoneInput');
-    payload.studentPhone = phoneElement.value.trim();
-
-    // DEBUG CHECK: If this alert pops up, the browser is failing to read the box
-    if (!payload.studentPhone) {
-        hideLoader();
-        alert("Wait! The phone number box is empty.");
-        return;
-    }
-
-    console.log("Data going to Azure:", payload); // Look at your browser console (F12)
-
     try {
+        const formData = new FormData(e.target);
+        const payload = Object.fromEntries(formData);
+
+        // FIX: Safely grab the phone number
+        // We use e.target['studentPhone'] which is the most reliable way to get a form field by name
+        const phoneField = e.target['studentPhone'];
+        
+        if (phoneField) {
+            payload.studentPhone = phoneField.value.trim();
+        } else {
+            // If the field is missing, stop the loader and alert the user instead of crashing
+            hideLoader();
+            alert("Developer Error: The input field 'studentPhone' was not found in the HTML.");
+            return; 
+        }
+
+        if (payload.accommodation === 'not listed') payload.accommodation = payload.manualAccommodation;
+        delete payload.manualAccommodation;
+
+        // Now we send it to the server
         const res = await fetch(`${API_URL}/submit-recruit`, {
             method: 'POST',
             headers: { 
@@ -429,7 +433,8 @@
         }
     } catch (error) { 
         hideLoader(); 
-        alert("Connection Error. Please check your internet."); 
+        console.error("Submission Error:", error);
+        alert("An error occurred. Check the browser console for details."); 
     }
 });
 
