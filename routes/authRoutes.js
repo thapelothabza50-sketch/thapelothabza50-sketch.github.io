@@ -150,50 +150,58 @@ try {
  * @desc    Login for Admin and Agents using AgentID/StudentID
  */
 router.post('/admin-agent/login', async (req, res) => {
-    const { loginId, password } = req.body;
+    // 1. Get agentId and password from the request body
+    const { agentId, password } = req.body; 
 
     try {
-        const agent = await Agent.findOne({ agentId: loginId });
-        if (!agent) return res.status(400).json({ message: 'Invalid Credentials' });
+        // 2. Find the agent by their Student Number (agentId), NOT email
+        const agent = await Agent.findOne({ agentId });
 
-        if (agent.status === 'locked') {
-            return res.status(403).json({ message: 'Account Locked. Contact Management.' });
+        if (!agent) {
+            return res.status(400).json({ message: 'Invalid Agent ID or password' });
         }
 
-        const isMatch = await bcrypt.compare(password, agent.password);
-        if (!isMatch) return res.status(400).json({ message: 'Invalid Credentials' });
+        // 3. Use the comparePassword method we added to Agent.js
+        const isMatch = await agent.comparePassword(password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid Agent ID or password' });
+        }
 
-        const token = jwt.sign(
-            { id: agent._id, role: agent.role, email: agent.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-
+        // 4. Handle first-time login (Mandatory Reset)
         if (agent.mustChangePassword) {
+            const tempToken = jwt.sign(
+                { id: agent._id, role: agent.role, agentId: agent.agentId },
+                process.env.JWT_SECRET,
+                { expiresIn: '15m' } // Short-lived token for reset only
+            );
             return res.status(200).json({ 
-                token, 
                 action: 'MANDATORY_RESET', 
-                message: 'First login detected. Redirecting to setup.' 
+                token: tempToken,
+                message: 'First login detected. Please reset your password.' 
             });
         }
 
-        // --- FIXED RESPONSE FOR DASHBOARD ---
-        res.json({ 
-            token, 
-            role: agent.role, 
+        // 5. Normal Login: Create the full Token
+        const token = jwt.sign(
+            { id: agent._id, role: agent.role, agentId: agent.agentId },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.json({
+            token,
             user: { 
+                id: agent._id, 
                 fullName: agent.fullName, 
+                role: agent.role,
                 agentId: agent.agentId 
-            } 
+            }
         });
 
     } catch (err) {
-    console.error("LOGIN ERROR DETECTED:", err.message);
-    res.status(500).json({ 
-        message: 'Internal Server Error', 
-        details: err.message 
-    });
-}
+        console.error("AGENT LOGIN ERROR:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 /**
  * @route   POST /api/auth/seller/login
