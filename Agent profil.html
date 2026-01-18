@@ -412,14 +412,14 @@
         delete payload.manualAccommodation;
 
         // Now we send it to the server
-        const res = await fetch(`${API_URL}/submit-recruit`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'Authorization': `Bearer ${getToken()}` 
-            },
-            body: JSON.stringify(payload)
-        });
+        const res = await fetch('https://www.mycampuscollective.me/api/auth/submit-recruit', {
+    method: 'POST',
+    headers: { 
+        'Content-Type': 'application/json', 
+        'Authorization': `Bearer ${getToken()}` 
+    },
+    body: JSON.stringify(payload)
+});
         
         const result = await res.json();
         hideLoader();
