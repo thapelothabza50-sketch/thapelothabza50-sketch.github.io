@@ -427,7 +427,7 @@ router.post('/forgot-password', async (req, res) => {
 
         // 3. Define the professional HTML email
         const mailOptions = {
-            from: '"Campus Collective Support" <no-reply@mycampuscollective.me>',
+            from: '"Campus Collective" <no-reply@mycampuscollective.me>',
             to: email,
             subject: "Password Reset Verification Code",
             html: `
