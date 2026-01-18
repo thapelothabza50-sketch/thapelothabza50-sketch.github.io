@@ -394,21 +394,19 @@
     const formData = new FormData(e.target);
     const payload = Object.fromEntries(formData);
 
-    // FIX: Ensure studentPhone is captured even if FormData missed it
-    const phoneInput = e.target.querySelector('[name="studentPhone"]');
-    if (phoneInput) {
-        payload.studentPhone = phoneInput.value.trim();
-    }
+    // FORCE the phone number into the payload
+    const phoneValue = document.getElementById('studentPhone').value.trim();
+    payload.studentPhone = phoneValue;
 
-    // Check if phone is still missing before sending
+    // DEBUG: Right-click your dashboard -> Inspect -> Console. 
+    // If studentPhone is empty here, the problem is your HTML ID/Name.
+    console.log("Final Data being sent to server:", payload);
+
     if (!payload.studentPhone) {
         hideLoader();
-        alert("Error: Student Phone Number is required.");
+        alert("CRITICAL ERROR: Phone number was not captured by the form.");
         return;
     }
-
-    if (payload.accommodation === 'not listed') payload.accommodation = payload.manualAccommodation;
-    delete payload.manualAccommodation;
 
     try {
         const res = await fetch(`${API_URL}/submit-recruit`, {
@@ -428,11 +426,12 @@
             e.target.reset(); 
             fetchAgentData(); 
         } else {
-            alert("Submission Failed: " + (result.error || result.message));
+            // This will now show the specific error message from the backend
+            alert("Server Error: " + (result.error || result.message));
         }
     } catch (error) { 
         hideLoader(); 
-        alert("Connection Error. Please check your internet."); 
+        alert("Connection Error. Check if your server is running."); 
     }
 });
 

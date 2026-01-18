@@ -401,6 +401,9 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
 });
 // In authRoutes.js
 router.post('/submit-recruit', auth, async (req, res) => {
+    console.log("--- NEW RECRUIT ATTEMPT ---");
+    console.log("Headers:", req.headers['content-type']);
+    console.log("Body Content:", req.body); // IF THIS IS {} THEN THE PROBLEM IS IN SERVER.JS
     try {
         console.log("Payload received:", req.body); // Check this in your logs!
 
