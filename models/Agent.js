@@ -1,5 +1,6 @@
-// models/Agent.js - UPDATED
+// models/Agent.js - CLEAN & FIXED VERSION
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const AgentSchema = new mongoose.Schema({
     agentId: { // Student Number
@@ -54,30 +55,20 @@ const AgentSchema = new mongoose.Schema({
         default: Date.now
     }
 }, { timestamps: true });
-// Add this to the very bottom of models/Agent.js before module.exports
+
+// --- MIDDLEWARE: HASH PASSWORD BEFORE SAVING ---
 AgentSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
-    const bcrypt = require('bcryptjs'); // Ensure bcrypt is available
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (err) {
+        next(err);
+    }
 });
 
-const bcrypt = require('bcryptjs');
-
-// This hashes the password automatically before saving to the database
-// models/Agent.js - Add this ONLY ONCE at the bottom
-const bcrypt = require('bcryptjs');
-
-// Automatically hash the password before saving
-AgentSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-});
-
-// Helper for the login route to compare passwords
+// --- HELPER: COMPARE PASSWORD ---
 AgentSchema.methods.comparePassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
