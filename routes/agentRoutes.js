@@ -1,199 +1,77 @@
-const express = require('express');
-const router = express.Router();
-const Recruit = require('../models/Recruit');
-const Agent = require('../models/Agent');
-const { auth, hasRole } = require('../middleware/auth');
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-// ==========================================
-// AGENT SPECIFIC ROUTES
-// ==========================================
+const AgentSchema = new mongoose.Schema({
+    agentId: { // Student Number
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+    },
+    email: { // Student Email
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+    },
+    password: {
+        type: String,
+        required: true,
+    },
+    fullName: {
+        type: String,
+        default: 'New Agent',
+        trim: true,
+    },
+    phone: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    role: {
+        type: String,
+        default: 'Agent',
+    },
+    status: {
+        type: String,
+        enum: ['active', 'locked'],
+        default: 'active',
+    },
+    mustChangePassword: {
+        type: Boolean,
+        default: true,
+    },
+    resetCode: { type: String },
+    resetCodeExpire: { type: Date },
+    banking: {
+        bankName: { type: String, default: '' },
+        accHolder: { type: String, default: '' },
+        accNumber: { type: String, default: '' },
+        bankPhone: { type: String, default: '' }
+    },
+    lastActive: {
+        type: Date,
+        default: Date.now
+    }
+}, { timestamps: true });
 
-// 1. Agent: Submit a new student recruit
-router.post('/submit-recruit', auth, hasRole('Agent'), async (req, res) => {
+// --- MIDDLEWARE: HASH PASSWORD BEFORE SAVING ---
+// This ensures that whenever a password is set or changed, it is hashed once.
+AgentSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) return next();
     try {
-        const { studentName, studentSurname, studentEmail, accommodation, moveInDate } = req.body;
-
-        const newRecruit = new Recruit({
-            agent: req.user.id,
-            studentName,
-            studentSurname,
-            studentEmail,
-            accommodation,
-            moveInDate
-        });
-
-        await newRecruit.save();
-        res.status(201).json({ message: 'Student recruitment submitted for approval!' });
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
     } catch (err) {
-        res.status(500).json({ message: 'Server Error: Could not submit recruit.' });
+        next(err);
     }
 });
 
-// 2. Agent: Get my stats and recruit list
-router.get('/my-stats', auth, hasRole('Agent'), async (req, res) => {
-    try {
-        const recruits = await Recruit.find({ agent: req.user.id }).sort({ createdAt: -1 });
-        const agent = await Agent.findById(req.user.id);
+// --- HELPER: COMPARE PASSWORD ---
+// This is used in authRoutes.js to check if the typed password is correct.
+AgentSchema.methods.comparePassword = async function (enteredPassword) {
+    return await bcrypt.compare(enteredPassword, this.password);
+};
 
-        // Calculate total earnings from approved recruits
-        const totalEarnings = recruits
-            .filter(r => r.status === 'Approved')
-            .reduce((sum, r) => sum + r.commissionEarned, 0);
-
-        res.json({
-            recruits,
-            totalEarnings,
-            fullName: agent.fullName
-        });
-    } catch (err) {
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
-
-// ==========================================
-// MANAGEMENT (ADMIN) ROUTES FOR AGENTS
-// ==========================================
-
-// 3. Admin: Get ALL recruits for approval
-router.get('/admin/all-recruits', auth, hasRole('Admin'), async (req, res) => {
-    try {
-        const recruits = await Recruit.find().populate('agent', 'fullName businessName').sort({ createdAt: -1 });
-        res.json(recruits);
-    } catch (err) {
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
-
-// 4. Admin: Approve Recruit & Set Commission
-router.put('/admin/approve-recruit/:id', auth, hasRole('Admin'), async (req, res) => {
-    try {
-        const { commissionAmount } = req.body; // Amount from your dashboard calculator
-        const recruit = await Recruit.findById(req.params.id);
-
-        if (!recruit) return res.status(404).json({ message: 'Recruit not found' });
-
-        recruit.status = 'Approved';
-        recruit.commissionEarned = commissionAmount;
-        await recruit.save();
-
-        res.json({ message: 'Recruit approved and commission updated!' });
-    } catch (err) {
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
-
-// 5. Admin: Block/Unblock Agent Account
-router.put('/admin/toggle-agent-lock/:id', auth, hasRole('Admin'), async (req, res) => {
-    try {
-        const agent = await Agent.findById(req.params.id);
-        if (!agent) return res.status(404).json({ message: 'Agent not found' });
-
-        agent.isLocked = !agent.isLocked; // Flip the status
-        await agent.save();
-
-        res.json({ message: `Agent account ${agent.isLocked ? 'Locked' : 'Unlocked'} successfully.` });
-    } catch (err) {
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
-
-module.exports = router;const express = require('express');
-const router = express.Router();
-const Recruit = require('../models/Recruit');
-const Agent = require('../models/Agent');
-const { auth, hasRole } = require('../middleware/auth');
-
-// ==========================================
-// AGENT SPECIFIC ROUTES
-// ==========================================
-
-// 1. Agent: Submit a new student recruit
-router.post('/submit-recruit', auth, hasRole('Agent'), async (req, res) => {
-    try {
-        const { studentName, studentSurname, studentEmail, accommodation, moveInDate } = req.body;
-
-        const newRecruit = new Recruit({
-            agent: req.user.id,
-            studentName,
-            studentSurname,
-            studentEmail,
-            accommodation,
-            moveInDate
-        });
-
-        await newRecruit.save();
-        res.status(201).json({ message: 'Student recruitment submitted for approval!' });
-    } catch (err) {
-        res.status(500).json({ message: 'Server Error: Could not submit recruit.' });
-    }
-});
-
-// 2. Agent: Get my stats and recruit list
-router.get('/my-stats', auth, hasRole('Agent'), async (req, res) => {
-    try {
-        const recruits = await Recruit.find({ agent: req.user.id }).sort({ createdAt: -1 });
-        const agent = await Agent.findById(req.user.id);
-
-        // Calculate total earnings from approved recruits
-        const totalEarnings = recruits
-            .filter(r => r.status === 'Approved')
-            .reduce((sum, r) => sum + r.commissionEarned, 0);
-
-        res.json({
-            recruits,
-            totalEarnings,
-            fullName: agent.fullName
-        });
-    } catch (err) {
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
-
-// ==========================================
-// MANAGEMENT (ADMIN) ROUTES FOR AGENTS
-// ==========================================
-
-// 3. Admin: Get ALL recruits for approval
-router.get('/admin/all-recruits', auth, hasRole('Admin'), async (req, res) => {
-    try {
-        const recruits = await Recruit.find().populate('agent', 'fullName businessName').sort({ createdAt: -1 });
-        res.json(recruits);
-    } catch (err) {
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
-
-// 4. Admin: Approve Recruit & Set Commission
-router.put('/admin/approve-recruit/:id', auth, hasRole('Admin'), async (req, res) => {
-    try {
-        const { commissionAmount } = req.body; // Amount from your dashboard calculator
-        const recruit = await Recruit.findById(req.params.id);
-
-        if (!recruit) return res.status(404).json({ message: 'Recruit not found' });
-
-        recruit.status = 'Approved';
-        recruit.commissionEarned = commissionAmount;
-        await recruit.save();
-
-        res.json({ message: 'Recruit approved and commission updated!' });
-    } catch (err) {
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
-
-// 5. Admin: Block/Unblock Agent Account
-router.put('/admin/toggle-agent-lock/:id', auth, hasRole('Admin'), async (req, res) => {
-    try {
-        const agent = await Agent.findById(req.params.id);
-        if (!agent) return res.status(404).json({ message: 'Agent not found' });
-
-        agent.isLocked = !agent.isLocked; // Flip the status
-        await agent.save();
-
-        res.json({ message: `Agent account ${agent.isLocked ? 'Locked' : 'Unlocked'} successfully.` });
-    } catch (err) {
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
-
-module.exports = router;
+module.exports = mongoose.model('Agent', AgentSchema);
