@@ -394,21 +394,18 @@
     const formData = new FormData(e.target);
     const payload = Object.fromEntries(formData);
 
-    // FIX: Ensure studentPhone is captured even if FormData missed it
-    const phoneInput = e.target.querySelector('[name="studentPhone"]');
-    if (phoneInput) {
-        payload.studentPhone = phoneInput.value.trim();
-    }
+    // FORCE GRAB: Use the unique ID we just created
+    const phoneElement = document.getElementById('studentPhoneInput');
+    payload.studentPhone = phoneElement.value.trim();
 
-    // Check if phone is still missing before sending
+    // DEBUG CHECK: If this alert pops up, the browser is failing to read the box
     if (!payload.studentPhone) {
         hideLoader();
-        alert("Error: Student Phone Number is required.");
+        alert("Wait! The phone number box is empty.");
         return;
     }
 
-    if (payload.accommodation === 'not listed') payload.accommodation = payload.manualAccommodation;
-    delete payload.manualAccommodation;
+    console.log("Data going to Azure:", payload); // Look at your browser console (F12)
 
     try {
         const res = await fetch(`${API_URL}/submit-recruit`, {
