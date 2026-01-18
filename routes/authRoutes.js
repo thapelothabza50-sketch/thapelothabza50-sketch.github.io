@@ -402,20 +402,20 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
 // In authRoutes.js
 router.post('/submit-recruit', auth, async (req, res) => {
     try {
-        console.log("Data received on server:", req.body); // Check your terminal/logs
+        console.log("Payload received:", req.body); // Check this in your logs!
 
         const { 
             studentName, 
             studentSurname, 
             studentEmail, 
-            studentPhone, // Mongoose says this is coming in as empty/null
+            studentPhone, 
             accommodation, 
             moveInDate 
         } = req.body;
 
-        // Validation check
+        // Validation check before attempting to save to Mongoose
         if (!studentPhone) {
-            return res.status(400).json({ message: "Phone number is required from the frontend." });
+            return res.status(400).json({ message: 'Validation failed', error: 'studentPhone is required' });
         }
 
         const newRecruit = new Recruit({
@@ -438,5 +438,5 @@ router.post('/submit-recruit', auth, async (req, res) => {
     }
 });
 
-// IMPORTANT: Ensure no other 'storage', 'upload', or 'announce-residence' blocks exist below this line.
+
 module.exports = router;

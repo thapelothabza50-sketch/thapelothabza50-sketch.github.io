@@ -388,33 +388,53 @@
     });
 
     document.getElementById('studentForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        triggerLoader("Saving Recruit...");
-        const formData = new FormData(e.target);
-        const payload = Object.fromEntries(formData);
-        const phoneInput = e.target.querySelector('[name="studentPhone"]');
-payload.studentPhone = phoneInput ? phoneInput.value.trim() : "";
+    e.preventDefault();
+    triggerLoader("Saving Recruit...");
+    
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData);
 
-console.log("Payload to be sent:", payload); // Debugging: Check your browser console!
+    // FIX: Ensure studentPhone is captured even if FormData missed it
+    const phoneInput = e.target.querySelector('[name="studentPhone"]');
+    if (phoneInput) {
+        payload.studentPhone = phoneInput.value.trim();
+    }
 
-if (!payload.studentPhone) {
-    alert("Phone number is missing!");
-    return;
-}
+    // Check if phone is still missing before sending
+    if (!payload.studentPhone) {
+        hideLoader();
+        alert("Error: Student Phone Number is required.");
+        return;
+    }
+
+    if (payload.accommodation === 'not listed') payload.accommodation = payload.manualAccommodation;
+    delete payload.manualAccommodation;
+
+    try {
+        const res = await fetch(`${API_URL}/submit-recruit`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Bearer ${getToken()}` 
+            },
+            body: JSON.stringify(payload)
+        });
         
-        if (payload.accommodation === 'not listed') payload.accommodation = payload.manualAccommodation;
-        delete payload.manualAccommodation;
-
-        try {
-            const res = await fetch(`${API_URL}/submit-recruit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-                body: JSON.stringify(payload)
-            });
-            hideLoader();
-            if(res.ok) { alert("Student added successfully!"); e.target.reset(); fetchAgentData(); }
-        } catch (error) { hideLoader(); alert("Connection Error"); }
-    });
+        const result = await res.json();
+        hideLoader();
+        
+        if(res.ok) { 
+            alert("Student added successfully!"); 
+            e.target.reset(); 
+            fetchAgentData(); 
+        } else {
+            alert("Submission Failed: " + (result.error || result.message));
+        }
+    } catch (error) { 
+        hideLoader(); 
+        alert("Connection Error. Please check your internet."); 
+    }
+});
 
     function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
     
