@@ -1,4 +1,3 @@
-// models/Agent.js - CLEAN & FIXED VERSION
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -56,7 +55,7 @@ const AgentSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// --- MIDDLEWARE: HASH PASSWORD BEFORE SAVING ---
+// --- PASSWORD HASHING MIDDLEWARE (Only defined once) ---
 AgentSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
     try {
@@ -68,36 +67,9 @@ AgentSchema.pre('save', async function (next) {
     }
 });
 
-// --- HELPER: COMPARE PASSWORD ---
+// --- HELPER FOR LOGIN COMPARISON ---
 AgentSchema.methods.comparePassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-
-const AgentSchema = new mongoose.Schema({
-    agentId: { type: String, required: true, unique: true, trim: true }, // Student Number
-    email: { type: String, required: true, unique: true, trim: true },
-    password: { type: String, required: true },
-    fullName: { type: String, default: 'New Agent' },
-    role: { type: String, default: 'Agent' },
-    mustChangePassword: { type: Boolean, default: true },
-    resetCode: String,
-    resetCodeExpire: Date
-}, { timestamps: true });
-
-// --- Automatically hash the password before saving ---
-AgentSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-});
-
-// --- Method to compare passwords during login ---
-AgentSchema.methods.comparePassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
-};
-
 
 module.exports = mongoose.model('Agent', AgentSchema);
