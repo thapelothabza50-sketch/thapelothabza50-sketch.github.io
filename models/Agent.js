@@ -54,5 +54,13 @@ const AgentSchema = new mongoose.Schema({
         default: Date.now
     }
 }, { timestamps: true });
+// Add this to the very bottom of models/Agent.js before module.exports
+AgentSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) return next();
+    const bcrypt = require('bcryptjs'); // Ensure bcrypt is available
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+});
 
 module.exports = mongoose.model('Agent', AgentSchema);
