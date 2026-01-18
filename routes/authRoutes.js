@@ -421,7 +421,7 @@ router.post('/forgot-password', async (req, res) => {
 
         // Send via Brevo
         await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+            from: '"Campus Collective" <no-reply@mycampuscollective.me>',
             to: email,
             subject: "Password Reset Code",
             text: `Your code is: ${code}`
