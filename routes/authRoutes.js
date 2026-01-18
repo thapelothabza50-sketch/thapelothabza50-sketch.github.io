@@ -400,6 +400,10 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
     }
 });
 
+// =========================================================================
+// PASSWORD RECOVERY SYSTEM
+// =========================================================================
+
 /**
  * @route   POST /api/auth/forgot-password
  * @desc    Generate a 6-digit code and send a professional HTML email
@@ -435,41 +439,26 @@ router.post('/forgot-password', async (req, res) => {
                 <div style="background-color: #1e40af; padding: 25px; text-align: center;">
                     <h1 style="color: #ffffff; margin: 0; font-size: 26px; letter-spacing: 1px;">Campus Collective</h1>
                 </div>
-
                 <div style="padding: 40px; background-color: #ffffff;">
                     <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">Password Reset Request</h2>
                     <p style="color: #475569; line-height: 1.6;">Hello,</p>
-                    <p style="color: #475569; line-height: 1.6;">We received a request to reset your password for your Campus Collective account. Please use the verification code below to complete the process.</p>
-                    
+                    <p style="color: #475569; line-height: 1.6;">We received a request to reset your password. Use the code below to proceed.</p>
                     <div style="text-align: center; margin: 35px 0;">
                         <div style="display: inline-block; padding: 20px 40px; background-color: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px;">
                             <span style="font-size: 36px; font-weight: 800; color: #1e40af; letter-spacing: 8px;">${code}</span>
                         </div>
-                        <p style="color: #ef4444; font-size: 13px; font-weight: 600; margin-top: 15px;">
-                            ⏳ This code expires in 60 minutes.
-                        </p>
+                        <p style="color: #ef4444; font-size: 13px; font-weight: 600; margin-top: 15px;">⏳ This code expires in 60 minutes.</p>
                     </div>
-
                     <p style="color: #475569; line-height: 1.6;">
-                        <strong>Security Note:</strong> If you did not request this password reset, please ignore this email or report the incident to <a href="mailto:info@mycampuscollective.me" style="color: #3b82f6; text-decoration: none;">info@mycampuscollective.me</a> immediately.
+                        <strong>Security Note:</strong> If this wasn't you, report it to <a href="mailto:info@mycampuscollective.me">info@mycampuscollective.me</a> immediately.
                     </p>
                 </div>
-
-                <div style="padding: 25px; background-color: #f1f5f9; text-align: center; border-top: 1px solid #e2e8f0;">
-                    <p style="margin: 0; color: #64748b; font-size: 13px; line-height: 1.5;">
-                        This is an automated message. <strong>Please do not reply to this email directly.</strong><br>
-                        For any inquiries, please contact us at: 
-                        <a href="mailto:info@mycampuscollective.me" style="color: #1e40af; text-decoration: none; font-weight: 600;">info@mycampuscollective.me</a>
-                    </p>
-                    <p style="margin: 20px 0 0 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
-                        &copy; 2026 Campus Collective. All rights reserved.
-                    </p>
+                <div style="padding: 25px; background-color: #f1f5f9; text-align: center;">
+                    <p style="color: #64748b; font-size: 13px;">This is automated. <strong>Do not reply directly.</strong></p>
                 </div>
-            </div>
-            `
+            </div>`
         };
 
-        // 4. Send the email via Nodemailer/Brevo
         await transporter.sendMail(mailOptions);
         res.json({ message: "Verification code sent to your email!" });
 
@@ -478,6 +467,43 @@ router.post('/forgot-password', async (req, res) => {
         res.status(500).json({ message: "An error occurred while sending the email." });
     }
 });
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Verify code and update the password (THIS WAS MISSING!)
+ */
+router.post('/reset-password', async (req, res) => {
+    const { email, code, newPassword } = req.body;
+
+    try {
+        const user = await User.findOne({ email }) || 
+                     await Agent.findOne({ email }) || 
+                     await Seller.findOne({ email });
+
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        if (!user.resetCode || user.resetCode !== code) {
+            return res.status(400).json({ message: "Invalid verification code." });
+        }
+
+        if (Date.now() > user.resetCodeExpire) {
+            return res.status(400).json({ message: "Code has expired." });
+        }
+
+        // The pre-save middleware in your models will hash this automatically
+        user.password = newPassword;
+        user.resetCode = undefined;
+        user.resetCodeExpire = undefined;
+        await user.save();
+
+        res.json({ message: "Password updated successfully!" });
+
+    } catch (err) {
+        console.error("RESET ERROR:", err.message);
+        res.status(500).json({ message: "Server error during password reset." });
+    }
+});
+
 router.post('/submit-recruit', auth, async (req, res) => {
     try {
         console.log("Payload received:", req.body); // Check this in your logs!
