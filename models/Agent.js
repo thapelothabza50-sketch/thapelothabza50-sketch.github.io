@@ -41,7 +41,8 @@ const AgentSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
-    // --- NEW: BANKING DETAILS STRUCTURE ---
+    resetCode: { type: String },
+    resetCodeExpire: { type: Date },
     banking: {
         bankName: { type: String, default: '' },
         accHolder: { type: String, default: '' },

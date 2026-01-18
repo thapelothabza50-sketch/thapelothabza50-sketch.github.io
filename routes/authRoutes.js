@@ -399,7 +399,39 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
         res.status(500).json({ message: 'Error processing announcement', error: err.message });
     }
 });
-// In authRoutes.js
+
+// 1. FORGOT PASSWORD - Generate and Send Code
+router.post('/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    try {
+        // Search all collections for the email
+        let user = await User.findOne({ email }) || 
+                   await Agent.findOne({ email }) || 
+                   await Seller.findOne({ email });
+
+        if (!user) return res.status(404).json({ message: "Email not found." });
+
+        // Generate 6-digit code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Save using the field names from your models
+        user.resetCode = code;
+        user.resetCodeExpire = Date.now() + 3600000; // 1 hour
+        await user.save();
+
+        // Send via Brevo
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Password Reset Code",
+            text: `Your code is: ${code}`
+        });
+
+        res.json({ message: "Code sent to email!" });
+    } catch (err) {
+        res.status(500).json({ message: "Server error" });
+    }
+});
 router.post('/submit-recruit', auth, async (req, res) => {
     try {
         console.log("Payload received:", req.body); // Check this in your logs!

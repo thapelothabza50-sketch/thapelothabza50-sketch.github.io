@@ -35,6 +35,8 @@ const UserSchema = new mongoose.Schema({
         default: 'Customer',
         required: true 
     },
+    resetCode: { type: String },      // To store the 6-digit code
+    resetCodeExpire: { type: Date }, // To make the code expire
     dateJoined: {
         type: Date,
         default: Date.now
