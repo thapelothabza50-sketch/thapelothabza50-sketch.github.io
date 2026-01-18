@@ -370,48 +370,22 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
         // 2. Loop through all agents and send individual emails using the template
         const emailPromises = agents.map(agent => {
             const mailOptions = {
-    from: '"Campus Collective Support" <no-reply@mycampuscollective.me>',
-    to: email,
-    subject: "Password Reset Verification Code",
-    html: `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #f8fafc;">
-        <div style="background-color: #1e40af; padding: 25px; text-align: center;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 26px; letter-spacing: 1px;">Campus Collective</h1>
-        </div>
-
-        <div style="padding: 40px; background-color: #ffffff;">
-            <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">Password Reset Request</h2>
-            <p style="color: #475569; line-height: 1.6;">Hello,</p>
-            <p style="color: #475569; line-height: 1.6;">We received a request to reset your password for your Campus Collective account. Please use the verification code below to complete the process.</p>
-            
-            <div style="text-align: center; margin: 35px 0;">
-                <div style="display: inline-block; padding: 20px 40px; background-color: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px;">
-                    <span style="font-size: 36px; font-weight: 800; color: #1e40af; letter-spacing: 8px;">${code}</span>
-                </div>
-                <p style="color: #ef4444; font-size: 13px; font-weight: 600; margin-top: 15px;">
-                    ⏳ This code expires in 60 minutes.
-                </p>
-            </div>
-
-            <p style="color: #475569; line-height: 1.6;">
-                <strong>Security Note:</strong> If you did not request this password reset, please ignore this email or report the incident to <a href="mailto:info@mycampuscollective.me" style="color: #3b82f6; text-decoration: none;">info@mycampuscollective.me</a> immediately to secure your account.
-            </p>
-        </div>
-
-        <div style="padding: 25px; background-color: #f1f5f9; text-align: center; border-top: 1px solid #e2e8f0;">
-            <p style="margin: 0; color: #64748b; font-size: 13px; line-height: 1.5;">
-                This is an automated message. <strong>Please do not reply to this email directly.</strong><br>
-                For any inquiries, please contact us at: 
-                <a href="mailto:info@mycampuscollective.me" style="color: #1e40af; text-decoration: none; font-weight: 600;">info@mycampuscollective.me</a>
-            </p>
-            <p style="margin: 20px 0 0 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
-                &copy; 2026 Campus Collective. All rights reserved.
-            </p>
-        </div>
-    </div>
-    `
-};
-            
+                from: '"Campus Collective Updates" <no-reply@mycampuscollective.me>',
+                to: agent.email, // Dynamic email from database
+                subject: `New Residence Alert: ${resName}`,
+                headers: {
+                    'X-Mailin-Template-Id': '1', 
+                    'X-Mailin-Parameter': JSON.stringify({
+                        "Agent": agent.fullName || "Agent", // Dynamic name from database
+                        "RES_NAME": resName,
+                        "LOCATION": location,
+                        "ROOM_TYPES": rooms,
+                        "FUNDING_INFO": funding,
+                        "IMAGE_URL_1": imageUrl,
+                        "RES_SLUG": resSlug
+                    })
+                }
+            };
             return transporter.sendMail(mailOptions);
         });
 
@@ -426,36 +400,82 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
     }
 });
 
-// 1. FORGOT PASSWORD - Generate and Send Code
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Generate a 6-digit code and send a professional HTML email
+ */
 router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
+
     try {
-        // Search all collections for the email
-        let user = await User.findOne({ email }) || 
-                   await Agent.findOne({ email }) || 
-                   await Seller.findOne({ email });
+        // Find user across all possible models
+        const user = await Seller.findOne({ email }) || 
+                     await Agent.findOne({ email }) || 
+                     await User.findOne({ email });
 
-        if (!user) return res.status(404).json({ message: "Email not found." });
+        if (!user) {
+            return res.status(404).json({ message: "No account found with this email address." });
+        }
 
-        // Generate 6-digit code
+        // 1. Generate 6-digit verification code
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // Save using the field names from your models
+        // 2. Save code to the user document (expires in 1 hour)
         user.resetCode = code;
-        user.resetCodeExpire = Date.now() + 3600000; // 1 hour
+        user.resetCodeExpire = Date.now() + 3600000; 
         await user.save();
 
-        // Send via Brevo
-        await transporter.sendMail({
-            from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+        // 3. Define the professional HTML email
+        const mailOptions = {
+            from: '"Campus Collective Support" <no-reply@mycampuscollective.me>',
             to: email,
-            subject: "Password Reset Code",
-            text: `Your code is: ${code}`
-        });
+            subject: "Password Reset Verification Code",
+            html: `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #f8fafc;">
+                <div style="background-color: #1e40af; padding: 25px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 26px; letter-spacing: 1px;">Campus Collective</h1>
+                </div>
 
-        res.json({ message: "Code sent to email!" });
+                <div style="padding: 40px; background-color: #ffffff;">
+                    <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">Password Reset Request</h2>
+                    <p style="color: #475569; line-height: 1.6;">Hello,</p>
+                    <p style="color: #475569; line-height: 1.6;">We received a request to reset your password for your Campus Collective account. Please use the verification code below to complete the process.</p>
+                    
+                    <div style="text-align: center; margin: 35px 0;">
+                        <div style="display: inline-block; padding: 20px 40px; background-color: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px;">
+                            <span style="font-size: 36px; font-weight: 800; color: #1e40af; letter-spacing: 8px;">${code}</span>
+                        </div>
+                        <p style="color: #ef4444; font-size: 13px; font-weight: 600; margin-top: 15px;">
+                            ⏳ This code expires in 60 minutes.
+                        </p>
+                    </div>
+
+                    <p style="color: #475569; line-height: 1.6;">
+                        <strong>Security Note:</strong> If you did not request this password reset, please ignore this email or report the incident to <a href="mailto:info@mycampuscollective.me" style="color: #3b82f6; text-decoration: none;">info@mycampuscollective.me</a> immediately.
+                    </p>
+                </div>
+
+                <div style="padding: 25px; background-color: #f1f5f9; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <p style="margin: 0; color: #64748b; font-size: 13px; line-height: 1.5;">
+                        This is an automated message. <strong>Please do not reply to this email directly.</strong><br>
+                        For any inquiries, please contact us at: 
+                        <a href="mailto:info@mycampuscollective.me" style="color: #1e40af; text-decoration: none; font-weight: 600;">info@mycampuscollective.me</a>
+                    </p>
+                    <p style="margin: 20px 0 0 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
+                        &copy; 2026 Campus Collective. All rights reserved.
+                    </p>
+                </div>
+            </div>
+            `
+        };
+
+        // 4. Send the email via Nodemailer/Brevo
+        await transporter.sendMail(mailOptions);
+        res.json({ message: "Verification code sent to your email!" });
+
     } catch (err) {
-        res.status(500).json({ message: "Server error" });
+        console.error("FORGOT PASSWORD ERROR:", err.message);
+        res.status(500).json({ message: "An error occurred while sending the email." });
     }
 });
 router.post('/submit-recruit', auth, async (req, res) => {
