@@ -63,4 +63,18 @@ AgentSchema.pre('save', async function (next) {
     next();
 });
 
+const bcrypt = require('bcryptjs');
+
+// This hashes the password automatically before saving to the database
+AgentSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) return next();
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+});
+
+// This helps the login route compare passwords easily
+AgentSchema.methods.comparePassword = async function (enteredPassword) {
+    return await bcrypt.compare(enteredPassword, this.password);
+};
 module.exports = mongoose.model('Agent', AgentSchema);
