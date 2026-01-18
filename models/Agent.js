@@ -67,7 +67,7 @@ AgentSchema.pre('save', async function (next) {
     }
 });
 
-// --- HELPER FOR LOGIN COMPARISON ---
+// --- HELPER: COMPARE PASSWORD ---
 AgentSchema.methods.comparePassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
