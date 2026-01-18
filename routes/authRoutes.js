@@ -401,19 +401,21 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
 });
 // In authRoutes.js
 router.post('/submit-recruit', auth, async (req, res) => {
-    // 1. Log immediately to confirm the request hit the server
-    console.log("--- NEW RECRUIT ATTEMPT ---");
-    
     try {
+        console.log("Payload received:", req.body); // Check this in your logs!
+
         const { 
-            studentName, studentSurname, studentEmail, 
-            studentPhone, accommodation, moveInDate 
+            studentName, 
+            studentSurname, 
+            studentEmail, 
+            studentPhone, 
+            accommodation, 
+            moveInDate 
         } = req.body;
 
-        // 2. Validation check: If this fails, we MUST send a response
+        // Validation check before attempting to save to Mongoose
         if (!studentPhone) {
-            console.log("Validation Failed: Missing studentPhone");
-            return res.status(400).json({ message: 'studentPhone is required' });
+            return res.status(400).json({ message: 'Validation failed', error: 'studentPhone is required' });
         }
 
         const newRecruit = new Recruit({
@@ -428,20 +430,11 @@ router.post('/submit-recruit', auth, async (req, res) => {
             status: 'Pending'
         });
 
-        // 3. Save to database
         await newRecruit.save();
-        console.log("Recruit saved successfully!");
-        
-        // 4. Send success response
-        return res.status(201).json({ message: 'Recruit submitted successfully!' });
-
+        res.status(201).json({ message: 'Recruit submitted successfully!' });
     } catch (err) {
         console.error("SUBMIT ERROR:", err.message);
-        // 5. CRITICAL: Send error response so the loader stops
-        return res.status(500).json({ 
-            message: 'Server Error', 
-            error: err.message 
-        });
+        res.status(500).json({ message: 'Server Error', error: err.message });
     }
 });
 
