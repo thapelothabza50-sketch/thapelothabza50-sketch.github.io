@@ -370,7 +370,7 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
         // 2. Loop through all agents and send individual emails using the template
         const emailPromises = agents.map(agent => {
             const mailOptions = {
-    from: `"Campus Collective Support" <${process.env.EMAIL_USER}>`,
+    from: '"Campus Collective Support" <no-reply@mycampuscollective.me>',
     to: email,
     subject: "Password Reset Verification Code",
     html: `
