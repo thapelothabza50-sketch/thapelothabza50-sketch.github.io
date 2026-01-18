@@ -401,24 +401,19 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
 });
 // In authRoutes.js
 router.post('/submit-recruit', auth, async (req, res) => {
+    // 1. Log immediately to confirm the request hit the server
     console.log("--- NEW RECRUIT ATTEMPT ---");
-    console.log("Headers:", req.headers['content-type']);
-    console.log("Body Content:", req.body); // IF THIS IS {} THEN THE PROBLEM IS IN SERVER.JS
+    
     try {
-        console.log("Payload received:", req.body); // Check this in your logs!
-
         const { 
-            studentName, 
-            studentSurname, 
-            studentEmail, 
-            studentPhone, 
-            accommodation, 
-            moveInDate 
+            studentName, studentSurname, studentEmail, 
+            studentPhone, accommodation, moveInDate 
         } = req.body;
 
-        // Validation check before attempting to save to Mongoose
+        // 2. Validation check: If this fails, we MUST send a response
         if (!studentPhone) {
-            return res.status(400).json({ message: 'Validation failed', error: 'studentPhone is required' });
+            console.log("Validation Failed: Missing studentPhone");
+            return res.status(400).json({ message: 'studentPhone is required' });
         }
 
         const newRecruit = new Recruit({
@@ -433,11 +428,20 @@ router.post('/submit-recruit', auth, async (req, res) => {
             status: 'Pending'
         });
 
+        // 3. Save to database
         await newRecruit.save();
-        res.status(201).json({ message: 'Recruit submitted successfully!' });
+        console.log("Recruit saved successfully!");
+        
+        // 4. Send success response
+        return res.status(201).json({ message: 'Recruit submitted successfully!' });
+
     } catch (err) {
         console.error("SUBMIT ERROR:", err.message);
-        res.status(500).json({ message: 'Server Error', error: err.message });
+        // 5. CRITICAL: Send error response so the loader stops
+        return res.status(500).json({ 
+            message: 'Server Error', 
+            error: err.message 
+        });
     }
 });
 

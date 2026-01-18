@@ -409,14 +409,31 @@
     }
 
     try {
-        const res = await fetch(`${API_URL}/submit-recruit`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'Authorization': `Bearer ${getToken()}` 
-            },
-            body: JSON.stringify(payload)
-        });
+    const res = await fetch(`${API_URL}/submit-recruit`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${getToken()}` 
+        },
+        body: JSON.stringify(payload)
+    });
+    
+    // Move hideLoader here so it runs regardless of res.ok
+    hideLoader(); 
+
+    if(res.ok) { 
+        alert("Student added successfully!"); 
+        e.target.reset(); 
+        fetchAgentData(); 
+    } else {
+        const errorData = await res.json();
+        alert("Error: " + (errorData.message || "Submission failed"));
+    }
+} catch (error) { 
+    hideLoader(); // Ensure loader stops on connection error
+    console.error("Fetch error:", error);
+    alert("Connection Error. Please check your internet or server status."); 
+}
         
         const result = await res.json();
         hideLoader();
@@ -429,10 +446,7 @@
             // This will now show the specific error message from the backend
             alert("Server Error: " + (result.error || result.message));
         }
-    } catch (error) { 
-        hideLoader(); 
-        alert("Connection Error. Check if your server is running."); 
-    }
+    
 });
 
     function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
