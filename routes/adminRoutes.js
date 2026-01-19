@@ -95,22 +95,50 @@ router.post('/toggle-lock', auth, hasRole(['Admin']), async (req, res) => {
 });
 
 // --- APPROVE RECRUIT WITH MANUAL COMMISSION ---
+// --- 1. FIXED APPROVAL WITH COMMISSION ---
 router.post('/approve-recruit/:id', auth, hasRole(['Admin']), async (req, res) => {
     try {
         const { commissionAmount } = req.body; 
-        
         const recruit = await Recruit.findById(req.params.id);
         if (!recruit) return res.status(404).json({ message: 'Recruit not found' });
 
         recruit.status = 'Approved';
         recruit.commissionEarned = parseFloat(commissionAmount) || 0; 
-        
         await recruit.save();
 
-        res.json({ message: 'Student approved and commission set!', recruit });
+        // 🏆 NEW: Add the commission to the Agent's total balance
+        await Agent.findByIdAndUpdate(recruit.agent, {
+            $inc: { balance: recruit.commissionEarned } // Ensure 'balance' exists in Agent.js
+        });
+
+        res.json({ message: 'Recruit approved and commission added to Agent' });
     } catch (err) {
-        console.error('Approval Error:', err.message);
-        res.status(500).send('Server Error during approval');
+        res.status(500).json({ message: 'Error approving recruit' });
+    }
+});
+
+// --- 2. NEW: DELETE USER ROUTE ---
+router.delete('/delete-user/:id', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        let user = await Seller.findByIdAndDelete(req.params.id);
+        if (!user) {
+            user = await Agent.findByIdAndDelete(req.params.id);
+        }
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        res.json({ message: 'Account deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: 'Error deleting account' });
+    }
+});
+
+// --- 3. NEW: DELETE RECRUIT ROUTE ---
+router.delete('/delete-recruit/:id', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const recruit = await Recruit.findByIdAndDelete(req.params.id);
+        if (!recruit) return res.status(404).json({ message: 'Recruit not found' });
+        res.json({ message: 'Recruit deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: 'Error deleting recruit' });
     }
 });
 

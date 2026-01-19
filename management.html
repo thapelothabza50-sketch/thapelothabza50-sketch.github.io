@@ -138,7 +138,17 @@
         <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
             <table class="w-full border-collapse">
                 <thead>
-                 <tr><th>Student</th><th>Phone</th><th>Accommodation</th><th>Agent</th><th>Date Applied</th><th>Status</th><th>Control</th></tr>
+                 <tr>
+                    <th>Student</th>
+                    <th>Phone</th>
+                    <th>Accommodation</th>
+                    <th>Agent</th>
+                    <th>Date Applied</th>
+                    <th class="p-3">Move-in Date</th>
+                     <th class="p-3">Agent</th>
+                     <th>Status</th>
+                     <th>Control</th>
+                    </tr>
                 </thead> 
                 <tbody id="recruit-table-body"></tbody>
             </table>
@@ -181,7 +191,7 @@
 
 <div id="calc-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-[2000]">
     <div class="bg-white p-8 rounded-3xl w-96 shadow-2xl">
-        <h2 class="text-2xl font-black mb-6 flex items-center gap-2">ｧｮ Commission <span class="text-blue-600">Pro</span></h2>
+        <h2 class="text-2xl font-black mb-6 flex items-center gap-2">$ Commission <span class="text-blue-600">Pro</span></h2>
         <div class="space-y-4">
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Calculation Type</label>
@@ -283,6 +293,7 @@
             document.getElementById('stat-users').innerText = data.length;
         } catch (e) { console.error(e); }
     }
+    
 
     function renderAllUsers(users) {
         const agentBody = document.getElementById('agent-table-body');
@@ -344,14 +355,35 @@
         return `
         <tr>
             <td><b>${r.studentName} ${r.studentSurname}</b><br><small>${r.studentEmail}</small></td>
-            <td class="text-xs font-mono">${r.studentPhone || 'N/A'}</td> <td>${r.accommodation}</td>
+            <td class="text-xs font-mono">${r.studentPhone || 'N/A'}</td> 
+            <td>${r.accommodation}</td>
             <td class="text-blue-600 font-bold">${agentName}</td>
             <td>${new Date(r.createdAt).toLocaleDateString()}</td>
-            <td><span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${r.status}</span></td>
-            <td><select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded"><option value="">Update...</option><option value="Approved">Approve</option><option value="Cancelled">Cancel</option></select></td>
+            <td>${new Date(r.moveInDate).toLocaleDateString()}</td>
+            <td>
+                <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                    ${r.status}
+                </span>
+            </td>
+            <td>
+                <div class="flex items-center gap-2">
+                    <select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded">
+                        <option value="">Update...</option>
+                        <option value="Approved">Approve</option>
+                        <option value="Cancelled">Cancel</option>
+                        <option value="Pending..">Pending</option>
+                    </select>
+                    <button onclick="deleteRecruit('${r._id}')" class="bg-red-50 text-red-600 p-1.5 rounded hover:bg-red-600 hover:text-white transition shadow-sm border border-red-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            </td>
         </tr>`;
     }).join('');
 }
+
 
     function printAllRecruitsPDF() {
     const { jsPDF } = window.jspdf;
@@ -367,7 +399,7 @@
         new Date(r.createdAt).toLocaleDateString()
     ]);
     doc.autoTable({ 
-        head: [['Student', 'Phone', 'Accommodation', 'Agent', 'Status', 'Date']], // Added 'Phone' here
+        head: [['Student', 'Phone', 'Accommodation', 'Agent', 'Status', 'Date']], 
         body: rows, 
         startY: 25 
     });
@@ -470,31 +502,71 @@
         } catch (e) { console.error(e); }
     }
 
-    async function toggleLock(userId, currentStatus) {
-        const newStatus = currentStatus === 'active' ? 'locked' : 'active';
-        await triggerLoader("Toggling Lock...");
-        try {
-            await fetch(`${API_BASE_URL}/toggle-lock/${userId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ status: newStatus })
-            });
-            fetchProfiles();
-        } catch (e) { console.error(e); }
-    }
+    a// --- FIXED LOCK FUNCTION ---
+async function toggleLock(userId, currentStatus) {
+    const newStatus = currentStatus === 'active' ? 'locked' : 'active';
+    await triggerLoader(newStatus === 'locked' ? "Locking..." : "Unlocking...");
 
-    async function deleteAccount(userId, role) {
-        if (!confirm(`Permanently delete this ${role}?`)) return;
-        await triggerLoader("Deleting...");
-        try {
-            await fetch(`${API_BASE_URL}/delete-account/${userId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            fetchProfiles();
-        } catch (e) { console.error(e); }
-    }
+    try {
+        const response = await fetch('/api/admin/toggle-lock', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+            },
+            body: JSON.stringify({ userId, status: newStatus })
+        });
 
+        if (response.ok) {
+            alert(`Account ${newStatus} successfully`);
+            location.reload(); // Refresh to show changes
+        } else {
+            throw new Error("Failed to update status");
+        }
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+// --- FIXED DELETE USER FUNCTION ---
+async function deleteUser(userId) {
+    if (!confirm("Are you sure? This cannot be undone.")) return;
+    await triggerLoader("Deleting Account...");
+
+    try {
+        const response = await fetch(`/api/admin/delete-user/${userId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
+        });
+
+        if (response.ok) {
+            alert("Account deleted");
+            location.reload();
+        }
+    } catch (err) {
+        alert("Error deleting user");
+    }
+}
+
+// --- NEW DELETE RECRUIT FUNCTION ---
+async function deleteRecruit(recruitId) {
+    if (!confirm("Delete this student recruit?")) return;
+    await triggerLoader("Deleting Recruit...");
+
+    try {
+        const response = await fetch(`/api/admin/delete-recruit/${recruitId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
+        });
+
+        if (response.ok) {
+            alert("Recruit removed");
+            location.reload();
+        }
+    } catch (err) {
+        alert("Error deleting recruit");
+    }
+}
     function handleGlobalSearch() {
         const query = document.getElementById('globalSearch').value.toLowerCase();
         const rows = document.querySelectorAll('tbody tr');
