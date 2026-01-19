@@ -530,21 +530,25 @@ async function toggleLock(userId, currentStatus) {
 
 // --- FIXED DELETE USER FUNCTION ---
 async function deleteUser(userId) {
-    if (!confirm("Are you sure? This cannot be undone.")) return;
-    await triggerLoader("Deleting Account...");
+    if (!confirm("Are you sure you want to PERMANENTLY delete this account?")) return;
 
     try {
         const response = await fetch(`/api/admin/delete-user/${userId}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
+            headers: { 
+                'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` 
+            }
         });
 
+        const data = await response.json();
         if (response.ok) {
-            alert("Account deleted");
-            location.reload();
+            alert(data.message);
+            loadProfiles(); // Refresh the users table
+        } else {
+            alert(data.message);
         }
     } catch (err) {
-        alert("Error deleting user");
+        console.error("Delete Error:", err);
     }
 }
 

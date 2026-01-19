@@ -118,16 +118,20 @@ router.post('/approve-recruit/:id', auth, hasRole(['Admin']), async (req, res) =
 });
 
 // --- 2. NEW: DELETE USER ROUTE ---
+// --- DELETE USER ACCOUNT (Agent or Seller) ---
 router.delete('/delete-user/:id', auth, hasRole(['Admin']), async (req, res) => {
     try {
-        let user = await Seller.findByIdAndDelete(req.params.id);
-        if (!user) {
-            user = await Agent.findByIdAndDelete(req.params.id);
+        // Search and delete in both collections
+        let deletedUser = await Seller.findByIdAndDelete(req.params.id);
+        if (!deletedUser) {
+            deletedUser = await Agent.findByIdAndDelete(req.params.id);
         }
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.json({ message: 'Account deleted successfully' });
+
+        if (!deletedUser) return res.status(404).json({ message: 'User not found' });
+
+        res.json({ message: 'Account permanently deleted.' });
     } catch (err) {
-        res.status(500).json({ message: 'Error deleting account' });
+        res.status(500).json({ message: 'Server error during deletion' });
     }
 });
 

@@ -164,6 +164,7 @@ router.post('/admin-agent/login', async (req, res) => {
         if (!agent) {
             return res.status(400).json({ message: 'Invalid Agent ID' });
         }
+        
 
         // 4. Handle first-time login (Mandatory Reset)
         if (agent.mustChangePassword) {
@@ -178,6 +179,12 @@ router.post('/admin-agent/login', async (req, res) => {
                 message: 'First login detected. Please reset your password.' 
             });
         }
+        if (agent.status === 'locked') {
+            return res.status(403).json({ 
+                message: 'Your account is locked. Please contact administration.' 
+            });
+        }
+        
 
         // 5. Normal Login: Create the full Token
         const token = jwt.sign(
@@ -212,7 +219,7 @@ router.post('/seller/login', async (req, res) => {
 
         const userStatus = user.status || 'active';
         if (userStatus === 'locked') {
-            return res.status(403).json({ message: 'Account Locked. Contact Management.' });
+            return res.status(403).json({ message: 'Account Locked. Contact Administration.' });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
