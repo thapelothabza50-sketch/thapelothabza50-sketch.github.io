@@ -311,7 +311,7 @@
                 <td>
                     <div class="flex gap-2">
                         <button onclick="event.stopPropagation(); toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 text-gray-700 px-3 py-1 rounded text-xs font-bold border">LOCK/UNLOCK</button>
-                        <button onclick="event.stopPropagation(); deleteUserAccount('${u._id}', 'Agent')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-xs font-bold border border-red-200">DELETE</button>
+                        <button onclick="event.stopPropagation(); deleteAccount('${u._id}', 'Agent')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-xs font-bold border border-red-200">DELETE</button>
                     </div>
                 </td>
             </tr>`).join('');
@@ -528,8 +528,8 @@ async function toggleLock(userId, currentStatus) {
     }
 }
 
-// --- FIXED DELETE USER FUNCTION ---
-async function deleteUser(userId) {
+// --- DELETE USER FUNCTION ---
+async function deleteAccount(userId) {
     if (!confirm("Are you sure you want to PERMANENTLY delete this account?")) return;
 
     try {
