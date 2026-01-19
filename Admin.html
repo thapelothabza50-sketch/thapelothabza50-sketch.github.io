@@ -178,16 +178,31 @@
                 throw new Error(data.message || 'Invalid credentials');
             }
 
-            // SUCCESS logic
-            localStorage.setItem('jwtToken', data.token);
-            loaderText.textContent = "Accessing Dashboard...";
+            // SUCCESS logic loader
+localStorage.setItem('jwtToken', data.token);
+loaderText.textContent = "Accessing Dashboard...";
 
-            setTimeout(() => {
-                const role = data.role.toLowerCase();
-                if (role === 'admin') window.location.href = 'management.html';
-                else if (role === 'agent') window.location.href = 'Agent profil.html';
-                else window.location.href = 'management.html';
-            }, 1500);
+setTimeout(() => {
+    // Check if role is directly on 'data' OR inside 'data.user'
+    const userRole = data.role || (data.user && data.user.role);
+
+    if (!userRole) {
+        console.error("Role missing in server response:", data);
+        alert("Login successful, but user role is missing. Contact support.");
+        return;
+    }
+
+    const role = userRole.toLowerCase();
+
+    if (role === 'admin') {
+        window.location.href = 'management.html';
+    } else if (role === 'agent') {
+        window.location.href = 'Agent profil.html';
+    } else {
+        // Default fallback
+        window.location.href = 'management.html';
+    }
+}, 1500);
 
         } catch (error) {
             console.error("Login Error:", error);
