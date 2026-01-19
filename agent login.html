@@ -93,19 +93,24 @@
         e.preventDefault();
         showLoader("VERIFYING CREDENTIALS...");
 
-        const loginId = document.getElementById('loginId').value;
+        // Get the value from your input field
+        const loginIdValue = document.getElementById('loginId').value;
         const password = document.getElementById('password').value;
 
         try {
             const response = await fetch('/api/auth/admin-agent/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ loginId, password })
+                // FIX: Send it as both agentId and loginId to ensure the backend is happy
+                body: JSON.stringify({ 
+                    agentId: loginIdValue, 
+                    loginId: loginIdValue, 
+                    password: password 
+                })
             });
 
             const data = await response.json();
 
-            // --- FIXED: CHECK FOR RESET ACTION ON SUCCESSFUL (200) RESPONSE ---
             if (response.ok && data.action === 'MANDATORY_RESET') {
                 localStorage.setItem('jwtToken', data.token);
                 showLoader("NEW AGENT DETECTED...");
@@ -116,7 +121,6 @@
             }
 
             if (!response.ok) {
-                // Keep this for safety in case your backend status codes change
                 if (data.action === 'MANDATORY_RESET') {
                     localStorage.setItem('jwtToken', data.token);
                     showLoader("NEW AGENT DETECTED...");
@@ -128,7 +132,10 @@
 
             // Normal login success
             localStorage.setItem('jwtToken', data.token);
-            localStorage.setItem('userData', JSON.stringify(data.user));
+            
+            // FIX: If your backend returns 'data.user', use that. 
+            // If it returns 'data' directly, use data.
+            localStorage.setItem('userData', JSON.stringify(data.user || data));
             
             showLoader("ACCESS GRANTED...");
             
