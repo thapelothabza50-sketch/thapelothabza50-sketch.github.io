@@ -152,23 +152,18 @@ try {
 router.post('/admin-agent/login', async (req, res) => {
     // 1. Get agentId and password from the request body
     const { agentId, password } = req.body; 
-    
 
     try {
-        // 2. Find the agent by their Student Number (agentId), NOT email
-        // Inside your login route:
-const agent = await Agent.findOne({ agentId });
+        // Use trim() to remove any accidental spaces from the input
+        if (!agentId) {
+            return res.status(400).json({ message: 'Agent ID is required' });
+        }
 
-if (!agent) {
-    return res.status(400).json({ message: 'Invalid Agent ID' });
-}
+        const agent = await Agent.findOne({ agentId: agentId.trim() });
 
-// USE THE HELPER METHOD INSTEAD OF MANUAL BCRYPT
-const isMatch = await agent.comparePassword(password);
-
-if (!isMatch) {
-    return res.status(400).json({ message: 'Invalid Password' });
-}
+        if (!agent) {
+            return res.status(400).json({ message: 'Invalid Agent ID' });
+        }
 
         // 4. Handle first-time login (Mandatory Reset)
         if (agent.mustChangePassword) {
