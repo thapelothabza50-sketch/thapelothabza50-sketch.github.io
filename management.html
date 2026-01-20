@@ -329,9 +329,8 @@
             </tr>`).join('');
     }
 
-    async function fetchRecruits() {
+   async function fetchRecruits() {
     try {
-        // Change this to match your actual backend route
         const res = await fetch('/api/auth/all-recruits', { 
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -339,22 +338,35 @@
         
         if (res.ok) {
             allRecruits = data;
+            
+            // FIX: Populate the accommodation filter dropdown so PDF printing works
+            const accFilter = document.getElementById('acc-filter');
+            if (accFilter) {
+                const uniqueAccs = [...new Set(data.map(r => r.accommodation))];
+                accFilter.innerHTML = '<option value="">Select Accommodation...</option>' + 
+                    uniqueAccs.map(acc => `<option value="${acc}">${acc}</option>`).join('');
+            }
+
             renderRecruits(data);
-        } else {
-            console.error("Failed to fetch recruits:", data.message);
         }
     } catch (err) {
         console.error("Error fetching recruits:", err);
     }
 }
 
-    function renderRecruits(recruits) {
+function renderRecruits(recruits) {
     const body = document.getElementById('recruit-table-body');
+    if (!body) return; // Prevent errors if element is missing
+
     body.innerHTML = recruits.map(r => {
         let agentName = "System/Direct";
-        if (r.agent && r.agent.fullName) agentName = r.agent.fullName;
-        else if (typeof r.agent === 'string') {
-            const found = allUsers.find(u => u._id === r.agent);
+        // Check if agent object exists and has a fullName
+        if (r.agent && r.agent.fullName) {
+            agentName = r.agent.fullName;
+        } else {
+            // Fallback: look up in allUsers list if it's just an ID
+            const agentId = typeof r.agent === 'object' ? r.agent._id : r.agent;
+            const found = allUsers.find(u => u._id === agentId);
             if (found) agentName = found.fullName;
         }
 
@@ -389,7 +401,6 @@
         </tr>`;
     }).join('');
 }
-
 
    function printAllRecruitsPDF() {
     const { jsPDF } = window.jspdf;
@@ -649,6 +660,22 @@ async function deleteAccount(userId) {
         console.error("Delete Error:", err);
     }
 }
+// --- INACTIVITY AUTO-LOGOUT (5 MINUTES) ---
+let inactivityTimer;
+
+function resetTimer() {
+    clearTimeout(inactivityTimer);
+    // 300,000 milliseconds = 5 minutes
+    inactivityTimer = setTimeout(() => {
+        alert("Session expired due to inactivity.");
+        logout();
+    }, 300000); 
+}
+
+// Listen for mouse movement or key presses to reset the timer
+window.onmousemove = resetTimer;
+window.onkeydown = resetTimer;
+window.onload = resetTimer;
 
 // --- NEW DELETE RECRUIT FUNCTION ---
 async function deleteRecruit(recruitId) {
@@ -698,7 +725,16 @@ async function deleteRecruit(recruitId) {
     async function addNewAccount() { await triggerLoader("Redirecting..."); window.location.href = 'Admin-register-agent.html'; }
     async function logout() { await triggerLoader("Ending Session..."); localStorage.clear(); window.location.href = 'Admin.html'; }
 
-    window.onload = () => { if(!token) { window.location.href = 'Admin.html'; } else { fetchProfiles(); fetchRecruits(); } };
+    window.onload = async () => { 
+    if(!token) { 
+        window.location.href = 'Admin.html'; 
+    } else { 
+        // Use 'await' to ensure users are loaded before recruits
+        // This prevents the "Direct/System" bug and blank tables
+        await fetchProfiles(); 
+        await fetchRecruits(); 
+    } 
+};;
 </script>
 </body>
 </html>
