@@ -194,7 +194,8 @@
 </div>
 
 <script>
-    // Since you said fetching is working now, we will use the same base for both.
+    // --- CONFIGURATION ---
+    // We use /api/admin because you confirmed fetching works here.
     const API_BASE = '/api/admin'; 
     const loader = document.getElementById('loader-overlay');
     let recruitsData = []; 
@@ -203,30 +204,35 @@
 
     function getToken() { return localStorage.getItem('jwtToken'); }
 
+    // --- LOADER LOGIC ---
     function triggerLoader(text) {
         const loaderText = document.getElementById('loader-text');
         if(loaderText) loaderText.textContent = text;
         if(loader) {
             loader.style.visibility = 'visible'; 
             loader.style.opacity = '1';
+            loader.classList.remove('hidden'); // Ensure it's not hidden by class
         }
     }
 
     function hideLoader() { 
         if(loader) {
             loader.style.opacity = '0'; 
-            setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
+            setTimeout(() => { 
+                loader.style.visibility = 'hidden'; 
+            }, 500);
         }
     }
 
+    // --- DATA FETCHING (The "Showing" Logic) ---
     async function fetchAgentData() {
+        triggerLoader("Fetching recruits..."); 
         try {
             const response = await fetch(`${API_BASE}/recruits`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
-            if (!response.ok) throw new Error("Fetch failed");
+            if (!response.ok) throw new Error("Could not load data.");
             const data = await response.json();
-            recruitsData = data; 
             allRecruits = data; 
             renderTable(data);
             updateStats(data);
@@ -237,42 +243,21 @@
         }
     }
 
-    function renderTable(recruits) {
-        const tableBody = document.getElementById('submissions-table');
-        if(!tableBody || !recruits) return;
-        tableBody.innerHTML = recruits.map(r => `
-            <tr class="border-b hover:bg-gray-50 transition">
-                <td class="py-4 font-medium px-4">${r.studentName} ${r.studentSurname}</td>
-                <td class="py-4 text-gray-600">${r.accommodation}</td>
-                <td class="py-4 text-gray-500">${new Date(r.moveInDate).toLocaleDateString()}</td>
-                <td class="py-4">
-                    <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status==='Approved'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${r.status}</span>
-                </td>
-                <td class="py-4 font-bold text-blue-600">R ${r.commissionEarned || 0}</td>
-                <td class="px-4 py-4 text-sm font-medium space-x-3">
-                    <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900">Edit</button>
-                    <button onclick="deleteRecruit('${r._id}')" class="text-red-600 hover:text-red-900">Delete</button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    // --- FIX: UPDATED SUBMIT LOGIC ---
+    // --- SAVING & EDITING LOGIC (The "Fix") ---
     async function handleFormSubmit(e) {
         e.preventDefault();
-        triggerLoader("Saving...");
+        triggerLoader(currentEditId ? "Updating student..." : "Saving new student...");
         
         const formData = new FormData(e.target);
         const payload = Object.fromEntries(formData.entries());
 
-        // Handle "Other" accommodation
+        // Handle 'Other' accommodation choice
         if (payload.accommodation === 'not listed') {
             payload.accommodation = payload.manualAccommodation || "Other";
         }
         delete payload.manualAccommodation;
 
-        // Try /api/admin first since fetching works there. 
-        // If it fails with 404, the catch block or error check will alert us.
+        // Determine URL: /api/admin/submit-recruit for NEW, /api/admin/recruit/ID for EDIT
         const url = currentEditId 
             ? `${API_BASE}/recruit/${currentEditId}` 
             : `${API_BASE}/submit-recruit`;
@@ -289,48 +274,77 @@
                 body: JSON.stringify(payload)
             });
 
-            // Check if server returned an error (like 404 Not Found)
-            if (!res.ok) {
-                // If /api/admin/submit-recruit is not found, try the /api/auth fallback
-                const fallbackUrl = currentEditId 
-                    ? `/api/auth/recruit/${currentEditId}` 
-                    : `/api/auth/submit-recruit`;
-                
-                const retryRes = await fetch(fallbackUrl, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!retryRes.ok) throw new Error("Both endpoints failed.");
-                
-                const result = await retryRes.json();
-                alert("Saved via Auth fallback!");
-                finalizeSubmit(e.target);
-                return;
-            }
-
             const result = await res.json();
-            alert(currentEditId ? "Updated!" : "Saved!");
-            finalizeSubmit(e.target);
-
+            
+            if (res.ok) {
+                alert(currentEditId ? "Successfully Updated!" : "Successfully Saved!");
+                
+                // Reset Form
+                currentEditId = null;
+                e.target.reset();
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                if(submitBtn) {
+                    submitBtn.innerText = "Add Student";
+                    submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
+                }
+                
+                // Refresh the list immediately so they show up
+                fetchAgentData(); 
+            } else { 
+                // Fallback: If /api/admin/submit-recruit is not the route, try /api/auth
+                if (res.status === 404) {
+                    return handleAuthFallback(payload, method);
+                }
+                alert("Error: " + (result.message || "Could not save. Check all fields.")); 
+            }
         } catch (error) { 
-            console.error("Save Error:", error);
-            alert("Could not save. Please check your internet or console for errors.");
+            console.error("Submit Error:", error);
+            alert("Connection error. Please try again.");
         } finally {
             hideLoader();
         }
     }
 
-    function finalizeSubmit(form) {
-        currentEditId = null;
-        form.reset();
-        const submitBtn = form.querySelector('button[type="submit"]');
-        if(submitBtn) {
-            submitBtn.innerText = "Add Student";
-            submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
-        }
-        fetchAgentData();
+    // Fallback logic in case your server specifically requires /api/auth for POST
+    async function handleAuthFallback(payload, method) {
+        const fallbackUrl = currentEditId 
+            ? `/api/auth/recruit/${currentEditId}` 
+            : `/api/auth/submit-recruit`;
+            
+        try {
+            const res = await fetch(fallbackUrl, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                body: JSON.stringify(payload)
+            });
+            if(res.ok) {
+                alert("Success!");
+                location.reload(); // Hard refresh to ensure everything syncs
+            } else {
+                alert("Save failed on both endpoints. Please contact admin.");
+            }
+        } catch (e) { alert("Final attempt failed."); }
+        finally { hideLoader(); }
+    }
+
+    // --- UI HELPERS ---
+    function renderTable(recruits) {
+        const tableBody = document.getElementById('submissions-table');
+        if(!tableBody) return;
+        tableBody.innerHTML = recruits.map(r => `
+            <tr class="border-b hover:bg-gray-50 transition">
+                <td class="py-4 font-medium px-4">${r.studentName} ${r.studentSurname}</td>
+                <td class="py-4 text-gray-600">${r.accommodation}</td>
+                <td class="py-4 text-gray-500">${new Date(r.moveInDate).toLocaleDateString()}</td>
+                <td class="py-4">
+                    <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status==='Approved'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${r.status}</span>
+                </td>
+                <td class="py-4 font-bold text-blue-600">R ${r.commissionEarned || 0}</td>
+                <td class="px-4 py-4 text-sm font-medium space-x-3">
+                    <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900">Edit</button>
+                </td>
+            </tr>
+        `).join('');
     }
 
     async function editRecruit(id) {
@@ -356,7 +370,6 @@
         if(!getToken()) { 
             window.location.href = 'agent login.html'; 
         } else { 
-            initializeIdentity(); 
             fetchAgentData(); 
             const sForm = document.getElementById('studentform');
             if (sForm) sForm.addEventListener('submit', handleFormSubmit);
