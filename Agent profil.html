@@ -202,38 +202,19 @@
 
     function getToken() { return localStorage.getItem('jwtToken'); }
 
-    // --- 1. RESTORE SIDEBAR LOGIC (The "Hamburger" Menu) ---
-    function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar) {
-            sidebar.classList.toggle('-translate-x-full');
-        }
-    }
-
-    // --- 2. RESTORE USER IDENTITY (Initials and Name) ---
-    function initializeIdentity() {
-        const name = localStorage.getItem('userName') || 'Agent User';
-        const nameElement = document.getElementById('user-name-display');
-        const initialElement = document.getElementById('user-initials');
-
-        if (nameElement) nameElement.innerText = name;
-        if (initialElement) {
-            const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
-            initialElement.innerText = initials;
-        }
-    }
-
-    // --- 3. 5-MINUTE SECURITY TIMEOUT ---
+    // --- FIX 1: 5-MINUTE AUTO-LOGOUT ---
     let inactivityTimer;
     const resetTimer = () => {
         clearTimeout(inactivityTimer);
         inactivityTimer = setTimeout(() => {
-            alert("Session expired due to 5 minutes of inactivity.");
+            alert("Your session has expired please log in again");
             logout();
-        }, 300000); 
+        }, 300000); // 300,000ms = 5 minutes
     };
+    // Listen for any activity to reset the clock
     window.onmousemove = resetTimer;
     window.onkeydown = resetTimer;
+    window.onclick = resetTimer;
 
     function triggerLoader(text) {
         const loaderText = document.getElementById('loader-text');
@@ -247,19 +228,50 @@
         setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
     }
 
-    // --- 4. PHONE FORMATTING FOR PDF ---
-    function formatPhoneForPDF(phone) {
-        if(!phone) return 'N/A';
-        return phone.toString().trim().replace(/\s+/g, ' '); 
+    // --- RESTORED: SIDEBAR LOGIC ---
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        if(sidebar) {
+            sidebar.classList.toggle('open');
+            const overlay = document.getElementById('sidebar-overlay');
+            if(overlay) overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+        }
     }
 
-    // --- 5. DATA FETCHING & STATS ---
+    function checkOther(select) {
+        const manualInput = document.getElementById('manual-acc');
+        if(manualInput) {
+            manualInput.classList.toggle('hidden', select.value !== 'not listed');
+            if(select.value === 'not listed') manualInput.focus();
+        }
+    }
+
+    // --- RESTORED: AGENT INITIALS & NAME LOGIC ---
+    function initializeIdentity() {
+        try {
+            const storedUser = localStorage.getItem('userData');
+            if(storedUser) {
+                const user = JSON.parse(storedUser);
+                const displayName = user.fullName || user.name || "Agent";
+                const displayId = user.agentId || user.id || "---";
+
+                if(document.getElementById('side-name')) document.getElementById('side-name').innerText = displayName;
+                if(document.getElementById('side-id')) document.getElementById('side-id').innerText = "ID: " + displayId;
+                
+                const names = displayName.trim().split(' ');
+                let initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0].substring(0, 2).toUpperCase();
+                if(document.getElementById('agent-initials')) document.getElementById('agent-initials').innerText = initials;
+            }
+        } catch(e) { console.log("Identity Error", e); }
+    }
+
     async function fetchAgentData() {
         try {
             const response = await fetch(`${API_URL}/recruits`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
             const data = await response.json();
+            recruitsData = data; 
             allRecruits = data; 
             renderTable(data);
             updateStats(data);
@@ -268,47 +280,18 @@
     }
 
     function updateStats(recruits) {
+        if(!recruits) return;
         const pending = recruits.filter(r => r.status === 'Pending').length;
         const approved = recruits.filter(r => r.status === 'Approved').length;
-        const totalCommission = recruits.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
-
-        const pElem = document.getElementById('pending-count');
-        const aElem = document.getElementById('approved-count');
-        const cElem = document.getElementById('total-commission');
-
-        if(pElem) pElem.innerText = pending;
-        if(aElem) aElem.innerText = approved;
-        if(cElem) cElem.innerText = `R ${totalCommission.toFixed(2)}`;
+        const commission = recruits.reduce((acc, curr) => acc + (curr.commissionEarned || 0), 0);
+        if(document.getElementById('pending-count')) document.getElementById('pending-count').innerText = pending;
+        if(document.getElementById('approved-count')) document.getElementById('approved-count').innerText = approved;
+        if(document.getElementById('total-commission')) document.getElementById('total-commission').innerText = `R ${commission.toFixed(2)}`;
     }
 
-    // --- 6. PDF PRINTING (RESTORED) ---
-    function downloadRecruitList() {
-        if (allRecruits.length === 0) return alert("No data to download.");
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.setTextColor(37, 99, 235);
-        doc.text("Agent Recruitment List", 14, 20);
-        const rows = allRecruits.map(r => [
-            `${r.studentName} ${r.studentSurname}`,
-            r.accommodation,
-            formatPhoneForPDF(r.studentPhone),
-            r.status,
-            new Date(r.moveInDate).toLocaleDateString()
-        ]);
-        doc.autoTable({
-            head: [['Student', 'Accommodation', 'Phone', 'Status', 'Move-in']],
-            body: rows,
-            startY: 30,
-            theme: 'grid'
-        });
-        doc.save("My_Recruits.pdf");
-    }
-
-    // --- 7. TABLE RENDER ---
     function renderTable(recruits) {
         const tableBody = document.getElementById('submissions-table');
-        if(!tableBody) return;
+        if(!tableBody || !recruits) return;
         tableBody.innerHTML = recruits.map(r => `
             <tr class="border-b hover:bg-gray-50 transition">
                 <td class="py-4 font-medium">${r.studentName} ${r.studentSurname}</td>
@@ -319,28 +302,34 @@
                 </td>
                 <td class="py-4 font-bold text-blue-600">R ${r.commissionEarned || 0}</td>
                 <td class="px-6 py-4 text-sm font-medium space-x-3 text-right">
-                    <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900 font-bold">Edit</button>
-                    <button onclick="deleteRecruit('${r._id}')" class="text-red-600 hover:text-red-900 font-bold">Delete</button>
+                    <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900">Edit</button>
+                    <button onclick="deleteRecruit('${r._id}')" class="text-red-600 hover:text-red-900">Delete</button>
                 </td>
             </tr>
         `).join('');
     }
 
-    // --- 8. DELETE RECRUIT ---
-    async function deleteRecruit(id) {
-        if (!confirm("Delete this student recruit?")) return;
-        triggerLoader("Deleting...");
-        try {
-            const response = await fetch(`/api/auth/recruit/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${getToken()}` }
-            });
-            if (response.ok) { fetchAgentData(); }
-        } catch (error) { alert("Delete failed."); }
-        finally { hideLoader(); }
+    // --- FIX 2: PHONE NUMBER FORMATTING FOR PDF/REPORTS ---
+    function cleanPhone(num) {
+        if(!num) return 'N/A';
+        // Removes anything that isn't a number to keep the PDF display clean
+        return num.toString().replace(/\D/g, ''); 
     }
 
-    // --- 9. FORM HANDLING ---
+    function downloadRecruitList() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("My Recruitment List", 14, 20);
+        const rows = allRecruits.map(r => [
+            `${r.studentName} ${r.studentSurname}`,
+            r.accommodation,
+            cleanPhone(r.studentPhone), // Use the cleaning function here
+            r.status
+        ]);
+        doc.autoTable({ head: [['Student', 'Accommodation', 'Phone', 'Status']], body: rows, startY: 25 });
+        doc.save("My_Recruits.pdf");
+    }
+
     async function handleFormSubmit(e) {
         e.preventDefault();
         triggerLoader("Saving...");
@@ -356,7 +345,7 @@
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                alert("Success!");
+                alert(currentEditId ? "Updated!" : "Saved!");
                 currentEditId = null;
                 e.target.reset();
                 fetchAgentData(); 
@@ -366,16 +355,30 @@
     }
 
     async function editRecruit(id) {
-        const r = allRecruits.find(rec => rec._id === id); 
-        if (!r) return;
+        const recruit = allRecruits.find(r => r._id === id); 
+        if (!recruit) return;
         currentEditId = id;
-        document.getElementById('studentName').value = r.studentName;
-        document.getElementById('studentSurname').value = r.studentSurname;
-        document.getElementById('studentEmail').value = r.studentEmail;
-        document.getElementById('studentPhone').value = r.studentPhone;
-        document.getElementById('acc-select').value = r.accommodation;
-        if (r.moveInDate) document.getElementById('moveInDate').value = r.moveInDate.split('T')[0];
+        document.getElementById('studentName').value = recruit.studentName;
+        document.getElementById('studentSurname').value = recruit.studentSurname;
+        document.getElementById('studentEmail').value = recruit.studentEmail;
+        document.getElementById('studentPhone').value = recruit.studentPhone;
+        if(document.getElementById('acc-select')) document.getElementById('acc-select').value = recruit.accommodation;
+        if (recruit.moveInDate) document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- NEW FIX: ADDED DELETE FUNCTION ---
+    async function deleteRecruit(id) {
+        if(!confirm("Delete this recruit?")) return;
+        triggerLoader("Deleting...");
+        try {
+            const res = await fetch(`/api/auth/recruit/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            if(res.ok) fetchAgentData();
+        } catch(e) { console.error(e); }
+        finally { hideLoader(); }
     }
 
     function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
@@ -384,11 +387,11 @@
         if(!getToken()) { 
             window.location.href = 'agent login.html'; 
         } else { 
-            initializeIdentity(); // RESTORED
+            initializeIdentity(); 
             fetchAgentData(); 
             const sForm = document.getElementById('studentForm');
             if (sForm) sForm.addEventListener('submit', handleFormSubmit);
-            resetTimer(); 
+            resetTimer(); // Start the 5-minute clock
         }
     };
 </script>
