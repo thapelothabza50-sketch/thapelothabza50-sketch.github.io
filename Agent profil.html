@@ -222,25 +222,52 @@
             }, 500);
         }
     }
+    function displayAgentDetails(agent) {
+    if (!agent) return;
+
+    // Update Sidebar name and ID
+    const sideName = document.getElementById('side-name');
+    const sideId = document.getElementById('side-id');
+    if (sideName) sideName.textContent = agent.fullName || "Agent Name";
+    if (sideId) sideId.textContent = `ID: ${agent.agentId || "---"}`;
+
+    // Update Initials in the top header
+    const initialsCircle = document.getElementById('agent-initials');
+    if (initialsCircle && agent.fullName) {
+        const names = agent.fullName.split(' ');
+        const initials = names.map(n => n[0]).join('').toUpperCase();
+        initialsCircle.textContent = initials.substring(0, 2);
+    }
+}
 
     // --- DATA FETCHING (The "Showing" Logic) ---
     async function fetchAgentData() {
-        triggerLoader("Fetching recruits..."); 
-        try {
-            const response = await fetch(`${API_BASE}/recruits`, {
-                headers: { 'Authorization': `Bearer ${getToken()}` }
-            });
-            if (!response.ok) throw new Error("Could not load data.");
-            const data = await response.json();
-            allRecruits = data; 
-            renderTable(data);
-            updateStats(data);
-        } catch (err) { 
-            console.error("Fetch Error:", err); 
-        } finally { 
-            hideLoader(); 
+    triggerLoader("Fetching recruits..."); 
+    try {
+        // Fetch personal details first
+        const userRes = await fetch(`${API_BASE}/current-user`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (userRes.ok) {
+            const userData = await userRes.json();
+            displayAgentDetails(userData); // This is the missing part!
         }
+
+        // Then fetch the recruits list
+        const response = await fetch(`${API_BASE}/recruits`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!response.ok) throw new Error("Could not load data.");
+        const data = await response.json();
+        allRecruits = data; 
+        renderTable(data);
+        updateStats(data);
+    } catch (err) { 
+        console.error("Fetch Error:", err); 
+    } finally { 
+        hideLoader(); 
     }
+}
 
     // --- SAVING & EDITING LOGIC (The "Fix") ---
     async function handleFormSubmit(e) {
