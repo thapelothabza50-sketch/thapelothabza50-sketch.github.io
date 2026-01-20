@@ -202,7 +202,7 @@
 
     function getToken() { return localStorage.getItem('jwtToken'); }
 
-    // --- 1. AUTO-LOGOUT ---
+    // --- 1. AUTO-LOGOUT (5 MINUTES) ---
     let inactivityTimer;
     const resetTimer = () => {
         clearTimeout(inactivityTimer);
@@ -215,8 +215,7 @@
     window.onkeydown = resetTimer;
     window.onclick = resetTimer;
 
-    // --- 2. PHONE INPUT RESTRICTION (10 DIGITS ONLY) ---
-    // Moved inside a function called during window.onload to ensure element exists
+    // --- 2. STRICT 10-DIGIT PHONE MASK ---
     function setupPhoneMask() {
         const phoneInput = document.getElementById('studentPhone');
         if(phoneInput) {
@@ -227,26 +226,51 @@
         }
     }
 
-    // --- 3. RESTORED: NOT LISTED / OTHER ACCOMMODATION LOGIC ---
+    // --- 3. DOWNLOAD PDF FIX ---
+    function downloadRecruitList() {
+        if (!allRecruits || allRecruits.length === 0) {
+            alert("No data available to download.");
+            return;
+        }
+
+        // Accessing the jsPDF library correctly
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(18);
+        doc.setTextColor(37, 99, 235);
+        doc.text("My Recruitment Report", 14, 20);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 28);
+
+        const rows = allRecruits.map(r => [
+            `${r.studentName} ${r.studentSurname}`,
+            r.accommodation,
+            r.studentPhone.toString().replace(/\D/g, ''), // Clean phone for PDF
+            r.status,
+            new Date(r.moveInDate).toLocaleDateString()
+        ]);
+
+        doc.autoTable({
+            head: [['Student Name', 'Accommodation', 'Phone', 'Status', 'Move-in Date']],
+            body: rows,
+            startY: 35,
+            theme: 'grid',
+            headStyles: { fillColor: [37, 99, 235], fontStyle: 'bold' }
+        });
+
+        doc.save("My_Recruits_List.pdf");
+    }
+
+    // --- 4. "NOT LISTED" ACCOMMODATION LOGIC ---
     function checkOther(select) {
         const manualInput = document.getElementById('manual-acc');
         if(manualInput) {
-            // Shows the box if "not listed" is selected, hides it otherwise
             manualInput.classList.toggle('hidden', select.value !== 'not listed');
             if(select.value === 'not listed') manualInput.focus();
         }
-    }
-
-    function triggerLoader(text) {
-        const loaderText = document.getElementById('loader-text');
-        if(loaderText) loaderText.textContent = text;
-        loader.style.visibility = 'visible'; 
-        loader.style.opacity = '1';
-    }
-
-    function hideLoader() { 
-        loader.style.opacity = '0'; 
-        setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
     }
 
     function toggleSidebar() {
@@ -313,15 +337,8 @@
         const formData = new FormData(e.target);
         const payload = Object.fromEntries(formData.entries());
 
-        // --- FIX: Handle 'Not Listed' Custom Text ---
         if (payload.accommodation === 'not listed') {
-            const manualVal = document.getElementById('manual-acc').value;
-            if(!manualVal) {
-                alert("Please enter the accommodation name.");
-                hideLoader();
-                return;
-            }
-            payload.accommodation = manualVal;
+            payload.accommodation = document.getElementById('manual-acc').value;
         }
 
         const url = currentEditId ? `/api/auth/recruit/${currentEditId}` : `/api/auth/submit-recruit`;
@@ -334,7 +351,7 @@
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                alert(currentEditId ? "Details Updated Successfully!" : "New Recruit Saved!");
+                alert(currentEditId ? "Details Updated!" : "New Student Added!");
                 resetForm();
                 fetchAgentData(); 
             }
@@ -352,30 +369,21 @@
         document.getElementById('studentEmail').value = recruit.studentEmail;
         document.getElementById('studentPhone').value = recruit.studentPhone;
         
-        // Logic to check if the accommodation is in the dropdown or was a custom entry
         const accSelect = document.getElementById('acc-select');
         const manualInput = document.getElementById('manual-acc');
         
-        let found = false;
-        for (let i = 0; i < accSelect.options.length; i++) {
-            if (accSelect.options[i].value === recruit.accommodation) {
-                accSelect.value = recruit.accommodation;
-                found = true;
-                break;
-            }
-        }
-
-        if (!found) {
+        // Handle if it was a custom accommodation
+        let found = Array.from(accSelect.options).some(opt => opt.value === recruit.accommodation);
+        if (found) {
+            accSelect.value = recruit.accommodation;
+            manualInput.classList.add('hidden');
+        } else {
             accSelect.value = 'not listed';
             manualInput.classList.remove('hidden');
             manualInput.value = recruit.accommodation;
-        } else {
-            manualInput.classList.add('hidden');
         }
         
-        if (recruit.moveInDate) {
-            document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
-        }
+        if (recruit.moveInDate) document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
         
         const submitBtn = document.querySelector('#studentForm button[type="submit"]');
         if(submitBtn) {
@@ -387,8 +395,7 @@
 
     function resetForm() {
         currentEditId = null;
-        const form = document.getElementById('studentForm');
-        if(form) form.reset();
+        document.getElementById('studentForm').reset();
         document.getElementById('manual-acc').classList.add('hidden');
         const submitBtn = document.querySelector('#studentForm button[type="submit"]');
         if(submitBtn) {
@@ -398,7 +405,7 @@
     }
 
     async function deleteRecruit(id) {
-        if(!confirm("Delete this recruit?")) return;
+        if(!confirm("Delete this student?")) return;
         triggerLoader("Deleting...");
         try {
             const res = await fetch(`/api/auth/recruit/${id}`, {
@@ -424,6 +431,16 @@
             resetTimer(); 
         }
     };
+
+    function triggerLoader(text) {
+        const lt = document.getElementById('loader-text');
+        if(lt) lt.textContent = text;
+        loader.style.visibility = 'visible'; loader.style.opacity = '1';
+    }
+    function hideLoader() { 
+        loader.style.opacity = '0'; 
+        setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
+    }
 </script>
 </body>
 </html>   
