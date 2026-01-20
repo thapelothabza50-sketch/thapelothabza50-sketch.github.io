@@ -135,7 +135,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         <div class="lg:col-span-1 card p-5 md:p-6 h-fit">
-            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Submit New Student</h3>
+            <h3 id="formTitle" class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Submit New Student</h3>
             <form id="studentForm" class="space-y-4">
                 <input type="text" id="studentName" name="studentName" placeholder="First Name" required class="w-full p-2 border rounded">
                 <input type="text" id="studentSurname" name="studentSurname" placeholder="Surname" required class="w-full p-2 border rounded">
@@ -194,15 +194,15 @@
 </div>
 
 <script>
-    const API_URL = '/api/admin'; 
+    // FIX: Changed URL to match your authRoutes.js base path
+    const API_URL = '/api/auth'; 
     const loader = document.getElementById('loader-overlay');
-    let recruitsData = []; // Store for PDF
-    let currentEditId = null; // Tracks if we are editing or adding
+    let recruitsData = []; 
+    let currentEditId = null; 
     let allRecruits = []; 
 
     function getToken() { return localStorage.getItem('jwtToken'); }
 
-    // Unified loader function to prevent "undefined" errors
     function triggerLoader(text) {
         const loaderText = document.getElementById('loader-text');
         if(loaderText) loaderText.textContent = text;
@@ -278,24 +278,23 @@
 
     async function fetchAgentData() {
         try {
-            const response = await fetch(`${API_URL}/recruits`, {
+            // Updated to fetch from current agent context
+            const response = await fetch(`${API_URL}/all-recruits`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
             const data = await response.json();
-            recruitsData = data; 
-            allRecruits = data; // FIX: Sync allRecruits so editRecruit() works
-            renderTable(data);
-            updateStats(data);
+            // Fallback for cases where response might be an object
+            const cleanData = Array.isArray(data) ? data : (data.recruits || []);
+            recruitsData = cleanData; 
+            allRecruits = cleanData; 
+            renderTable(cleanData);
+            updateStats(cleanData);
         } catch (err) { console.error(err); }
         finally { hideLoader(); }
     }
 
-    function parseJwt(token) {
-        try { return JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; }
-    }
-
     function updateStats(recruits) {
-        if(!recruits) return;
+        if(!recruits || !Array.isArray(recruits)) return;
         const pending = recruits.filter(r => r.status === 'Pending').length;
         const approved = recruits.filter(r => r.status === 'Approved').length;
         const commission = recruits.reduce((acc, curr) => acc + (curr.commissionEarned || 0), 0);
@@ -306,7 +305,7 @@
 
     function renderTable(recruits) {
         const tableBody = document.getElementById('submissions-table');
-        if(!tableBody || !recruits) return;
+        if(!tableBody || !Array.isArray(recruits)) return;
         tableBody.innerHTML = recruits.map(r => `
             <tr class="border-b hover:bg-gray-50 transition">
                 <td class="py-4 font-medium">${r.studentName} ${r.studentSurname}</td>
@@ -324,42 +323,60 @@
         `).join('');
     }
 
-    // HANDLER FOR ADD/EDIT STUDENT
-    // FIX: Using DOMContentLoaded and correct form ID 'studentform'
     window.addEventListener('DOMContentLoaded', () => {
         const sForm = document.getElementById('studentform');
         if (sForm) {
             sForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                triggerLoader("Saving...");
+                triggerLoader(currentEditId ? "Updating..." : "Saving...");
+                
                 const formData = new FormData(e.target);
                 const payload = Object.fromEntries(formData.entries());
 
+                // FIX: Base URL configuration for Create vs Update
                 const url = currentEditId 
                     ? `https://www.mycampuscollective.me/api/auth/recruit/${currentEditId}` 
-                    : 'https://www.mycampuscollective.me/api/auth/submit-recruit';
+                    : `https://www.mycampuscollective.me/api/auth/submit-recruit`;
+                
                 const method = currentEditId ? 'PUT' : 'POST';
 
                 try {
                     const res = await fetch(url, {
                         method: method,
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                        headers: { 
+                            'Content-Type': 'application/json', 
+                            'Authorization': `Bearer ${getToken()}` 
+                        },
                         body: JSON.stringify(payload)
                     });
+                    
                     const result = await res.json();
                     hideLoader();
+
                     if (res.ok) {
                         alert(currentEditId ? "Student updated!" : "Student added!");
+                        
+                        // RESET UI BACK TO ADD MODE
                         currentEditId = null;
                         e.target.reset();
+                        
+                        const formTitle = document.querySelector('h2'); // Finds the "Submit New Student" title
+                        if (formTitle) formTitle.innerText = "Submit New Student";
+
                         const submitBtn = e.target.querySelector('button[type="submit"]');
                         if(submitBtn) {
-                            submitBtn.innerText = "Add Student";
+                            submitBtn.innerText = "Submit";
                             submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
                         }
+                        
                         fetchAgentData(); 
-                    } else { alert("Error: " + (result.message || "Failed")); }
-                } catch (error) { hideLoader(); console.error(error); }
+                    } else { 
+                        alert("Error: " + (result.message || "Failed")); 
+                    }
+                } catch (error) { 
+                    hideLoader(); 
+                    console.error(error); 
+                }
             });
         }
     });
@@ -376,41 +393,38 @@
     }
 
     async function editRecruit(id) {
-    const recruit = allRecruits.find(r => r._id === id); 
-    if (!recruit) {
-        console.error("Recruit not found in local array");
-        return;
+        const recruit = allRecruits.find(r => r._id === id); 
+        if (!recruit) return;
+
+        currentEditId = id; 
+
+        // Update Labels as requested
+        const formTitle = document.querySelector('h2');
+        if (formTitle) formTitle.innerText = "Editing Student Info";
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if(el) el.value = val;
+        };
+
+        setVal('studentName', recruit.studentName);
+        setVal('studentSurname', recruit.studentSurname);
+        setVal('studentEmail', recruit.studentEmail);
+        setVal('studentPhone', recruit.studentPhone);
+        setVal('accommodation', recruit.accommodation);
+        
+        if (recruit.moveInDate) {
+            setVal('moveInDate', recruit.moveInDate.split('T')[0]);
+        }
+
+        const submitBtn = document.querySelector('#studentform button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerText = "Save";
+            submitBtn.className = "w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition";
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
-    currentEditId = id; // Store the ID for the update logic
-
-    // SAFE SETTING: Checks if the element exists first
-    const setVal = (id, val) => {
-        const el = document.getElementById(id);
-        if(el) el.value = val;
-        else console.warn(`Element with ID "${id}" was not found in HTML.`);
-    };
-
-    setVal('studentName', recruit.studentName);
-    setVal('studentSurname', recruit.studentSurname);
-    setVal('studentEmail', recruit.studentEmail);
-    setVal('studentPhone', recruit.studentPhone);
-    setVal('accommodation', recruit.accommodation);
-    
-    if (recruit.moveInDate) {
-        setVal('moveInDate', recruit.moveInDate.split('T')[0]);
-    }
-
-    // Update the button text
-    // NOTE: Make sure your form ID is 'studentform'
-    const submitBtn = document.querySelector('#studentform button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.innerText = "Update Student Details";
-        submitBtn.classList.replace('bg-blue-600', 'bg-green-600');
-    }
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
 
     function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
     
