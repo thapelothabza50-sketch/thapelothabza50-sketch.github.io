@@ -194,7 +194,8 @@
 </div>
 
 <script>
-    const API_URL = '/api/auth'; // Pointing to auth routes
+    // Your original working URL
+    const API_URL = '/api/admin'; 
     const loader = document.getElementById('loader-overlay');
     let recruitsData = []; 
     let currentEditId = null; 
@@ -205,24 +206,19 @@
     function triggerLoader(text) {
         const loaderText = document.getElementById('loader-text');
         if(loaderText) loaderText.textContent = text;
-        if(loader) {
-            loader.style.visibility = 'visible'; 
-            loader.style.opacity = '1';
-        }
+        loader.style.visibility = 'visible'; 
+        loader.style.opacity = '1';
     }
 
     function hideLoader() { 
-        if(loader) {
-            loader.style.opacity = '0'; 
-            setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
-        }
+        loader.style.opacity = '0'; 
+        setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
     }
 
     function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        if(sidebar) sidebar.classList.toggle('open');
+        document.getElementById('sidebar').classList.toggle('open');
         const overlay = document.getElementById('sidebar-overlay');
-        if(overlay) overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+        if(overlay) overlay.style.display = document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none';
     }
 
     function checkOther(select) {
@@ -251,38 +247,11 @@
         } catch(e) { console.log("Identity Error", e); }
     }
 
-    function downloadPDF() {
-        if (!recruitsData || recruitsData.length === 0) {
-            alert("No recruit data available to download.");
-            return;
-        }
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.width;
-        const agentID = document.getElementById('side-id')?.innerText.replace("ID: ", "") || "---";
-
-        doc.setDrawColor(37, 99, 235);
-        doc.rect(5, 5, pageWidth - 10, doc.internal.pageSize.height - 10);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(37, 99, 235);
-        doc.text("Campus Collective Report", 14, 20);
-        
-        const rows = recruitsData.map(r => [`${r.studentName} ${r.studentSurname}`, r.studentPhone || 'N/A', r.accommodation, r.status, `R ${parseFloat(r.commissionEarned || 0).toFixed(2)}`]);
-
-        doc.autoTable({
-            head: [['Student', 'Phone', 'Accommodation', 'Status', 'Commission']],
-            body: rows,
-            startY: 40,
-            theme: 'grid'
-        });
-        doc.save(`Report_${agentID}.pdf`);
-    }
-
+    // YOUR WORKING FETCH SCRIPT
     async function fetchAgentData() {
-        triggerLoader("Loading recruits...");
         try {
-            // Note: Changed to /all-recruits to match your authRoutes.js logic
-            const response = await fetch(`${API_URL}/all-recruits`, {
+            // Using your original path that worked
+            const response = await fetch(`${API_URL}/recruits`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
             const data = await response.json();
@@ -290,12 +259,12 @@
             allRecruits = data; 
             renderTable(data);
             updateStats(data);
-        } catch (err) { console.error("Fetch Error:", err); }
+        } catch (err) { console.error(err); }
         finally { hideLoader(); }
     }
 
     function updateStats(recruits) {
-        if(!recruits || !Array.isArray(recruits)) return;
+        if(!recruits) return;
         const pending = recruits.filter(r => r.status === 'Pending').length;
         const approved = recruits.filter(r => r.status === 'Approved').length;
         const commission = recruits.reduce((acc, curr) => acc + (curr.commissionEarned || 0), 0);
@@ -324,127 +293,82 @@
         `).join('');
     }
 
-    // HANDLER FOR ADD/EDIT STUDENT
+    // FIXED SAVE/EDIT HANDLER
     async function handleFormSubmit(e) {
         e.preventDefault();
-        triggerLoader("Saving recruit...");
+        triggerLoader("Saving...");
         
         const formData = new FormData(e.target);
         const payload = Object.fromEntries(formData.entries());
 
-        // FIX: Ensure accommodation value is captured from the correct ID
-        const accSelect = document.getElementById('acc-select');
-        if(accSelect) payload.accommodation = accSelect.value;
-
+        // Use the auth endpoint for saving as per your authRoutes.js
         const url = currentEditId 
-            ? `${API_URL}/recruit/${currentEditId}` 
-            : `${API_URL}/submit-recruit`;
-        
+            ? `/api/auth/recruit/${currentEditId}` 
+            : `/api/auth/submit-recruit`;
         const method = currentEditId ? 'PUT' : 'POST';
 
         try {
             const res = await fetch(url, {
                 method: method,
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'Authorization': `Bearer ${getToken()}` 
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
                 body: JSON.stringify(payload)
             });
-            
             const result = await res.json();
             
             if (res.ok) {
-                alert(currentEditId ? "Student details updated!" : "New student added!");
+                alert(currentEditId ? "Updated!" : "Saved!");
                 currentEditId = null;
                 e.target.reset();
                 
-                // Reset button appearance
                 const submitBtn = e.target.querySelector('button[type="submit"]');
                 if(submitBtn) {
                     submitBtn.innerText = "Add Student";
                     submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
                 }
-                
                 fetchAgentData(); 
-            } else { 
-                alert("Error: " + (result.message || "Action failed")); 
-            }
-        } catch (error) { 
-            console.error("Save Error:", error);
-            alert("A server error occurred.");
-        } finally {
-            hideLoader();
-        }
-    }
-
-    async function deleteRecruit(id) {
-        if (!confirm("Are you sure you want to delete this student?")) return;
-        triggerLoader("Deleting...");
-        try {
-            const res = await fetch(`${API_URL}/recruit/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${getToken()}` }
-            });
-            if (res.ok) { 
-                alert("Recruit deleted successfully."); 
-                fetchAgentData(); 
-            } else {
-                alert("Failed to delete.");
-            }
-        } catch (err) { console.error(err); }
+            } else { alert("Error: " + (result.message || "Failed")); }
+        } catch (error) { console.error(error); }
         finally { hideLoader(); }
     }
 
     async function editRecruit(id) {
         const recruit = allRecruits.find(r => r._id === id); 
         if (!recruit) return;
-        
         currentEditId = id;
         
-        // Fill form fields - Matching IDs to your HTML
-        document.getElementById('studentName').value = recruit.studentName || '';
-        document.getElementById('studentSurname').value = recruit.studentSurname || '';
-        document.getElementById('studentEmail').value = recruit.studentEmail || '';
-        document.getElementById('studentPhone').value = recruit.studentPhone || '';
+        document.getElementById('studentName').value = recruit.studentName;
+        document.getElementById('studentSurname').value = recruit.studentSurname;
+        document.getElementById('studentEmail').value = recruit.studentEmail;
+        document.getElementById('studentPhone').value = recruit.studentPhone;
         
-        // FIX: Match the actual select ID in your HTML
-        const accField = document.getElementById('acc-select');
-        if(accField) accField.value = recruit.accommodation || '';
+        // FIX: Match the ID "acc-select" from your HTML
+        const accDropdown = document.getElementById('acc-select');
+        if(accDropdown) accDropdown.value = recruit.accommodation;
         
         if (recruit.moveInDate) {
             document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
         }
         
-        // Update button text to show we are in "Edit Mode"
+        // Match the ID "studentForm" exactly
         const submitBtn = document.querySelector('#studentForm button[type="submit"]');
         if(submitBtn) {
-            submitBtn.innerText = "Update Recruit Details";
+            submitBtn.innerText = "Update Student";
             submitBtn.className = "w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition";
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function logout() { 
-        localStorage.clear(); 
-        window.location.href = 'agent login.html'; 
-    }
+    function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
     
-    // Final initialization
     window.onload = () => { 
         if(!getToken()) { 
             window.location.href = 'agent login.html'; 
         } else { 
             initializeIdentity(); 
             fetchAgentData(); 
-            
-            // FIX: Capital 'F' in studentForm to match your HTML
+            // FIX: Attached listener to "studentForm"
             const sForm = document.getElementById('studentForm');
-            if (sForm) {
-                sForm.addEventListener('submit', handleFormSubmit);
-            } else {
-                console.error("Could not find element with ID 'studentForm'");
-            }
+            if (sForm) sForm.addEventListener('submit', handleFormSubmit);
         }
     };
 </script>
