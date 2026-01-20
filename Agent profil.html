@@ -244,20 +244,23 @@
     async function fetchAgentData() {
     triggerLoader("Fetching recruits..."); 
     try {
-        // Fetch personal details first
+        // 1. Fetch personal details
         const userRes = await fetch(`${API_BASE}/current-user`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
         if (userRes.ok) {
             const userData = await userRes.json();
-            displayAgentDetails(userData); // This is the missing part!
+            displayAgentDetails(userData);
         }
 
-        // Then fetch the recruits list
-        const response = await fetch(`${API_BASE}/recruits`, {
+        // 2. FIX: Changed path from '/recruits' to '/all-recruits' 
+        // to match your existing backend route in authRoutes.js
+        const response = await fetch(`${API_BASE}/all-recruits`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
+
         if (!response.ok) throw new Error("Could not load data.");
+        
         const data = await response.json();
         allRecruits = data; 
         renderTable(data);
