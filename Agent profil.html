@@ -194,15 +194,15 @@
 </div>
 
 <script>
-    // FIX: Base path for all auth-related requests
-    const API_URL = '/api/auth'; 
+    const API_URL = '/api/admin'; 
     const loader = document.getElementById('loader-overlay');
-    let recruitsData = []; 
-    let currentEditId = null; 
+    let recruitsData = []; // Store for PDF
+    let currentEditId = null; // Tracks if we are editing or adding
     let allRecruits = []; 
 
     function getToken() { return localStorage.getItem('jwtToken'); }
 
+    // Unified loader function to prevent "undefined" errors
     function triggerLoader(text) {
         const loaderText = document.getElementById('loader-text');
         if(loaderText) loaderText.textContent = text;
@@ -264,6 +264,7 @@
         doc.setTextColor(37, 99, 235);
         doc.text("Campus Collective Report", 14, 20);
         
+        const totalCommission = recruitsData.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
         const rows = recruitsData.map(r => [`${r.studentName} ${r.studentSurname}`, r.studentPhone || 'N/A', r.accommodation, r.status, `R ${parseFloat(r.commissionEarned || 0).toFixed(2)}`]);
 
         doc.autoTable({
@@ -276,40 +277,25 @@
     }
 
     async function fetchAgentData() {
-    try {
-        // Change this line to use the full path that matches your server
-        const response = await fetch('https://www.mycampuscollective.me/api/auth/recruits', {
-            headers: { 
-                'Authorization': `Bearer ${getToken()}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        // Check if the response is actually JSON before parsing
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            const text = await response.text();
-            console.error("Server returned non-JSON response:", text);
-            throw new Error("Server returned HTML instead of JSON. Check if the route exists.");
-        }
-
-        const data = await response.json();
-        
-        // Ensure we handle the data correctly
-        const cleanData = Array.isArray(data) ? data : (data.recruits || []);
-        recruitsData = cleanData; 
-        allRecruits = cleanData; 
-        renderTable(cleanData);
-        updateStats(cleanData);
-    } catch (err) { 
-        console.error("Fetch Error:", err); 
-    } finally { 
-        hideLoader(); 
+        try {
+            const response = await fetch(`${API_URL}/recruits`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            const data = await response.json();
+            recruitsData = data; 
+            allRecruits = data; // FIX: Sync allRecruits so editRecruit() works
+            renderTable(data);
+            updateStats(data);
+        } catch (err) { console.error(err); }
+        finally { hideLoader(); }
     }
-}
+
+    function parseJwt(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; }
+    }
 
     function updateStats(recruits) {
-        if(!recruits || !Array.isArray(recruits)) return;
+        if(!recruits) return;
         const pending = recruits.filter(r => r.status === 'Pending').length;
         const approved = recruits.filter(r => r.status === 'Approved').length;
         const commission = recruits.reduce((acc, curr) => acc + (curr.commissionEarned || 0), 0);
@@ -320,9 +306,7 @@
 
     function renderTable(recruits) {
         const tableBody = document.getElementById('submissions-table');
-        if(!tableBody || !Array.isArray(recruits)) return;
-        
-        // FIX: Re-added Edit/Delete buttons to the table rows
+        if(!tableBody || !recruits) return;
         tableBody.innerHTML = recruits.map(r => `
             <tr class="border-b hover:bg-gray-50 transition">
                 <td class="py-4 font-medium">${r.studentName} ${r.studentSurname}</td>
@@ -340,57 +324,42 @@
         `).join('');
     }
 
+    // HANDLER FOR ADD/EDIT STUDENT
+    // FIX: Using DOMContentLoaded and correct form ID 'studentform'
     window.addEventListener('DOMContentLoaded', () => {
         const sForm = document.getElementById('studentform');
         if (sForm) {
             sForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                triggerLoader(currentEditId ? "Updating..." : "Saving...");
-                
+                triggerLoader("Saving...");
                 const formData = new FormData(e.target);
                 const payload = Object.fromEntries(formData.entries());
 
                 const url = currentEditId 
                     ? `https://www.mycampuscollective.me/api/auth/recruit/${currentEditId}` 
-                    : `https://www.mycampuscollective.me/api/auth/submit-recruit`;
-                
+                    : 'https://www.mycampuscollective.me/api/auth/submit-recruit';
                 const method = currentEditId ? 'PUT' : 'POST';
 
                 try {
                     const res = await fetch(url, {
                         method: method,
-                        headers: { 
-                            'Content-Type': 'application/json', 
-                            'Authorization': `Bearer ${getToken()}` 
-                        },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
                         body: JSON.stringify(payload)
                     });
-                    
                     const result = await res.json();
                     hideLoader();
-
                     if (res.ok) {
                         alert(currentEditId ? "Student updated!" : "Student added!");
                         currentEditId = null;
                         e.target.reset();
-                        
-                        const formTitle = document.querySelector('h2');
-                        if (formTitle) formTitle.innerText = "Submit New Student";
-
                         const submitBtn = e.target.querySelector('button[type="submit"]');
                         if(submitBtn) {
-                            submitBtn.innerText = "Submit";
+                            submitBtn.innerText = "Add Student";
                             submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
                         }
-                        
                         fetchAgentData(); 
-                    } else { 
-                        alert("Error: " + (result.message || "Failed")); 
-                    }
-                } catch (error) { 
-                    hideLoader(); 
-                    console.error(error); 
-                }
+                    } else { alert("Error: " + (result.message || "Failed")); }
+                } catch (error) { hideLoader(); console.error(error); }
             });
         }
     });
@@ -409,33 +378,19 @@
     async function editRecruit(id) {
         const recruit = allRecruits.find(r => r._id === id); 
         if (!recruit) return;
-
-        currentEditId = id; 
-
-        const formTitle = document.querySelector('h2');
-        if (formTitle) formTitle.innerText = "Editing Student Info";
-
-        const setVal = (id, val) => {
-            const el = document.getElementById(id);
-            if(el) el.value = val;
-        };
-
-        setVal('studentName', recruit.studentName);
-        setVal('studentSurname', recruit.studentSurname);
-        setVal('studentEmail', recruit.studentEmail);
-        setVal('studentPhone', recruit.studentPhone);
-        setVal('accommodation', recruit.accommodation);
+        currentEditId = id;
+        document.getElementById('studentName').value = recruit.studentName;
+        document.getElementById('studentSurname').value = recruit.studentSurname;
+        document.getElementById('studentEmail').value = recruit.studentEmail;
+        document.getElementById('studentPhone').value = recruit.studentPhone;
+        document.getElementById('accommodation').value = recruit.accommodation;
+        document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
         
-        if (recruit.moveInDate) {
-            setVal('moveInDate', recruit.moveInDate.split('T')[0]);
-        }
-
         const submitBtn = document.querySelector('#studentform button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.innerText = "Save";
-            submitBtn.className = "w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition";
+        if(submitBtn) {
+            submitBtn.innerText = "Update Student Details";
+            submitBtn.classList.replace('bg-blue-600', 'bg-green-600');
         }
-
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
