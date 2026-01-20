@@ -194,39 +194,43 @@
 </div>
 
 <script>
-    // 1. Unified Configuration - matching your authRoutes.js mounting
+    // --- CONFIGURATION ---
     const API_BASE = '/api/auth'; 
     const loader = document.getElementById('loader-overlay');
+    let recruitsData = []; 
+    let currentEditId = null; 
     let allRecruits = []; 
-    let currentEditId = null;
 
     function getToken() { return localStorage.getItem('jwtToken'); }
 
-    // 2. Fixed Loader - showing it when we start a task
+    // --- LOADER LOGIC ---
     function triggerLoader(text) {
         const loaderText = document.getElementById('loader-text');
         if(loaderText) loaderText.textContent = text;
         if(loader) {
             loader.style.visibility = 'visible'; 
             loader.style.opacity = '1';
+            loader.classList.remove('hidden'); // Ensure it's not hidden by class
         }
     }
 
     function hideLoader() { 
         if(loader) {
             loader.style.opacity = '0'; 
-            setTimeout(() => { loader.style.visibility = 'hidden'; }, 500);
+            setTimeout(() => { 
+                loader.style.visibility = 'hidden'; 
+            }, 500);
         }
     }
 
-    // 3. Data Fetching - ensures recruits show in the table
+    // --- DATA FETCHING (The "Showing" Logic) ---
     async function fetchAgentData() {
-        triggerLoader("Fetching your recruits...");
+        triggerLoader("Fetching recruits..."); 
         try {
             const response = await fetch(`${API_BASE}/recruits`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
-            if (!response.ok) throw new Error("Fetch failed");
+            if (!response.ok) throw new Error("Could not load data.");
             const data = await response.json();
             allRecruits = data; 
             renderTable(data);
@@ -238,21 +242,21 @@
         }
     }
 
-    // 4. Fixed Save/Update Logic - matches authRoutes.js exactly
+    // --- SAVING & EDITING LOGIC (The "Fix") ---
     async function handleFormSubmit(e) {
         e.preventDefault();
-        triggerLoader("Saving data...");
+        triggerLoader(currentEditId ? "Updating student..." : "Saving new student...");
         
         const formData = new FormData(e.target);
         const payload = Object.fromEntries(formData.entries());
 
-        // Handle the "Other" accommodation field logic
+        // Handle 'Other' accommodation choice
         if (payload.accommodation === 'not listed') {
             payload.accommodation = payload.manualAccommodation || "Other";
         }
         delete payload.manualAccommodation;
 
-        // Pathing based on authRoutes.js
+        // Determine URL: /api/admin/submit-recruit for NEW, /api/admin/recruit/ID for EDIT
         const url = currentEditId 
             ? `${API_BASE}/recruit/${currentEditId}` 
             : `${API_BASE}/submit-recruit`;
@@ -270,67 +274,124 @@
             });
 
             const result = await res.json();
+            
             if (res.ok) {
-                alert(currentEditId ? "Updated successfully!" : "Saved successfully!");
-                resetForm(e.target);
-                fetchAgentData(); // Refresh the list so the new recruit shows up
-            } else {
-                alert("Error: " + (result.message || "Could not save. Please check details."));
+                alert(currentEditId ? "Successfully Updated!" : "Successfully Saved!");
+                
+                // Reset Form
+                currentEditId = null;
+                e.target.reset();
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                if(submitBtn) {
+                    submitBtn.innerText = "Add Student";
+                    submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
+                }
+                
+                // Refresh the list immediately so they show up
+                fetchAgentData(); 
+            } else { 
+                // Fallback: If /api/admin/submit-recruit is not the route, try /api/auth
+                if (res.status === 404) {
+                    return handleAuthFallback(payload, method);
+                }
+                alert("Error: " + (result.message || "Could not save. Check all fields.")); 
             }
         } catch (error) { 
             console.error("Submit Error:", error);
-            alert("Connection error.");
+            alert("Connection error. Please try again.");
         } finally {
             hideLoader();
         }
     }
 
-    function resetForm(form) {
-        currentEditId = null;
-        form.reset();
-        const submitBtn = form.querySelector('button[type="submit"]');
-        if(submitBtn) {
-            submitBtn.innerText = "Add Student";
-            submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
-        }
-        const manualDiv = document.getElementById('manual-acc-div');
-        if(manualDiv) manualDiv.classList.add('hidden');
+    // Fallback logic in case your server specifically requires /api/auth for POST
+    async function handleAuthFallback(payload, method) {
+        const fallbackUrl = currentEditId 
+            ? `/api/auth/recruit/${currentEditId}` 
+            : `/api/auth/submit-recruit`;
+            
+        try {
+            const res = await fetch(fallbackUrl, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                body: JSON.stringify(payload)
+            });
+            if(res.ok) {
+                alert("Success!");
+                location.reload(); // Hard refresh to ensure everything syncs
+            } else {
+                alert("Save failed on both endpoints. Please contact admin.");
+            }
+        } catch (e) { alert("Final attempt failed."); }
+        finally { hideLoader(); }
     }
 
-    // 5. Fill Form for Editing
+    // --- UI HELPERS ---
+    function renderTable(recruits) {
+        const tableBody = document.getElementById('submissions-table');
+        if(!tableBody) return;
+        tableBody.innerHTML = recruits.map(r => `
+            <tr class="border-b hover:bg-gray-50 transition">
+                <td class="py-4 font-medium px-4">${r.studentName} ${r.studentSurname}</td>
+                <td class="py-4 text-gray-600">${r.accommodation}</td>
+                <td class="py-4 text-gray-500">${new Date(r.moveInDate).toLocaleDateString()}</td>
+                <td class="py-4">
+                    <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status==='Approved'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${r.status}</span>
+                </td>
+                <td class="py-4 font-bold text-blue-600">R ${r.commissionEarned || 0}</td>
+                <td class="px-4 py-4 text-sm font-medium space-x-3">
+                    <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900">Edit</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
     async function editRecruit(id) {
-        const recruit = allRecruits.find(r => r._id === id); 
-        if (!recruit) return;
-
-        currentEditId = id;
-        document.getElementById('studentName').value = recruit.studentName;
-        document.getElementById('studentSurname').value = recruit.studentSurname;
-        document.getElementById('studentEmail').value = recruit.studentEmail;
-        document.getElementById('studentPhone').value = recruit.studentPhone;
-        document.getElementById('accommodation').value = recruit.accommodation;
-        
-        if(recruit.moveInDate) {
-            document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
-        }
-
-        const submitBtn = document.querySelector('#studentform button[type="submit"]');
-        if(submitBtn) {
-            submitBtn.innerText = "Save Changes";
-            submitBtn.className = "w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition";
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    const recruit = allRecruits.find(r => r._id === id); 
+    if (!recruit) return;
+    
+    currentEditId = id;
+    // Fill the fields
+    document.getElementById('studentName').value = recruit.studentName;
+    document.getElementById('studentSurname').value = recruit.studentSurname;
+    document.getElementById('studentEmail').value = recruit.studentEmail;
+    document.getElementById('studentPhone').value = recruit.studentPhone;
+    
+    // FIX: Use 'acc-select' instead of 'accommodation'
+    document.getElementById('acc-select').value = recruit.accommodation;
+    
+    // Ensure the date is formatted correctly for the input
+    if (recruit.moveInDate) {
+        document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
     }
+    
+    // Update button text to show we are in "Edit Mode"
+    const submitBtn = document.querySelector('#studentForm button[type="submit"]');
+    if(submitBtn) {
+        submitBtn.innerText = "Update Recruit Details";
+        submitBtn.className = "w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition";
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+    function updateStats(recruits) {
+        const pending = recruits.filter(r => r.status === 'Pending').length;
+        const approved = recruits.filter(r => r.status === 'Approved').length;
+        const totalCommission = recruits.reduce((sum, r) => sum + (r.commissionEarned || 0), 0);
 
-    // Initialize on load
+        document.getElementById('pending-count').innerText = pending;
+        document.getElementById('approved-count').innerText = approved;
+        document.getElementById('total-commission').innerText = `R ${totalCommission.toFixed(2)}`;
+    }
     window.onload = () => { 
-        if(!getToken()) { 
-            window.location.href = 'agent login.html'; 
-        } else { 
-            fetchAgentData(); 
-            const sForm = document.getElementById('studentform');
-            if (sForm) sForm.addEventListener('submit', handleFormSubmit);
-        }
-    };
+    if(!getToken()) { 
+        window.location.href = 'agent login.html'; 
+    } else { 
+        fetchAgentData(); 
+        // FIX: Match the ID "studentForm" exactly
+        const sForm = document.getElementById('studentForm'); 
+        if (sForm) sForm.addEventListener('submit', handleFormSubmit);
+    }
+};
 </script>
 </body>
 </html>   
