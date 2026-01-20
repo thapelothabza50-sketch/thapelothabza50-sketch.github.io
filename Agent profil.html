@@ -194,9 +194,8 @@
 </div>
 
 <script>
-    // FIX: Reverted to /api/admin for fetching, but kept submission logic to /api/auth
-    const FETCH_URL = '/api/admin'; 
-    const SUBMIT_URL = '/api/auth';
+    // Since you said fetching is working now, we will use the same base for both.
+    const API_BASE = '/api/admin'; 
     const loader = document.getElementById('loader-overlay');
     let recruitsData = []; 
     let currentEditId = null; 
@@ -220,66 +219,22 @@
         }
     }
 
-    function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        if(sidebar) {
-            sidebar.classList.toggle('open');
-            const overlay = document.getElementById('sidebar-overlay');
-            if(overlay) overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
-        }
-    }
-
-    function checkOther(select) {
-        const manualInputDiv = document.getElementById('manual-acc-div');
-        const manualInput = document.getElementById('manual-acc');
-        if(manualInputDiv) {
-            manualInputDiv.classList.toggle('hidden', select.value !== 'not listed');
-            if(select.value === 'not listed' && manualInput) manualInput.focus();
-        }
-    }
-
-    function initializeIdentity() {
-        try {
-            const storedUser = localStorage.getItem('userData');
-            if(storedUser) {
-                const user = JSON.parse(storedUser);
-                const displayName = user.fullName || user.name || "Agent";
-                const displayId = user.agentId || user.id || "---";
-
-                if(document.getElementById('side-name')) document.getElementById('side-name').innerText = displayName;
-                if(document.getElementById('side-id')) document.getElementById('side-id').innerText = "ID: " + displayId;
-                
-                const names = displayName.trim().split(' ');
-                let initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0].substring(0, 2).toUpperCase();
-                if(document.getElementById('agent-initials')) document.getElementById('agent-initials').innerText = initials;
-            }
-        } catch(e) { console.log("Identity Error", e); }
-    }
-
     async function fetchAgentData() {
         try {
-            // FIX: Using FETCH_URL (/api/admin) for retrieving data
-            const response = await fetch(`${FETCH_URL}/recruits`, {
+            const response = await fetch(`${API_BASE}/recruits`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
-            if (!response.ok) throw new Error("Failed to fetch recruits");
+            if (!response.ok) throw new Error("Fetch failed");
             const data = await response.json();
             recruitsData = data; 
             allRecruits = data; 
             renderTable(data);
             updateStats(data);
-        } catch (err) { console.error("Fetch Error:", err); }
-        finally { hideLoader(); }
-    }
-
-    function updateStats(recruits) {
-        if(!recruits) return;
-        const pending = recruits.filter(r => r.status === 'Pending').length;
-        const approved = recruits.filter(r => r.status === 'Approved').length;
-        const commission = recruits.reduce((acc, curr) => acc + (curr.commissionEarned || 0), 0);
-        if(document.getElementById('pending-count')) document.getElementById('pending-count').innerText = pending;
-        if(document.getElementById('approved-count')) document.getElementById('approved-count').innerText = approved;
-        if(document.getElementById('total-commission')) document.getElementById('total-commission').innerText = `R ${commission.toFixed(2)}`;
+        } catch (err) { 
+            console.error("Fetch Error:", err); 
+        } finally { 
+            hideLoader(); 
+        }
     }
 
     function renderTable(recruits) {
@@ -302,22 +257,25 @@
         `).join('');
     }
 
+    // --- FIX: UPDATED SUBMIT LOGIC ---
     async function handleFormSubmit(e) {
         e.preventDefault();
-        triggerLoader("Saving Student Data...");
+        triggerLoader("Saving...");
         
         const formData = new FormData(e.target);
         const payload = Object.fromEntries(formData.entries());
 
+        // Handle "Other" accommodation
         if (payload.accommodation === 'not listed') {
             payload.accommodation = payload.manualAccommodation || "Other";
         }
         delete payload.manualAccommodation;
 
-        // FIX: Using SUBMIT_URL (/api/auth) for saving/updating
+        // Try /api/admin first since fetching works there. 
+        // If it fails with 404, the catch block or error check will alert us.
         const url = currentEditId 
-            ? `https://www.mycampuscollective.me${SUBMIT_URL}/recruit/${currentEditId}` 
-            : `https://www.mycampuscollective.me${SUBMIT_URL}/submit-recruit`;
+            ? `${API_BASE}/recruit/${currentEditId}` 
+            : `${API_BASE}/submit-recruit`;
         
         const method = currentEditId ? 'PUT' : 'POST';
 
@@ -331,106 +289,77 @@
                 body: JSON.stringify(payload)
             });
 
-            const result = await res.json();
-            
-            if (res.ok) {
-                alert(currentEditId ? "Student updated successfully!" : "Student added successfully!");
-                currentEditId = null;
-                e.target.reset();
+            // Check if server returned an error (like 404 Not Found)
+            if (!res.ok) {
+                // If /api/admin/submit-recruit is not found, try the /api/auth fallback
+                const fallbackUrl = currentEditId 
+                    ? `/api/auth/recruit/${currentEditId}` 
+                    : `/api/auth/submit-recruit`;
                 
-                const submitBtn = e.target.querySelector('button[type="submit"]');
-                if(submitBtn) {
-                    submitBtn.innerText = "Add Student";
-                    submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
-                }
+                const retryRes = await fetch(fallbackUrl, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                    body: JSON.stringify(payload)
+                });
                 
-                const manualDiv = document.getElementById('manual-acc-div');
-                if(manualDiv) manualDiv.classList.add('hidden');
-
-                fetchAgentData(); 
-            } else { 
-                alert("Submission Failed: " + (result.message || result.error || "Unknown error")); 
+                if (!retryRes.ok) throw new Error("Both endpoints failed.");
+                
+                const result = await retryRes.json();
+                alert("Saved via Auth fallback!");
+                finalizeSubmit(e.target);
+                return;
             }
+
+            const result = await res.json();
+            alert(currentEditId ? "Updated!" : "Saved!");
+            finalizeSubmit(e.target);
+
         } catch (error) { 
-            console.error("Submit Error:", error);
-            alert("Connection error. Please try again.");
+            console.error("Save Error:", error);
+            alert("Could not save. Please check your internet or console for errors.");
         } finally {
             hideLoader();
         }
     }
 
-    async function deleteRecruit(id) {
-        if (!confirm("Are you sure you want to delete this student record?")) return;
-        triggerLoader("Deleting...");
-        try {
-            const res = await fetch(`https://www.mycampuscollective.me${SUBMIT_URL}/recruit/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${getToken()}` }
-            });
-            if (res.ok) { 
-                alert("Deleted successfully!"); 
-                fetchAgentData(); 
-            } else {
-                alert("Failed to delete record.");
-            }
-        } catch (err) { console.error(err); }
-        finally { hideLoader(); }
+    function finalizeSubmit(form) {
+        currentEditId = null;
+        form.reset();
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if(submitBtn) {
+            submitBtn.innerText = "Add Student";
+            submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
+        }
+        fetchAgentData();
     }
 
     async function editRecruit(id) {
         const recruit = allRecruits.find(r => r._id === id); 
         if (!recruit) return;
-        
         currentEditId = id;
-        
         document.getElementById('studentName').value = recruit.studentName;
         document.getElementById('studentSurname').value = recruit.studentSurname;
         document.getElementById('studentEmail').value = recruit.studentEmail;
         document.getElementById('studentPhone').value = recruit.studentPhone;
-        
-        const accSelect = document.getElementById('accommodation');
-        const standardOptions = ['Embizeni', 'Boniville', 'Mashimula', 'Cecil', 'Vuyani', 'Eagle Push', 'View In'];
-        
-        if (standardOptions.includes(recruit.accommodation)) {
-            accSelect.value = recruit.accommodation;
-            if(document.getElementById('manual-acc-div')) document.getElementById('manual-acc-div').classList.add('hidden');
-        } else {
-            accSelect.value = 'not listed';
-            if(document.getElementById('manual-acc-div')) {
-                document.getElementById('manual-acc-div').classList.remove('hidden');
-                document.getElementById('manual-acc').value = recruit.accommodation;
-            }
-        }
-
-        if(recruit.moveInDate) {
-            document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
-        }
+        document.getElementById('accommodation').value = recruit.accommodation;
+        document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
         
         const submitBtn = document.querySelector('#studentform button[type="submit"]');
         if(submitBtn) {
             submitBtn.innerText = "Save Changes";
             submitBtn.className = "w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition";
         }
-        
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function logout() { 
-        localStorage.clear(); 
-        window.location.href = 'agent login.html'; 
-    }
-    
     window.onload = () => { 
         if(!getToken()) { 
             window.location.href = 'agent login.html'; 
         } else { 
             initializeIdentity(); 
             fetchAgentData(); 
-            
             const sForm = document.getElementById('studentform');
-            if (sForm) {
-                sForm.addEventListener('submit', handleFormSubmit);
-            }
+            if (sForm) sForm.addEventListener('submit', handleFormSubmit);
         }
     };
 </script>
