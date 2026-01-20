@@ -276,25 +276,37 @@
     }
 
     async function fetchAgentData() {
-        try {
-            // FIX: Corrected endpoint to match authRoutes.js for agents
-            const response = await fetch(`${API_URL}/recruits`, {
-                headers: { 'Authorization': `Bearer ${getToken()}` }
-            });
-            const data = await response.json();
-            
-            // Ensure we handle both array and object responses
-            const cleanData = Array.isArray(data) ? data : (data.recruits || []);
-            recruitsData = cleanData; 
-            allRecruits = cleanData; 
-            renderTable(cleanData);
-            updateStats(cleanData);
-        } catch (err) { 
-            console.error("Fetch Error:", err); 
-        } finally { 
-            hideLoader(); 
+    try {
+        // Change this line to use the full path that matches your server
+        const response = await fetch('https://www.mycampuscollective.me/api/auth/recruits', {
+            headers: { 
+                'Authorization': `Bearer ${getToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        // Check if the response is actually JSON before parsing
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text();
+            console.error("Server returned non-JSON response:", text);
+            throw new Error("Server returned HTML instead of JSON. Check if the route exists.");
         }
+
+        const data = await response.json();
+        
+        // Ensure we handle the data correctly
+        const cleanData = Array.isArray(data) ? data : (data.recruits || []);
+        recruitsData = cleanData; 
+        allRecruits = cleanData; 
+        renderTable(cleanData);
+        updateStats(cleanData);
+    } catch (err) { 
+        console.error("Fetch Error:", err); 
+    } finally { 
+        hideLoader(); 
     }
+}
 
     function updateStats(recruits) {
         if(!recruits || !Array.isArray(recruits)) return;
