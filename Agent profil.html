@@ -247,7 +247,6 @@
     }
 
     function downloadPDF() {
-    // 🏆 FIX: Changed myRecruits to recruitsData to match your script
     if (!recruitsData || recruitsData.length === 0) {
         alert("No recruit data available to download.");
         return;
@@ -257,6 +256,11 @@
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
+
+    // --- 0. GET AGENT DETAILS FROM THE PAGE ---
+    // These match the IDs in your "Agent profil.html" sidebar
+    const agentName = document.getElementById('agent-name')?.innerText || "N/A";
+    const agentID = document.getElementById('agent-id')?.innerText || "N/A";
 
     // --- 1. THEME: BLUE BORDER ---
     doc.setDrawColor(37, 99, 235);
@@ -280,20 +284,24 @@
     doc.setDrawColor(37, 99, 235);
     doc.line(14, 35, pageWidth - 14, 35);
 
-    // --- 3. SUMMARY STATS ---
-    const totalRecruits = recruitsData.length;
-    const totalCommission = recruitsData.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
-
+    // --- 3. AGENT INFO & SUMMARY STATS ---
     doc.setFontSize(14);
     doc.setTextColor(0);
     doc.text("MY RECRUITMENT REPORT", 14, 45);
     
     doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Total Recruits: ${totalRecruits}`, 14, 52);
-    doc.text(`Total Commission Earned: R ${totalCommission.toFixed(2)}`, 14, 58);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Agent Name: ${agentName}`, 14, 52);
+    doc.text(`Agent ID: ${agentID}`, 14, 57);
 
-    // --- 4. DATA TABLE (Updated with Phone and Email columns) ---
+    doc.setFont("helvetica", "normal");
+    const totalRecruits = recruitsData.length;
+    const totalCommission = recruitsData.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
+    
+    doc.text(`Total Recruits: ${totalRecruits}`, 14, 65);
+    doc.text(`Total Commission Earned: R ${totalCommission.toFixed(2)}`, 14, 70);
+
+    // --- 4. DATA TABLE ---
     const rows = recruitsData.map(r => [
         `${r.studentName} ${r.studentSurname}`,
         r.studentPhone || 'N/A',
@@ -306,7 +314,7 @@
     doc.autoTable({
         head: [['Student Name', 'Phone', 'Email', 'Accommodation', 'Status', 'Commission']],
         body: rows,
-        startY: 65,
+        startY: 75, // Lowered slightly to fit agent info
         theme: 'grid',
         headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
         styles: { fontSize: 7, cellPadding: 2 },
@@ -321,7 +329,7 @@
     doc.setTextColor(37, 99, 235);
     doc.text(`GRAND TOTAL COMMISSION: R ${totalCommission.toFixed(2)}`, pageWidth - 100, finalY);
 
-    doc.save(`My_Recruits_Report_${new Date().toISOString().slice(0,10)}.pdf`);
+    doc.save(`Recruits_Report_${agentID.replace(/\s+/g, '_')}.pdf`);
 }
 
     async function fetchAgentData() {
