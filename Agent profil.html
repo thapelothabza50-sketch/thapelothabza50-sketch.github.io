@@ -194,7 +194,6 @@
 </div>
 
 <script>
-    // Your original working URL
     const API_URL = '/api/admin'; 
     const loader = document.getElementById('loader-overlay');
     let recruitsData = []; 
@@ -202,6 +201,18 @@
     let allRecruits = []; 
 
     function getToken() { return localStorage.getItem('jwtToken'); }
+
+    // --- NEW FIX 1: 5-MINUTE SECURITY TIMEOUT ---
+    let inactivityTimer;
+    const resetTimer = () => {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            alert("Session expired due to 5 minutes of inactivity.");
+            logout();
+        }, 300000); 
+    };
+    window.onmousemove = resetTimer;
+    window.onkeydown = resetTimer;
 
     function triggerLoader(text) {
         const loaderText = document.getElementById('loader-text');
@@ -215,47 +226,78 @@
         setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
     }
 
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-        const overlay = document.getElementById('sidebar-overlay');
-        if(overlay) overlay.style.display = document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none';
+    // --- FIX 2: PHONE NUMBER FORMATTING FOR PDF ---
+    // This ensures spaces or special characters don't break the PDF display
+    function formatPhoneForPDF(phone) {
+        if(!phone) return 'N/A';
+        return phone.toString().trim().replace(/\s+/g, ' '); 
     }
 
-    function checkOther(select) {
-        const manualInput = document.getElementById('manual-acc');
-        if(manualInput) {
-            manualInput.classList.toggle('hidden', select.value !== 'not listed');
-            if(select.value === 'not listed') manualInput.focus();
+    // --- FIX 3: RESTORE PRINT DOCUMENT LOGIC ---
+    function downloadRecruitList() {
+        if (allRecruits.length === 0) {
+            alert("No data available to download.");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(16);
+        doc.setTextColor(37, 99, 235);
+        doc.text("My Recruitment List", 14, 20);
+        
+        const rows = allRecruits.map(r => [
+            `${r.studentName} ${r.studentSurname}`,
+            r.accommodation,
+            formatPhoneForPDF(r.studentPhone), // Applied the fix here
+            r.status,
+            new Date(r.moveInDate).toLocaleDateString()
+        ]);
+
+        doc.autoTable({
+            head: [['Student Name', 'Accommodation', 'Phone', 'Status', 'Move-in Date']],
+            body: rows,
+            startY: 30,
+            theme: 'grid',
+            headStyles: { fillColor: [37, 99, 235] }
+        });
+
+        doc.save("My_Recruits.pdf");
+    }
+
+    // --- FIX 4: RESTORE DELETE LOGIC ---
+    async function deleteRecruit(id) {
+        if (!confirm("Are you sure you want to delete this recruit?")) return;
+        
+        triggerLoader("Deleting...");
+        try {
+            const response = await fetch(`/api/auth/recruit/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            
+            if (response.ok) {
+                alert("Recruit deleted successfully.");
+                fetchAgentData(); 
+            } else {
+                const err = await response.json();
+                alert("Error: " + err.message);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Delete failed.");
+        } finally {
+            hideLoader();
         }
     }
 
-    function initializeIdentity() {
-        try {
-            const storedUser = localStorage.getItem('userData');
-            if(storedUser) {
-                const user = JSON.parse(storedUser);
-                const displayName = user.fullName || user.name || "Agent";
-                const displayId = user.agentId || user.id || "---";
-
-                if(document.getElementById('side-name')) document.getElementById('side-name').innerText = displayName;
-                if(document.getElementById('side-id')) document.getElementById('side-id').innerText = "ID: " + displayId;
-                
-                const names = displayName.trim().split(' ');
-                let initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0].substring(0, 2).toUpperCase();
-                if(document.getElementById('agent-initials')) document.getElementById('agent-initials').innerText = initials;
-            }
-        } catch(e) { console.log("Identity Error", e); }
-    }
-
-    // YOUR WORKING FETCH SCRIPT
     async function fetchAgentData() {
         try {
-            // Using your original path that worked
             const response = await fetch(`${API_URL}/recruits`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
             const data = await response.json();
-            recruitsData = data; 
             allRecruits = data; 
             renderTable(data);
             updateStats(data);
@@ -263,19 +305,9 @@
         finally { hideLoader(); }
     }
 
-    function updateStats(recruits) {
-        if(!recruits) return;
-        const pending = recruits.filter(r => r.status === 'Pending').length;
-        const approved = recruits.filter(r => r.status === 'Approved').length;
-        const commission = recruits.reduce((acc, curr) => acc + (curr.commissionEarned || 0), 0);
-        if(document.getElementById('pending-count')) document.getElementById('pending-count').innerText = pending;
-        if(document.getElementById('approved-count')) document.getElementById('approved-count').innerText = approved;
-        if(document.getElementById('total-commission')) document.getElementById('total-commission').innerText = `R ${commission.toFixed(2)}`;
-    }
-
     function renderTable(recruits) {
         const tableBody = document.getElementById('submissions-table');
-        if(!tableBody || !recruits) return;
+        if(!tableBody) return;
         tableBody.innerHTML = recruits.map(r => `
             <tr class="border-b hover:bg-gray-50 transition">
                 <td class="py-4 font-medium">${r.studentName} ${r.studentSurname}</td>
@@ -285,7 +317,7 @@
                     <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status==='Approved'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${r.status}</span>
                 </td>
                 <td class="py-4 font-bold text-blue-600">R ${r.commissionEarned || 0}</td>
-                <td class="px-6 py-4 text-sm font-medium space-x-3">
+                <td class="px-6 py-4 text-sm font-medium space-x-3 text-right">
                     <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900">Edit</button>
                     <button onclick="deleteRecruit('${r._id}')" class="text-red-600 hover:text-red-900">Delete</button>
                 </td>
@@ -293,15 +325,13 @@
         `).join('');
     }
 
-    // FIXED SAVE/EDIT HANDLER
     async function handleFormSubmit(e) {
         e.preventDefault();
-        triggerLoader("Saving...");
+        triggerLoader(currentEditId ? "Updating..." : "Saving...");
         
         const formData = new FormData(e.target);
         const payload = Object.fromEntries(formData.entries());
 
-        // Use the auth endpoint for saving as per your authRoutes.js
         const url = currentEditId 
             ? `/api/auth/recruit/${currentEditId}` 
             : `/api/auth/submit-recruit`;
@@ -313,10 +343,9 @@
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
                 body: JSON.stringify(payload)
             });
-            const result = await res.json();
             
             if (res.ok) {
-                alert(currentEditId ? "Updated!" : "Saved!");
+                alert(currentEditId ? "Recruit Updated!" : "Recruit Saved!");
                 currentEditId = null;
                 e.target.reset();
                 
@@ -326,7 +355,7 @@
                     submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
                 }
                 fetchAgentData(); 
-            } else { alert("Error: " + (result.message || "Failed")); }
+            } else { alert("Failed to save."); }
         } catch (error) { console.error(error); }
         finally { hideLoader(); }
     }
@@ -341,15 +370,13 @@
         document.getElementById('studentEmail').value = recruit.studentEmail;
         document.getElementById('studentPhone').value = recruit.studentPhone;
         
-        // FIX: Match the ID "acc-select" from your HTML
-        const accDropdown = document.getElementById('acc-select');
-        if(accDropdown) accDropdown.value = recruit.accommodation;
+        const accSelect = document.getElementById('acc-select');
+        if(accSelect) accSelect.value = recruit.accommodation;
         
         if (recruit.moveInDate) {
             document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
         }
         
-        // Match the ID "studentForm" exactly
         const submitBtn = document.querySelector('#studentForm button[type="submit"]');
         if(submitBtn) {
             submitBtn.innerText = "Update Student";
@@ -364,11 +391,10 @@
         if(!getToken()) { 
             window.location.href = 'agent login.html'; 
         } else { 
-            initializeIdentity(); 
             fetchAgentData(); 
-            // FIX: Attached listener to "studentForm"
             const sForm = document.getElementById('studentForm');
             if (sForm) sForm.addEventListener('submit', handleFormSubmit);
+            resetTimer(); 
         }
     };
 </script>
