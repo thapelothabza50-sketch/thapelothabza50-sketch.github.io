@@ -259,8 +259,8 @@
 
     // --- 0. GET AGENT DETAILS FROM THE PAGE ---
     // These match the IDs in your "Agent profil.html" sidebar
-    const agentName = document.getElementById('agent-name')?.innerText || "N/A";
-    const agentID = document.getElementById('agent-id')?.innerText || "N/A";
+    const agentName = document.getElementById('side-name')?.innerText || "Agent";
+    const agentID = document.getElementById('side-id')?.innerText.replace("ID: ", "") || "---";
 
     // --- 1. THEME: BLUE BORDER ---
     doc.setDrawColor(37, 99, 235);
