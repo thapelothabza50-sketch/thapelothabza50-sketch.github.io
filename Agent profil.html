@@ -247,6 +247,12 @@
     }
 
     function downloadPDF() {
+    // 🏆 FIX: Changed myRecruits to recruitsData to match your script
+    if (!recruitsData || recruitsData.length === 0) {
+        alert("No recruit data available to download.");
+        return;
+    }
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -275,8 +281,8 @@
     doc.line(14, 35, pageWidth - 14, 35);
 
     // --- 3. SUMMARY STATS ---
-    const totalRecruits = myRecruits.length;
-    const totalCommission = myRecruits.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
+    const totalRecruits = recruitsData.length;
+    const totalCommission = recruitsData.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
 
     doc.setFontSize(14);
     doc.setTextColor(0);
@@ -287,8 +293,8 @@
     doc.text(`Total Recruits: ${totalRecruits}`, 14, 52);
     doc.text(`Total Commission Earned: R ${totalCommission.toFixed(2)}`, 14, 58);
 
-    // --- 4. DATA TABLE ---
-    const rows = myRecruits.map(r => [
+    // --- 4. DATA TABLE (Updated with Phone and Email columns) ---
+    const rows = recruitsData.map(r => [
         `${r.studentName} ${r.studentSurname}`,
         r.studentPhone || 'N/A',
         r.studentEmail || 'N/A',
@@ -315,7 +321,7 @@
     doc.setTextColor(37, 99, 235);
     doc.text(`GRAND TOTAL COMMISSION: R ${totalCommission.toFixed(2)}`, pageWidth - 100, finalY);
 
-    doc.save(`My_Recruitment_Report_${new Date().toISOString().slice(0,10)}.pdf`);
+    doc.save(`My_Recruits_Report_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
     async function fetchAgentData() {
