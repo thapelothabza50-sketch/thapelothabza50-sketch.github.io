@@ -238,33 +238,33 @@
     let allRecruits = [];
     let allUsers = [];
 
-    // 1. FIXED LOADER: Shows immediately on browser refresh
-    function triggerLoader(text, duration = 1200) {
-        if (!loader) return Promise.resolve();
-        loaderText.textContent = text;
-        loader.style.visibility = 'visible'; 
-        loader.style.opacity = '1';
-        return new Promise(resolve => setTimeout(() => {
-            loader.style.opacity = '0'; 
-            loader.style.visibility = 'hidden';
-            setTimeout(resolve, 500);
-        }, duration));
-    }
-
-    // 2. FIXED AUTO-LOGOUT: 5 Minute Inactivity Timer
+    // --- 1. SECURITY: 5 MINUTE INACTIVITY TIMER ---
     let inactivityTimer;
     const resetTimer = () => {
         clearTimeout(inactivityTimer);
         inactivityTimer = setTimeout(() => {
             alert("Session expired due to 5 minutes of inactivity.");
             logout();
-        }, 300000); // 300,000ms = 5 minutes
+        }, 300000); 
     };
-
     window.onmousemove = resetTimer;
     window.onkeydown = resetTimer;
 
-    // 3. FIXED DATA FETCH: Loads everything automatically so tables aren't blank
+    // --- 2. LOADER LOGIC ---
+    function triggerLoader(text) {
+        if (!loader) return;
+        loaderText.textContent = text;
+        loader.style.visibility = 'visible'; 
+        loader.style.opacity = '1';
+    }
+
+    function hideLoader() {
+        if (!loader) return;
+        loader.style.opacity = '0'; 
+        setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
+    }
+
+    // --- 3. DATA FETCHING (RESTORED LOGIC) ---
     async function fetchProfiles() {
         try {
             const res = await fetch(`${API_BASE_URL}/profiles`, { 
@@ -272,9 +272,13 @@
             });
             const data = await res.json();
             allUsers = data;
+            
+            // Restore User Stats
             document.getElementById('stat-users').innerText = data.length;
+            
+            // Restore the split between Agents and Sellers
             renderAllUsers(data);
-        } catch (e) { console.error("Profile Fetch Error:", e); }
+        } catch (e) { console.error("Profile Error:", e); }
     }
 
     async function fetchRecruits() {
@@ -286,7 +290,7 @@
             if (res.ok) {
                 allRecruits = data;
                 
-                // Populate Accommodation Filter for PDF
+                // RESTORED: Populate the Accommodation Filter for printing
                 const accFilter = document.getElementById('acc-filter');
                 if (accFilter) {
                     const uniqueAccs = [...new Set(data.map(r => r.accommodation))];
@@ -295,91 +299,107 @@
                 }
                 
                 renderRecruits(data);
-                calculateTotalStats(data);
+                calculateStats(data);
             }
-        } catch (err) { console.error("Recruit Fetch Error:", err); }
+        } catch (err) { console.error("Recruit Error:", err); }
     }
 
-    function calculateTotalStats(recruits) {
+    // --- 4. CALCULATIONS (RESTORED) ---
+    function calculateStats(recruits) {
         const totalRevenue = recruits.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
         document.getElementById('stat-revenue').innerText = `R ${totalRevenue.toFixed(2)}`;
         document.getElementById('stat-orders').innerText = recruits.length;
     }
 
+    // --- 5. TABLE RENDERING (FULLY RESTORED) ---
     function renderAllUsers(users) {
         const agentBody = document.getElementById('agent-table-body');
-        const sellerBody = document.getElementById('profile-table-body');
-        if(!agentBody || !sellerBody) return;
+        const profileBody = document.getElementById('profile-table-body');
+        
+        // Filter users by role accurately
+        const agents = users.filter(u => u.role === 'Agent');
+        const sellers = users.filter(u => u.role !== 'Agent');
 
-        const agents = users.filter(u => u.role?.toLowerCase() === 'agent');
-        const sellers = users.filter(u => u.role?.toLowerCase() !== 'agent');
+        if (agentBody) {
+            agentBody.innerHTML = agents.map(u => `
+                <tr class="hover:bg-blue-50 cursor-pointer" onclick="openAgentPayment('${u._id}')">
+                    <td><b>${u.fullName}</b><br><small class="text-gray-400">${u.email}</small></td>
+                    <td><span class="text-blue-600 font-mono font-bold">${u.agentId || '---'}</span></td>
+                    <td>${u.phone || 'N/A'}</td>
+                    <td><span class="${u.status==='active'?'text-green-600':'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
+                    <td><button onclick="event.stopPropagation(); toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 px-3 py-1 rounded text-xs font-bold border hover:bg-gray-200">LOCK/UNLOCK</button></td>
+                </tr>`).join('');
+        }
 
-        agentBody.innerHTML = agents.map(u => `
-            <tr class="hover:bg-blue-50 cursor-pointer" onclick="openAgentPayment('${u._id}')">
-                <td><b>${u.fullName}</b><br><small class="text-gray-400">${u.email}</small></td>
-                <td><span class="text-blue-600 font-mono font-bold">${u.agentId || '---'}</span></td>
-                <td>${u.phone || 'N/A'}</td>
-                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
-                <td>
-                    <button onclick="event.stopPropagation(); toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 px-3 py-1 rounded text-xs font-bold border">LOCK/UNLOCK</button>
-                </td>
-            </tr>`).join('');
-
-        sellerBody.innerHTML = sellers.map(u => `
-            <tr>
-                <td><b>${u.businessName || u.fullName}</b><br><small>${u.email}</small></td>
-                <td>${u.phone || 'N/A'}</td>
-                <td>${u.role}</td>
-                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
-                <td>
-                    <button onclick="toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 px-3 py-1 rounded text-xs font-bold border">LOCK/UNLOCK</button>
-                </td>
-            </tr>`).join('');
+        if (profileBody) {
+            profileBody.innerHTML = sellers.map(u => `
+                <tr>
+                    <td><b>${u.businessName || u.fullName}</b><br><small>${u.email}</small></td>
+                    <td>${u.phone || 'N/A'}</td>
+                    <td>${u.role}</td>
+                    <td><span class="${u.status==='active'?'text-green-600':'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
+                    <td><button onclick="toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 px-3 py-1 rounded text-xs font-bold border hover:bg-gray-200">LOCK/UNLOCK</button></td>
+                </tr>`).join('');
+        }
     }
 
     function renderRecruits(recruits) {
         const body = document.getElementById('recruit-table-body');
-        if(!body) return;
+        if (!body) return;
         body.innerHTML = recruits.map(r => `
-            <tr>
-                <td><b>${r.studentName} ${r.studentSurname}</b></td>
-                <td>${r.studentPhone || 'N/A'}</td> 
+            <tr class="border-b">
+                <td><b>${r.studentName} ${r.studentSurname}</b><br><small>${r.studentEmail}</small></td>
+                <td class="text-xs font-mono">${r.studentPhone || 'N/A'}</td> 
                 <td>${r.accommodation}</td>
-                <td class="text-blue-600 font-bold">${r.agent?.fullName || 'System'}</td>
+                <td class="text-blue-600 font-bold">${r.agent?.fullName || 'System/Direct'}</td>
                 <td>${new Date(r.createdAt).toLocaleDateString()}</td>
                 <td>${new Date(r.moveInDate).toLocaleDateString()}</td>
-                <td><span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${r.status}</span></td>
-                <td><button onclick="deleteRecruit('${r._id}')" class="text-red-600">Delete</button></td>
+                <td><span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status==='Approved'?'bg-green-100 text-green-700':'bg-orange-100 text-orange-700'}">${r.status}</span></td>
+                <td>
+                    <div class="flex items-center gap-2">
+                        <select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded">
+                            <option value="">Update...</option>
+                            <option value="Approved">Approve</option>
+                            <option value="Cancelled">Cancel</option>
+                        </select>
+                        <button onclick="deleteRecruit('${r._id}')" class="text-red-600 hover:text-red-900">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    </div>
+                </td>
             </tr>`).join('');
     }
 
-    // 4. FIXED PRINT: The printAccPDF function now correctly grabs and filters data
+    // --- 6. PDF PRINTING (FIXED) ---
     function printAccPDF() {
-        const selectedAcc = document.getElementById('acc-filter').value;
-        if (!selectedAcc) return alert("Select an accommodation first.");
+        const filterVal = document.getElementById('acc-filter').value;
+        if (!filterVal) return alert("Please select an accommodation from the dropdown first.");
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        doc.setFontSize(18);
-        doc.text(`Recruitment Report: ${selectedAcc}`, 14, 20);
+        doc.setFontSize(16);
+        doc.setTextColor(37, 99, 235);
+        doc.text(`Recruitment Report: ${filterVal}`, 14, 20);
         
-        const filtered = allRecruits.filter(r => r.accommodation === selectedAcc);
+        const filtered = allRecruits.filter(r => r.accommodation === filterVal);
         const rows = filtered.map(r => [
             `${r.studentName} ${r.studentSurname}`,
             r.studentPhone || 'N/A',
+            r.agent?.fullName || 'System',
             r.status,
             new Date(r.createdAt).toLocaleDateString()
         ]);
 
         doc.autoTable({
-            head: [['Student', 'Phone', 'Status', 'Date']],
+            head: [['Student', 'Phone', 'Agent', 'Status', 'Registered On']],
             body: rows,
             startY: 30,
-            theme: 'grid'
+            theme: 'grid',
+            headStyles: { fillColor: [37, 99, 235] }
         });
 
-        doc.save(`Recruits_${selectedAcc}.pdf`);
+        doc.save(`Report_${filterVal}.pdf`);
     }
 
     async function logout() { 
@@ -387,24 +407,19 @@
         window.location.href = 'Admin.html'; 
     }
 
-    // INITIALIZATION: Runs everything on page load
+    // --- 7. INITIALIZATION (RESTORED & FIXED) ---
     window.onload = async () => { 
         if(!token) { 
             window.location.href = 'Admin.html'; 
         } else { 
-            loader.style.visibility = 'visible';
-            loader.style.opacity = '1';
-            loaderText.textContent = "Initializing Systems...";
+            triggerLoader("Loading Dashboard Data...");
             
-            await fetchProfiles(); 
-            await fetchRecruits(); 
+            // Fetch everything
+            await Promise.all([fetchProfiles(), fetchRecruits()]);
             
-            setTimeout(() => {
-                loader.style.opacity = '0';
-                loader.style.visibility = 'hidden';
-            }, 1000);
-            
-            resetTimer(); // Start inactivity clock
+            // Briefly show data before hiding loader to prevent "blank" look
+            setTimeout(hideLoader, 1000);
+            resetTimer(); 
         } 
     };
 </script>
