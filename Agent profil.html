@@ -202,19 +202,31 @@
 
     function getToken() { return localStorage.getItem('jwtToken'); }
 
-    // --- FIX 1: 5-MINUTE AUTO-LOGOUT ---
+    // --- FIX: 5-MINUTE AUTO-LOGOUT ---
     let inactivityTimer;
     const resetTimer = () => {
         clearTimeout(inactivityTimer);
         inactivityTimer = setTimeout(() => {
             alert("Your session has expired please log in again");
             logout();
-        }, 300000); // 300,000ms = 5 minutes
+        }, 300000); 
     };
-    // Listen for any activity to reset the clock
     window.onmousemove = resetTimer;
     window.onkeydown = resetTimer;
     window.onclick = resetTimer;
+
+    // --- FIX: STRICT 10-DIGIT PHONE INPUT (NO SPACES) ---
+    const phoneInput = document.getElementById('studentPhone');
+    if(phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            // Remove any non-numbers immediately
+            this.value = this.value.replace(/\D/g, '');
+            // Limit to exactly 10 digits
+            if (this.value.length > 10) {
+                this.value = this.value.slice(0, 10);
+            }
+        });
+    }
 
     function triggerLoader(text) {
         const loaderText = document.getElementById('loader-text');
@@ -228,7 +240,6 @@
         setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
     }
 
-    // --- RESTORED: SIDEBAR LOGIC ---
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         if(sidebar) {
@@ -238,15 +249,6 @@
         }
     }
 
-    function checkOther(select) {
-        const manualInput = document.getElementById('manual-acc');
-        if(manualInput) {
-            manualInput.classList.toggle('hidden', select.value !== 'not listed');
-            if(select.value === 'not listed') manualInput.focus();
-        }
-    }
-
-    // --- RESTORED: AGENT INITIALS & NAME LOGIC ---
     function initializeIdentity() {
         try {
             const storedUser = localStorage.getItem('userData');
@@ -271,22 +273,11 @@
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
             const data = await response.json();
-            recruitsData = data; 
             allRecruits = data; 
             renderTable(data);
             updateStats(data);
         } catch (err) { console.error(err); }
         finally { hideLoader(); }
-    }
-
-    function updateStats(recruits) {
-        if(!recruits) return;
-        const pending = recruits.filter(r => r.status === 'Pending').length;
-        const approved = recruits.filter(r => r.status === 'Approved').length;
-        const commission = recruits.reduce((acc, curr) => acc + (curr.commissionEarned || 0), 0);
-        if(document.getElementById('pending-count')) document.getElementById('pending-count').innerText = pending;
-        if(document.getElementById('approved-count')) document.getElementById('approved-count').innerText = approved;
-        if(document.getElementById('total-commission')) document.getElementById('total-commission').innerText = `R ${commission.toFixed(2)}`;
     }
 
     function renderTable(recruits) {
@@ -302,32 +293,11 @@
                 </td>
                 <td class="py-4 font-bold text-blue-600">R ${r.commissionEarned || 0}</td>
                 <td class="px-6 py-4 text-sm font-medium space-x-3 text-right">
-                    <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900">Edit</button>
-                    <button onclick="deleteRecruit('${r._id}')" class="text-red-600 hover:text-red-900">Delete</button>
+                    <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900 font-bold">Edit</button>
+                    <button onclick="deleteRecruit('${r._id}')" class="text-red-600 hover:text-red-900 font-bold">Delete</button>
                 </td>
             </tr>
         `).join('');
-    }
-
-    // --- FIX 2: PHONE NUMBER FORMATTING FOR PDF/REPORTS ---
-    function cleanPhone(num) {
-        if(!num) return 'N/A';
-        // Removes anything that isn't a number to keep the PDF display clean
-        return num.toString().replace(/\D/g, ''); 
-    }
-
-    function downloadRecruitList() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text("My Recruitment List", 14, 20);
-        const rows = allRecruits.map(r => [
-            `${r.studentName} ${r.studentSurname}`,
-            r.accommodation,
-            cleanPhone(r.studentPhone), // Use the cleaning function here
-            r.status
-        ]);
-        doc.autoTable({ head: [['Student', 'Accommodation', 'Phone', 'Status']], body: rows, startY: 25 });
-        doc.save("My_Recruits.pdf");
     }
 
     async function handleFormSubmit(e) {
@@ -345,29 +315,52 @@
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                alert(currentEditId ? "Updated!" : "Saved!");
-                currentEditId = null;
-                e.target.reset();
+                alert(currentEditId ? "Details Updated Successfully!" : "New Recruit Saved!");
+                resetForm(); // Call reset to clear button state
                 fetchAgentData(); 
             }
         } catch (error) { console.error(error); }
         finally { hideLoader(); }
     }
 
+    // --- FIX: UPDATE BUTTON TEXT AND COLOR ON EDIT ---
     async function editRecruit(id) {
         const recruit = allRecruits.find(r => r._id === id); 
         if (!recruit) return;
         currentEditId = id;
+        
         document.getElementById('studentName').value = recruit.studentName;
         document.getElementById('studentSurname').value = recruit.studentSurname;
         document.getElementById('studentEmail').value = recruit.studentEmail;
         document.getElementById('studentPhone').value = recruit.studentPhone;
-        if(document.getElementById('acc-select')) document.getElementById('acc-select').value = recruit.accommodation;
-        if (recruit.moveInDate) document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
+        document.getElementById('acc-select').value = recruit.accommodation;
+        
+        if (recruit.moveInDate) {
+            document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
+        }
+        
+        // Change button to Update mode
+        const submitBtn = document.querySelector('#studentForm button[type="submit"]');
+        if(submitBtn) {
+            submitBtn.innerText = "Update Student Details";
+            submitBtn.classList.remove('bg-blue-600');
+            submitBtn.classList.add('bg-green-600');
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // --- NEW FIX: ADDED DELETE FUNCTION ---
+    function resetForm() {
+        currentEditId = null;
+        const form = document.getElementById('studentForm');
+        if(form) form.reset();
+        const submitBtn = document.querySelector('#studentForm button[type="submit"]');
+        if(submitBtn) {
+            submitBtn.innerText = "Add Student";
+            submitBtn.classList.remove('bg-green-600');
+            submitBtn.classList.add('bg-blue-600');
+        }
+    }
+
     async function deleteRecruit(id) {
         if(!confirm("Delete this recruit?")) return;
         triggerLoader("Deleting...");
@@ -391,7 +384,7 @@
             fetchAgentData(); 
             const sForm = document.getElementById('studentForm');
             if (sForm) sForm.addEventListener('submit', handleFormSubmit);
-            resetTimer(); // Start the 5-minute clock
+            resetTimer(); 
         }
     };
 </script>
