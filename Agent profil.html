@@ -202,7 +202,7 @@
 
     function getToken() { return localStorage.getItem('jwtToken'); }
 
-    // --- FIX: 5-MINUTE AUTO-LOGOUT ---
+    // --- 1. AUTO-LOGOUT ---
     let inactivityTimer;
     const resetTimer = () => {
         clearTimeout(inactivityTimer);
@@ -215,17 +215,26 @@
     window.onkeydown = resetTimer;
     window.onclick = resetTimer;
 
-    // --- FIX: STRICT 10-DIGIT PHONE INPUT (NO SPACES) ---
-    const phoneInput = document.getElementById('studentPhone');
-    if(phoneInput) {
-        phoneInput.addEventListener('input', function(e) {
-            // Remove any non-numbers immediately
-            this.value = this.value.replace(/\D/g, '');
-            // Limit to exactly 10 digits
-            if (this.value.length > 10) {
-                this.value = this.value.slice(0, 10);
-            }
-        });
+    // --- 2. PHONE INPUT RESTRICTION (10 DIGITS ONLY) ---
+    // Moved inside a function called during window.onload to ensure element exists
+    function setupPhoneMask() {
+        const phoneInput = document.getElementById('studentPhone');
+        if(phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                this.value = this.value.replace(/\D/g, '');
+                if (this.value.length > 10) this.value = this.value.slice(0, 10);
+            });
+        }
+    }
+
+    // --- 3. RESTORED: NOT LISTED / OTHER ACCOMMODATION LOGIC ---
+    function checkOther(select) {
+        const manualInput = document.getElementById('manual-acc');
+        if(manualInput) {
+            // Shows the box if "not listed" is selected, hides it otherwise
+            manualInput.classList.toggle('hidden', select.value !== 'not listed');
+            if(select.value === 'not listed') manualInput.focus();
+        }
     }
 
     function triggerLoader(text) {
@@ -256,10 +265,8 @@
                 const user = JSON.parse(storedUser);
                 const displayName = user.fullName || user.name || "Agent";
                 const displayId = user.agentId || user.id || "---";
-
                 if(document.getElementById('side-name')) document.getElementById('side-name').innerText = displayName;
                 if(document.getElementById('side-id')) document.getElementById('side-id').innerText = "ID: " + displayId;
-                
                 const names = displayName.trim().split(' ');
                 let initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0].substring(0, 2).toUpperCase();
                 if(document.getElementById('agent-initials')) document.getElementById('agent-initials').innerText = initials;
@@ -305,6 +312,18 @@
         triggerLoader("Saving...");
         const formData = new FormData(e.target);
         const payload = Object.fromEntries(formData.entries());
+
+        // --- FIX: Handle 'Not Listed' Custom Text ---
+        if (payload.accommodation === 'not listed') {
+            const manualVal = document.getElementById('manual-acc').value;
+            if(!manualVal) {
+                alert("Please enter the accommodation name.");
+                hideLoader();
+                return;
+            }
+            payload.accommodation = manualVal;
+        }
+
         const url = currentEditId ? `/api/auth/recruit/${currentEditId}` : `/api/auth/submit-recruit`;
         const method = currentEditId ? 'PUT' : 'POST';
 
@@ -316,14 +335,13 @@
             });
             if (res.ok) {
                 alert(currentEditId ? "Details Updated Successfully!" : "New Recruit Saved!");
-                resetForm(); // Call reset to clear button state
+                resetForm();
                 fetchAgentData(); 
             }
         } catch (error) { console.error(error); }
         finally { hideLoader(); }
     }
 
-    // --- FIX: UPDATE BUTTON TEXT AND COLOR ON EDIT ---
     async function editRecruit(id) {
         const recruit = allRecruits.find(r => r._id === id); 
         if (!recruit) return;
@@ -333,18 +351,36 @@
         document.getElementById('studentSurname').value = recruit.studentSurname;
         document.getElementById('studentEmail').value = recruit.studentEmail;
         document.getElementById('studentPhone').value = recruit.studentPhone;
-        document.getElementById('acc-select').value = recruit.accommodation;
+        
+        // Logic to check if the accommodation is in the dropdown or was a custom entry
+        const accSelect = document.getElementById('acc-select');
+        const manualInput = document.getElementById('manual-acc');
+        
+        let found = false;
+        for (let i = 0; i < accSelect.options.length; i++) {
+            if (accSelect.options[i].value === recruit.accommodation) {
+                accSelect.value = recruit.accommodation;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            accSelect.value = 'not listed';
+            manualInput.classList.remove('hidden');
+            manualInput.value = recruit.accommodation;
+        } else {
+            manualInput.classList.add('hidden');
+        }
         
         if (recruit.moveInDate) {
             document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
         }
         
-        // Change button to Update mode
         const submitBtn = document.querySelector('#studentForm button[type="submit"]');
         if(submitBtn) {
             submitBtn.innerText = "Update Student Details";
-            submitBtn.classList.remove('bg-blue-600');
-            submitBtn.classList.add('bg-green-600');
+            submitBtn.classList.replace('bg-blue-600', 'bg-green-600');
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -353,11 +389,11 @@
         currentEditId = null;
         const form = document.getElementById('studentForm');
         if(form) form.reset();
+        document.getElementById('manual-acc').classList.add('hidden');
         const submitBtn = document.querySelector('#studentForm button[type="submit"]');
         if(submitBtn) {
             submitBtn.innerText = "Add Student";
-            submitBtn.classList.remove('bg-green-600');
-            submitBtn.classList.add('bg-blue-600');
+            submitBtn.classList.replace('bg-green-600', 'bg-blue-600');
         }
     }
 
@@ -382,6 +418,7 @@
         } else { 
             initializeIdentity(); 
             fetchAgentData(); 
+            setupPhoneMask();
             const sForm = document.getElementById('studentForm');
             if (sForm) sForm.addEventListener('submit', handleFormSubmit);
             resetTimer(); 
