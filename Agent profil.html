@@ -194,7 +194,7 @@
 </div>
 
 <script>
-    // FIX: Changed URL to match your authRoutes.js base path
+    // FIX: Base path for all auth-related requests
     const API_URL = '/api/auth'; 
     const loader = document.getElementById('loader-overlay');
     let recruitsData = []; 
@@ -264,7 +264,6 @@
         doc.setTextColor(37, 99, 235);
         doc.text("Campus Collective Report", 14, 20);
         
-        const totalCommission = recruitsData.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
         const rows = recruitsData.map(r => [`${r.studentName} ${r.studentSurname}`, r.studentPhone || 'N/A', r.accommodation, r.status, `R ${parseFloat(r.commissionEarned || 0).toFixed(2)}`]);
 
         doc.autoTable({
@@ -278,19 +277,23 @@
 
     async function fetchAgentData() {
         try {
-            // Updated to fetch from current agent context
-            const response = await fetch(`${API_URL}/all-recruits`, {
+            // FIX: Corrected endpoint to match authRoutes.js for agents
+            const response = await fetch(`${API_URL}/recruits`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
             const data = await response.json();
-            // Fallback for cases where response might be an object
+            
+            // Ensure we handle both array and object responses
             const cleanData = Array.isArray(data) ? data : (data.recruits || []);
             recruitsData = cleanData; 
             allRecruits = cleanData; 
             renderTable(cleanData);
             updateStats(cleanData);
-        } catch (err) { console.error(err); }
-        finally { hideLoader(); }
+        } catch (err) { 
+            console.error("Fetch Error:", err); 
+        } finally { 
+            hideLoader(); 
+        }
     }
 
     function updateStats(recruits) {
@@ -306,6 +309,8 @@
     function renderTable(recruits) {
         const tableBody = document.getElementById('submissions-table');
         if(!tableBody || !Array.isArray(recruits)) return;
+        
+        // FIX: Re-added Edit/Delete buttons to the table rows
         tableBody.innerHTML = recruits.map(r => `
             <tr class="border-b hover:bg-gray-50 transition">
                 <td class="py-4 font-medium">${r.studentName} ${r.studentSurname}</td>
@@ -333,7 +338,6 @@
                 const formData = new FormData(e.target);
                 const payload = Object.fromEntries(formData.entries());
 
-                // FIX: Base URL configuration for Create vs Update
                 const url = currentEditId 
                     ? `https://www.mycampuscollective.me/api/auth/recruit/${currentEditId}` 
                     : `https://www.mycampuscollective.me/api/auth/submit-recruit`;
@@ -355,12 +359,10 @@
 
                     if (res.ok) {
                         alert(currentEditId ? "Student updated!" : "Student added!");
-                        
-                        // RESET UI BACK TO ADD MODE
                         currentEditId = null;
                         e.target.reset();
                         
-                        const formTitle = document.querySelector('h2'); // Finds the "Submit New Student" title
+                        const formTitle = document.querySelector('h2');
                         if (formTitle) formTitle.innerText = "Submit New Student";
 
                         const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -398,7 +400,6 @@
 
         currentEditId = id; 
 
-        // Update Labels as requested
         const formTitle = document.querySelector('h2');
         if (formTitle) formTitle.innerText = "Editing Student Info";
 
