@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1000, initial-scale=0.4">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accommodations | Campus Collective</title>
     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700&display=swap">
@@ -26,12 +26,10 @@
             background-attachment: fixed;
             animation: slideshow 42s infinite;
             padding-top: 100px;
-            /* Slightly narrower container to make content appear larger */
-            width: 1000px; 
-            margin: 0 auto;
+            /* 🏆 FIX: Removed width 1000px and margin: 0 auto to allow full-screen width */
+            width: 100%;
         }
 
-        /* Background Slideshow */
         @keyframes slideshow {
             0%, 14.28% { background-image: url('Images/ump 1.jpg'); }
             14.29%, 28.56% { background-image: url('Images/ump 3.jpg'); }
@@ -50,73 +48,172 @@
             z-index: -1;
         }
 
-        /* --- NAVIGATION --- */
+        /* --- 🏆 NAVIGATION (MATCHING INDEX.HTML) --- */
         nav {
-            position: fixed; top: 0; left: 50%; transform: translateX(-50%);
-            width: 1000px; height: 80px;
-            background: rgba(0,0,0,0.95); backdrop-filter: blur(10px);
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 40px; z-index: 2000;
+            position: fixed;
+            top: 0;
+            left: 0; /* 🏆 FIX: Set to 0 for side-to-side coverage */
+            width: 100%; /* 🏆 FIX: Full width */
+            height: 70px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 5%;
+            z-index: 2000;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        .nav-logo-text { color: white; font-weight: 800; font-size: 1.5rem; }
-        .nav-links { display: flex; list-style: none; gap: 20px; }
-        .nav-links li a { color: white; text-decoration: none; font-weight: 600; font-size: 1.1rem; }
+        .nav-logo-text { color: white; font-weight: 800; font-size: 1.2rem; letter-spacing: 1px; }
+
+        .nav-links { display: flex; list-style: none; gap: 20px; align-items: center; }
+        .nav-links li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+        .nav-links li a:hover { color: var(--accent); }
+
+        /* Mobile Nav Styles */
+        .hamburger { display: none; cursor: pointer; flex-direction: column; gap: 5px; }
+        .hamburger span { width: 25px; height: 3px; background: white; border-radius: 5px; }
+        .close-btn { display: none; position: absolute; top: 20px; right: 20px; font-size: 2rem; color: white; cursor: pointer; }
+
+        @media (max-width: 850px) {
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 70%;
+                height: 100vh;
+                background: var(--primary);
+                flex-direction: column;
+                padding: 100px 40px;
+                transition: 0.4s ease;
+                box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+                z-index: 2001;
+            }
+            .nav-links.active { right: 0; }
+            .hamburger { display: flex; }
+            .close-btn { display: block; }
+            .nav-links li { width: 100%; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        }
 
         /* --- SEARCH SECTION --- */
         .search-container {
-            width: 900px; margin: 0 auto 40px;
-            background: var(--glass); padding: 20px; border-radius: 60px;
-            display: flex; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            width: 92%;
+            max-width: 900px;
+            margin: 0 auto 40px;
+            background: var(--glass);
+            padding: 10px;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
 
-        #search-filter { border: none; background: transparent; padding: 0 20px; font-weight: bold; font-size: 1.1rem; border-right: 1px solid #ddd; outline: none; }
-        #search-bar { flex: 1; border: none; padding: 0 25px; outline: none; font-size: 1.2rem; background: transparent; }
-        #search-btn { background: var(--accent); color: white; border: none; padding: 15px 35px; border-radius: 40px; cursor: pointer; font-weight: bold; font-size: 1.1rem; }
+        #search-filter {
+            border: none;
+            background: transparent;
+            padding: 0 15px;
+            font-weight: bold;
+            outline: none;
+            color: var(--primary);
+            cursor: pointer;
+            border-right: 1px solid #ddd;
+        }
 
-        /* --- GRID --- */
-        main { flex: 1; width: 960px; margin: 0 auto; }
+        #search-bar {
+            flex: 1;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            outline: none;
+            background: transparent;
+        }
+
+        #search-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        /* --- ACCOMMODATION GRID --- */
+        main { width: 92%; max-width: 1200px; margin: 0 auto; flex-grow: 1; }
         
         .accommodation-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 30px;
             padding-bottom: 60px;
         }
 
         .accommodation {
-            background: var(--glass); border-radius: var(--radius);
-            overflow: hidden; box-shadow: 0 15px 30px rgba(0,0,0,0.4);
-            display: flex; flex-direction: column;
+            background: var(--glass);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
         }
 
-        .slideshow-container { position: relative; height: 250px; background: #eee; }
+        .accommodation:hover { transform: translateY(-10px); }
+
+        .slideshow-container { position: relative; height: 250px; background: #eee; overflow: hidden; }
         .slideshow-container img {
-            width: 100%; height: 100%; object-fit: cover;
-            position: absolute; opacity: 0; transition: 1s;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            position: absolute;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
         }
         .slideshow-container img.active { opacity: 1; }
 
-        /* INCREASED FONT SIZES FOR BETTER READABILITY */
-        .details { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; }
-        .details h2 { font-size: 1.4rem; margin-bottom: 12px; color: var(--primary); }
-        .details p { font-size: 1.1rem; margin-bottom: 10px; color: #333; line-height: 1.4; }
-        
-        .rating-stars { color: gold; font-size: 1.4rem; margin: 12px 0; }
+        .details { padding: 25px; display: flex; flex-direction: column; flex-grow: 1; }
+        .details h2 { font-size: 1.4rem; color: var(--primary); margin-bottom: 12px; border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 5px; }
+        .details p { font-size: 0.95rem; color: #444; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+
         .more-details {
-            width: 100%; background: var(--primary); color: white;
-            border: none; padding: 15px; border-radius: 12px;
-            font-weight: bold; cursor: pointer; margin-top: auto; font-size: 1.1rem;
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: auto;
+            transition: 0.3s;
         }
 
-        footer { background: rgba(0,0,0,0.9); color: white; text-align: center; padding: 30px; margin-top: auto; width: 1000px; font-size: 1.1rem; }
+        .more-details:hover { background: var(--accent); transform: scale(1.02); }
+
+        /* --- FOOTER (MATCHING INDEX.HTML) --- */
+        footer {
+            background: rgba(0,0,0,0.85);
+            color: white;
+            text-align: center;
+            padding: 25px;
+            width: 100%; /* 🏆 FIX: Side-to-side footer */
+            margin-top: auto;
+        }
     </style>
 </head>
 <body>
 
     <nav>
         <div class="nav-logo-text">CAMPUS COLLECTIVE</div>
-        <ul class="nav-links">
+        <ul class="nav-links" id="navLinks">
+            <span class="close-btn" id="closeBtn">&times;</span>
             <li><a href="index.html">Home</a></li>
             <li><a href="apply at uni.html">Apply@Universities</a></li>
             <li><a href="czra more about us.html">About Us</a></li>
@@ -125,9 +222,12 @@
             <li><a href="choose login.html">Login</a></li>
             <li><a href="campus shop.html">Store</a></li>
         </ul>
+        <div class="hamburger" id="hamburger">
+            <span></span><span></span><span></span>
+        </div>
     </nav>
 
-    <h1 style="text-align: center; color: white; margin: 30px 0; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Find Your Home</h1>
+    <h1 style="text-align: center; color: white; margin: 30px 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Available Accommodations</h1>
 
     <div class="search-container">
         <select id="search-filter">
@@ -136,130 +236,151 @@
             <option value="name">Name</option>
             <option value="room-type">Room Type</option>
         </select>
-        <input type="text" id="search-bar" placeholder="Search for accommodations...">
+        <input type="text" id="search-bar" placeholder="Search for your next home...">
         <button id="search-btn">Search</button>
     </div>
 
     <main>
-        <div class="accommodation-grid" id="accommGrid">
-            <div class="accommodation">
-                <div class="slideshow-container">
-                    <img src="Images/Mbizeni pool tff.jpg" class="active">
-                    <img src="Images/mattafin computer.jpg">
-                    <img src="Images/mattafin mbizeni.jpg">
-                    <img src="Images/mattafin TV.jpg">
-                </div>
-                <div class="details">
-                    <h2>Embizeni Student Accommodation</h2>
-                    <p><strong>Location:</strong> Mattafin, Likazi, Entokozweni</p>
-                    <p><strong>Rooms:</strong> Single and sharing Rooms</p>
-                    <div class="rating-stars">★★★★☆</div>
-                    <a href="embizeni.html"><button class="more-details">View</button></a>
-                </div>
+    <div class="accommodation-grid" id="accommGrid">
+        
+        <div class="accommodation">
+            <div class="slideshow-container">
+                <img src="Images/Mbizeni pool tff.jpg" class="active">
+                <img src="Images/mattafin computer.jpg">
+                <img src="Images/mattafin mbizeni.jpg">
+                <img src="Images/mattafin TV.jpg">
             </div>
-
-            <div class="accommodation">
-                <div class="slideshow-container">
-                    <img src="Images/Boniville cover.jpg" class="active">
-                    <img src="Images/Boniville2.jpg">
-                    <img src="Images/Boniville3.jpg">
-                </div>
-                <div class="details">
-                    <h2>Boniville Residence</h2>
-                    <p><strong>Location:</strong> Msholozi</p>
-                    <p><strong>Rooms:</strong> Sharing Rooms</p>
-                    <div class="rating-stars">★★★★★</div>
-                    <a href="boniville.html"><button class="more-details">View</button></a>
-                </div>
-            </div>
-
-            <div class="accommodation">
-                <div class="slideshow-container">
-                    <img src="Images/Mash frnt.jpg" class="active">
-                    <img src="Images/mashimula cover .jpg">
-                    <img src="Images/mash bulk.jpg">
-                </div>
-                <div class="details">
-                    <h2>Mashimula Student Accommodation</h2>
-                    <p><strong>Location:</strong> Entokozweni and Likazi</p>
-                    <p><strong>Rooms:</strong> Sharing</p>
-                    <div class="rating-stars">★★★★★</div>
-                    <a href="Mashimula.html"><button class="more-details">View</button></a>
-                </div>
-            </div>
-
-            <div class="accommodation">
-                <div class="slideshow-container">
-                    <img src="Images/cecil ng.jpg" class="active">
-                    <img src="Images/cecil cn.jpg">
-                    <img src="Images/cecil pool ng.jpg">
-                </div>
-                <div class="details">
-                    <h2>Cecil Complex</h2>
-                    <p><strong>Location:</strong> Ngodini, Msholozi</p>
-                    <p><strong>Rooms:</strong> Singles and sharings</p>
-                    <div class="rating-stars">★★★★★★</div>
-                    <a href="cecil.html"><button class="more-details">View</button></a>
-                </div>
-            </div>
-
-            <div class="accommodation">
-                <div class="slideshow-container">
-                    <img src="Images/vuyani cover.jpg" class="active">
-                    <img src="Images/vuyani kitch.jpg">
-                    <img src="Images/vuyani bed.jpg">
-                </div>
-                <div class="details">
-                    <h2>Vuyani Student Accommodation</h2>
-                    <p><strong>Location:</strong> Thekwane North</p>
-                    <p><strong>Rooms:</strong> Singles and sharings</p>
-                    <div class="rating-stars">★★★★☆</div>
-                    <a href="vuyani.html"><button class="more-details">View</button></a>
-                </div>
-            </div>
-            <div class="accommodation">
-                <div class="slideshow-container">
-                    <img src="Images/EGP holding main.jpeg" class="active">
-                    <img src="Images/EGP holding front.jpeg">
-                    <img src="Images/EGP holding sitting (1).jpeg">
-                    <img src="Images/EGP holding sitting (2).jpeg">
-                    <img src="Images/EGP Holdings kitch.jpeg">
-                    <img src="Images/EGP holdings bathroom.jpeg">
-                    <img src="Images/EGP holdings shariong room.jpeg">
-                    <img src="Images/EGP room2.jpeg">
-                </div>
-                <div class="details">
-                    <h2>Eagle Push Holdings</h2>
-                    <p><strong>Location:</strong> Stonehenge</p>
-                    <p><strong>Rooms:</strong> Singles and sharings</p>
-                    <div class="rating-stars">★★★★☆</div>
-                    <a href="EGP-holding.html"><button class="more-details">View</button></a>
-                </div>
-            </div>
-
-            <div class="accommodation">
-                <div class="slideshow-container">
-                    <img src="Images/view in sharing.jpg" class="active">
-                    <img src="Images/view in single.jpg">
-                    <img src="Images/view in kitchen.jpg">
-                </div>
-                <div class="details">
-                    <h2>View In</h2>
-                    <p><strong>Location:</strong> Entokozweni</p>
-                    <p><strong>Rooms:</strong> Singles and sharings</p>
-                    <div class="rating-stars">★★★★★★</div>
-                    <a href="view__in.html"><button class="more-details">View</button></a>
-                </div>
+            <div class="details">
+                <h2>Embizeni Student Accommodation</h2>
+                <p>📍 Location: Mattafin, Likazi, Entokozweni</p>
+                <p>🛏️ Rooms: Single and sharing Rooms</p>
+                <p>💰 Price: NSFAS Accredited</p>
+                <div class="rating-stars">★★★★☆</div>
+                <a href="embizeni.html"><button class="more-details">View Full Profile</button></a>
             </div>
         </div>
-    </main>
 
-    <footer>&copy; 2025 Campus Collective. All rights reserved.</footer>
+        <div class="accommodation">
+            <div class="slideshow-container">
+                <img src="Images/Boniville cover.jpg" class="active">
+                <img src="Images/Boniville2.jpg">
+                <img src="Images/Boniville3.jpg">
+            </div>
+            <div class="details">
+                <h2>Boniville Residence</h2>
+                <p>📍 Location: Msholozi</p>
+                <p>🛏️ Rooms: Sharing Rooms</p>
+                <p>💰 Price: NSFAS Accredited</p>
+                <div class="rating-stars">★★★★★</div>
+                <a href="boniville.html"><button class="more-details">View Full Profile</button></a>
+            </div>
+        </div>
+
+        <div class="accommodation">
+            <div class="slideshow-container">
+                <img src="Images/Mash frnt.jpg" class="active">
+                <img src="Images/mashimula cover .jpg">
+                <img src="Images/mash bulk.jpg">
+            </div>
+            <div class="details">
+                <h2>Mashimula Student Accommodation</h2>
+                <p>📍 Location: Entokozweni and Likazi</p>
+                <p>🛏️ Rooms: Sharing</p>
+                <p>💰 Price: NSFAS Accredited</p>
+                <div class="rating-stars">★★★★★</div>
+                <a href="Mashimula.html"><button class="more-details">View Full Profile</button></a>
+            </div>
+        </div>
+
+        <div class="accommodation">
+            <div class="slideshow-container">
+                <img src="Images/cecil ng.jpg" class="active">
+                <img src="Images/cecil cn.jpg">
+                <img src="Images/cecil pool ng.jpg">
+            </div>
+            <div class="details">
+                <h2>Cecil Complex</h2>
+                <p>📍 Location: Ngodini, Msholozi</p>
+                <p>🛏️ Rooms: Singles and sharings</p>
+                <p>💰 Price: NSFAS Accredited</p>
+                <div class="rating-stars">★★★★★★</div>
+                <a href="cecil.html"><button class="more-details">View Full Profile</button></a>
+            </div>
+        </div>
+
+        <div class="accommodation">
+            <div class="slideshow-container">
+                <img src="Images/vuyani cover.jpg" class="active">
+                <img src="Images/vuyani kitch.jpg">
+                <img src="Images/vuyani bed.jpg">
+            </div>
+            <div class="details">
+                <h2>Vuyani Student Accommodation</h2>
+                <p>📍 Location: Thekwane North</p>
+                <p>🛏️ Rooms: Singles and sharings</p>
+                <p>💰 Price: NSFAS Accredited</p>
+                <div class="rating-stars">★★★★☆</div>
+                <a href="vuyani.html"><button class="more-details">View Full Profile</button></a>
+            </div>
+        </div>
+
+        <div class="accommodation">
+            <div class="slideshow-container">
+                <img src="Images/EGP holding main.jpeg" class="active">
+                <img src="Images/EGP holding front.jpeg">
+                <img src="Images/EGP Holdings kitch.jpeg">
+                <img src="Images/EGP holdings bathroom.jpeg">
+            </div>
+            <div class="details">
+                <h2>Eagle Push Holdings</h2>
+                <p>📍 Location: Stonehenge</p>
+                <p>🛏️ Rooms: Singles and sharings</p>
+                <p>💰 Price: NSFAS Accredited</p>
+                <div class="rating-stars">★★★★☆</div>
+                <a href="EGP-holding.html"><button class="more-details">View Full Profile</button></a>
+            </div>
+        </div>
+
+        <div class="accommodation">
+            <div class="slideshow-container">
+                <img src="Images/view in sharing.jpg" class="active">
+                <img src="Images/view in single.jpg">
+                <img src="Images/view in kitchen.jpg">
+            </div>
+            <div class="details">
+                <h2>View In</h2>
+                <p>📍 Location: Entokozweni</p>
+                <p>🛏️ Rooms: Singles and sharings</p>
+                <p>💰 Price: NSFAS Accredited</p>
+                <div class="rating-stars">★★★★★★</div>
+                <a href="view__in.html"><button class="more-details">View Full Profile</button></a>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+    <footer>
+        <p>&copy; 2025 Campus Collective. All rights reserved | Developed with 🧡 in SA.</p>
+    </footer>
 
     <script>
-        // Automatic Slideshow for Cards
-        let containers = document.querySelectorAll('.slideshow-container');
-        containers.forEach(container => {
+        // 🏆 HAMBURGER LOGIC (FROM INDEX.HTML)
+        const hamburger = document.getElementById('hamburger');
+        const closeBtn = document.getElementById('closeBtn');
+        const navLinks = document.getElementById('navLinks');
+
+        hamburger.addEventListener('click', () => { navLinks.classList.add('active'); });
+        closeBtn.addEventListener('click', () => { navLinks.classList.remove('active'); });
+
+        document.addEventListener('click', (event) => {
+            if (!navLinks.contains(event.target) && !hamburger.contains(event.target)) {
+                navLinks.classList.remove('active');
+            }
+        });
+
+        // Slideshow Logic
+        document.querySelectorAll('.slideshow-container').forEach(container => {
             let imgs = container.querySelectorAll('img');
             let i = 0;
             if(imgs.length > 1) {
