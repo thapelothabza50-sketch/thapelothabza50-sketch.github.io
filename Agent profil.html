@@ -215,7 +215,7 @@
     window.onkeydown = resetTimer;
     window.onclick = resetTimer;
 
-    // --- 2. STRICT 10-DIGIT PHONE MASK ---
+    // --- 2. PHONE MASK (STRICT 10 DIGITS) ---
     function setupPhoneMask() {
         const phoneInput = document.getElementById('studentPhone');
         if(phoneInput) {
@@ -226,14 +226,13 @@
         }
     }
 
-    // --- 3. DOWNLOAD PDF FIX ---
-    function downloadRecruitList() {
+    // --- 3. FIX: DOWNLOAD PDF (Renamed to match your button) ---
+    function downloadPDF() {
         if (!allRecruits || allRecruits.length === 0) {
             alert("No data available to download.");
             return;
         }
 
-        // Accessing the jsPDF library correctly
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
@@ -248,9 +247,9 @@
         const rows = allRecruits.map(r => [
             `${r.studentName} ${r.studentSurname}`,
             r.accommodation,
-            r.studentPhone.toString().replace(/\D/g, ''), // Clean phone for PDF
+            r.studentPhone ? r.studentPhone.toString().replace(/\D/g, '') : 'N/A', 
             r.status,
-            new Date(r.moveInDate).toLocaleDateString()
+            r.moveInDate ? new Date(r.moveInDate).toLocaleDateString() : 'N/A'
         ]);
 
         doc.autoTable({
@@ -264,7 +263,7 @@
         doc.save("My_Recruits_List.pdf");
     }
 
-    // --- 4. "NOT LISTED" ACCOMMODATION LOGIC ---
+    // --- 4. "NOT LISTED" LOGIC ---
     function checkOther(select) {
         const manualInput = document.getElementById('manual-acc');
         if(manualInput) {
@@ -318,7 +317,7 @@
             <tr class="border-b hover:bg-gray-50 transition">
                 <td class="py-4 font-medium">${r.studentName} ${r.studentSurname}</td>
                 <td class="py-4 text-gray-600">${r.accommodation}</td>
-                <td class="py-4 text-gray-500">${new Date(r.moveInDate).toLocaleDateString()}</td>
+                <td class="py-4 text-gray-500">${r.moveInDate ? new Date(r.moveInDate).toLocaleDateString() : 'N/A'}</td>
                 <td class="py-4">
                     <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status==='Approved'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${r.status}</span>
                 </td>
@@ -372,7 +371,6 @@
         const accSelect = document.getElementById('acc-select');
         const manualInput = document.getElementById('manual-acc');
         
-        // Handle if it was a custom accommodation
         let found = Array.from(accSelect.options).some(opt => opt.value === recruit.accommodation);
         if (found) {
             accSelect.value = recruit.accommodation;
@@ -415,6 +413,15 @@
             if(res.ok) fetchAgentData();
         } catch(e) { console.error(e); }
         finally { hideLoader(); }
+    }
+
+    function updateStats(recruits) {
+        const pending = recruits.filter(r => r.status === 'Pending').length;
+        const approved = recruits.filter(r => r.status === 'Approved').length;
+        const totalCommission = recruits.reduce((sum, r) => sum + (r.commissionEarned || 0), 0);
+        if(document.getElementById('pending-count')) document.getElementById('pending-count').innerText = pending;
+        if(document.getElementById('approved-count')) document.getElementById('approved-count').innerText = approved;
+        if(document.getElementById('total-commission')) document.getElementById('total-commission').innerText = `R ${totalCommission.toFixed(2)}`;
     }
 
     function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
