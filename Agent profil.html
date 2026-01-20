@@ -196,49 +196,37 @@
 <script>
     const API_URL = '/api/admin'; 
     const loader = document.getElementById('loader-overlay');
+    let recruitsData = []; 
     let currentEditId = null; 
     let allRecruits = []; 
 
     function getToken() { return localStorage.getItem('jwtToken'); }
 
-    // --- 1. NEW: SAVE BANK DETAILS FIX ---
-    async function updateBankDetails(e) {
-        if(e) e.preventDefault();
-        triggerLoader("Saving Bank Details...");
-        
-        const bankData = {
-            bankName: document.getElementById('bankName').value,
-            accountHolder: document.getElementById('accountHolder').value,
-            accountNumber: document.getElementById('accountNumber').value,
-            branchCode: document.getElementById('branchCode').value
-        };
+    // --- 1. AUTO-LOGOUT (5 MINUTES) ---
+    let inactivityTimer;
+    const resetTimer = () => {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            alert("Your session has expired please log in again");
+            logout();
+        }, 300000); 
+    };
+    window.onmousemove = resetTimer;
+    window.onkeydown = resetTimer;
+    window.onclick = resetTimer;
 
-        try {
-            // Updated to the correct endpoint based on your authRoutes.js
-            const res = await fetch('/api/auth/update-bank-details', {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'Authorization': `Bearer ${getToken()}` 
-                },
-                body: JSON.stringify(bankData)
+    // --- 2. PHONE MASK (STRICT 10 DIGITS) ---
+    function setupPhoneMask() {
+        const phoneInput = document.getElementById('studentPhone');
+        if(phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                this.value = this.value.replace(/\D/g, '');
+                if (this.value.length > 10) this.value = this.value.slice(0, 10);
             });
-
-            if (res.ok) {
-                alert("Bank details updated successfully!");
-            } else {
-                const error = await res.json();
-                alert("Error: " + error.message);
-            }
-        } catch (error) {
-            console.error("Bank Save Error:", error);
-            alert("Failed to save bank details.");
-        } finally {
-            hideLoader();
         }
     }
 
-    // --- 2. UPDATED: PDF STYLE (Matches Master Recruit Report) ---
+    // --- 3. FIX: DOWNLOAD PDF (Renamed to match your button) ---
     function downloadPDF() {
         if (!allRecruits || allRecruits.length === 0) {
             alert("No data available to download.");
@@ -248,56 +236,67 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // Header Styling (Matching Management Dashboard Style)
-        doc.setFillColor(37, 99, 235); // Blue
-        doc.rect(0, 0, 210, 40, 'F');
-        
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
-        doc.setFont("helvetica", "bold");
-        doc.text("RECRUITMENT REPORT", 14, 25);
+        doc.setFontSize(18);
+        doc.setTextColor(37, 99, 235);
+        doc.text("My Recruitment Report", 14, 20);
         
         doc.setFontSize(10);
-        doc.text("CAMPUS COLLECTIVE AGENT PORTAL", 14, 33);
-
-        // Body Content
-        doc.setTextColor(40, 40, 40);
-        doc.setFontSize(10);
-        doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, 50);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 28);
 
         const rows = allRecruits.map(r => [
             `${r.studentName} ${r.studentSurname}`,
-            r.studentPhone || 'N/A',
             r.accommodation,
+            r.studentPhone ? r.studentPhone.toString().replace(/\D/g, '') : 'N/A', 
             r.status,
             r.moveInDate ? new Date(r.moveInDate).toLocaleDateString() : 'N/A'
         ]);
 
         doc.autoTable({
-            head: [['Student Name', 'Phone', 'Accommodation', 'Status', 'Move-in Date']],
+            head: [['Student Name', 'Accommodation', 'Phone', 'Status', 'Move-in Date']],
             body: rows,
-            startY: 55,
-            theme: 'striped',
-            headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold' },
-            styles: { fontSize: 9, cellPadding: 4 }
+            startY: 35,
+            theme: 'grid',
+            headStyles: { fillColor: [37, 99, 235], fontStyle: 'bold' }
         });
 
-        doc.save(`Recruit_Report_${new Date().toLocaleDateString()}.pdf`);
+        doc.save("My_Recruits_List.pdf");
     }
 
-    // --- 3. AUTO-LOGOUT (5 MINUTES) ---
-    let inactivityTimer;
-    const resetTimer = () => {
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            alert("Your session has expired. Please log in again.");
-            logout();
-        }, 300000); 
-    };
-    window.onmousemove = resetTimer;
-    window.onkeydown = resetTimer;
+    // --- 4. "NOT LISTED" LOGIC ---
+    function checkOther(select) {
+        const manualInput = document.getElementById('manual-acc');
+        if(manualInput) {
+            manualInput.classList.toggle('hidden', select.value !== 'not listed');
+            if(select.value === 'not listed') manualInput.focus();
+        }
+    }
 
-    // --- 4. DATA FETCHING & TABLE RENDERING ---
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        if(sidebar) {
+            sidebar.classList.toggle('open');
+            const overlay = document.getElementById('sidebar-overlay');
+            if(overlay) overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+        }
+    }
+
+    function initializeIdentity() {
+        try {
+            const storedUser = localStorage.getItem('userData');
+            if(storedUser) {
+                const user = JSON.parse(storedUser);
+                const displayName = user.fullName || user.name || "Agent";
+                const displayId = user.agentId || user.id || "---";
+                if(document.getElementById('side-name')) document.getElementById('side-name').innerText = displayName;
+                if(document.getElementById('side-id')) document.getElementById('side-id').innerText = "ID: " + displayId;
+                const names = displayName.trim().split(' ');
+                let initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0].substring(0, 2).toUpperCase();
+                if(document.getElementById('agent-initials')) document.getElementById('agent-initials').innerText = initials;
+            }
+        } catch(e) { console.log("Identity Error", e); }
+    }
+
     async function fetchAgentData() {
         try {
             const response = await fetch(`${API_URL}/recruits`, {
@@ -313,9 +312,9 @@
 
     function renderTable(recruits) {
         const tableBody = document.getElementById('submissions-table');
-        if(!tableBody) return;
+        if(!tableBody || !recruits) return;
         tableBody.innerHTML = recruits.map(r => `
-            <tr class="border-b hover:bg-gray-50">
+            <tr class="border-b hover:bg-gray-50 transition">
                 <td class="py-4 font-medium">${r.studentName} ${r.studentSurname}</td>
                 <td class="py-4 text-gray-600">${r.accommodation}</td>
                 <td class="py-4 text-gray-500">${r.moveInDate ? new Date(r.moveInDate).toLocaleDateString() : 'N/A'}</td>
@@ -323,24 +322,117 @@
                     <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status==='Approved'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${r.status}</span>
                 </td>
                 <td class="py-4 font-bold text-blue-600">R ${r.commissionEarned || 0}</td>
-                <td class="px-6 py-4 text-right">
-                    <button onclick="editRecruit('${r._id}')" class="text-blue-600 font-bold mr-3">Edit</button>
-                    <button onclick="deleteRecruit('${r._id}')" class="text-red-600 font-bold">Delete</button>
+                <td class="px-6 py-4 text-sm font-medium space-x-3 text-right">
+                    <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900 font-bold">Edit</button>
+                    <button onclick="deleteRecruit('${r._id}')" class="text-red-600 hover:text-red-900 font-bold">Delete</button>
                 </td>
             </tr>
         `).join('');
     }
 
-    // --- 5. INITIALIZATION ---
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        triggerLoader("Saving...");
+        const formData = new FormData(e.target);
+        const payload = Object.fromEntries(formData.entries());
+
+        if (payload.accommodation === 'not listed') {
+            payload.accommodation = document.getElementById('manual-acc').value;
+        }
+
+        const url = currentEditId ? `/api/auth/recruit/${currentEditId}` : `/api/auth/submit-recruit`;
+        const method = currentEditId ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                alert(currentEditId ? "Details Updated!" : "New Student Added!");
+                resetForm();
+                fetchAgentData(); 
+            }
+        } catch (error) { console.error(error); }
+        finally { hideLoader(); }
+    }
+
+    async function editRecruit(id) {
+        const recruit = allRecruits.find(r => r._id === id); 
+        if (!recruit) return;
+        currentEditId = id;
+        
+        document.getElementById('studentName').value = recruit.studentName;
+        document.getElementById('studentSurname').value = recruit.studentSurname;
+        document.getElementById('studentEmail').value = recruit.studentEmail;
+        document.getElementById('studentPhone').value = recruit.studentPhone;
+        
+        const accSelect = document.getElementById('acc-select');
+        const manualInput = document.getElementById('manual-acc');
+        
+        let found = Array.from(accSelect.options).some(opt => opt.value === recruit.accommodation);
+        if (found) {
+            accSelect.value = recruit.accommodation;
+            manualInput.classList.add('hidden');
+        } else {
+            accSelect.value = 'not listed';
+            manualInput.classList.remove('hidden');
+            manualInput.value = recruit.accommodation;
+        }
+        
+        if (recruit.moveInDate) document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
+        
+        const submitBtn = document.querySelector('#studentForm button[type="submit"]');
+        if(submitBtn) {
+            submitBtn.innerText = "Update Student Details";
+            submitBtn.classList.replace('bg-blue-600', 'bg-green-600');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+        currentEditId = null;
+        document.getElementById('studentForm').reset();
+        document.getElementById('manual-acc').classList.add('hidden');
+        const submitBtn = document.querySelector('#studentForm button[type="submit"]');
+        if(submitBtn) {
+            submitBtn.innerText = "Add Student";
+            submitBtn.classList.replace('bg-green-600', 'bg-blue-600');
+        }
+    }
+
+    async function deleteRecruit(id) {
+        if(!confirm("Delete this student?")) return;
+        triggerLoader("Deleting...");
+        try {
+            const res = await fetch(`/api/auth/recruit/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            if(res.ok) fetchAgentData();
+        } catch(e) { console.error(e); }
+        finally { hideLoader(); }
+    }
+
+    function updateStats(recruits) {
+        const pending = recruits.filter(r => r.status === 'Pending').length;
+        const approved = recruits.filter(r => r.status === 'Approved').length;
+        const totalCommission = recruits.reduce((sum, r) => sum + (r.commissionEarned || 0), 0);
+        if(document.getElementById('pending-count')) document.getElementById('pending-count').innerText = pending;
+        if(document.getElementById('approved-count')) document.getElementById('approved-count').innerText = approved;
+        if(document.getElementById('total-commission')) document.getElementById('total-commission').innerText = `R ${totalCommission.toFixed(2)}`;
+    }
+
+    function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
+    
     window.onload = () => { 
         if(!getToken()) { 
             window.location.href = 'agent login.html'; 
         } else { 
+            initializeIdentity(); 
             fetchAgentData(); 
-            // Attach bank form listener
-            const bForm = document.getElementById('bankForm');
-            if (bForm) bForm.addEventListener('submit', updateBankDetails);
-            
+            setupPhoneMask();
             const sForm = document.getElementById('studentForm');
             if (sForm) sForm.addEventListener('submit', handleFormSubmit);
             resetTimer(); 
@@ -348,14 +440,14 @@
     };
 
     function triggerLoader(text) {
-        document.getElementById('loader-text').textContent = text;
+        const lt = document.getElementById('loader-text');
+        if(lt) lt.textContent = text;
         loader.style.visibility = 'visible'; loader.style.opacity = '1';
     }
     function hideLoader() { 
         loader.style.opacity = '0'; 
         setTimeout(() => { loader.style.visibility = 'hidden'; }, 800);
     }
-    function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
 </script>
 </body>
 </html>   
