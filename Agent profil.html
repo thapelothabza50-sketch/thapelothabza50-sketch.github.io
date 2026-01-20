@@ -197,13 +197,17 @@
     const API_URL = '/api/admin'; 
     const loader = document.getElementById('loader-overlay');
     let recruitsData = []; // Store for PDF
-    let currentEditId = null; // This tracks if we are editing or adding
+    let currentEditId = null; // Tracks if we are editing or adding
+    let allRecruits = []; 
 
     function getToken() { return localStorage.getItem('jwtToken'); }
 
+    // Unified loader function to prevent "undefined" errors
     function triggerLoader(text) {
-        document.getElementById('loader-text').textContent = text;
-        loader.style.visibility = 'visible'; loader.style.opacity = '1';
+        const loaderText = document.getElementById('loader-text');
+        if(loaderText) loaderText.textContent = text;
+        loader.style.visibility = 'visible'; 
+        loader.style.opacity = '1';
     }
 
     function hideLoader() { 
@@ -213,126 +217,64 @@
 
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('sidebar-overlay').style.display = 
-            document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none';
+        const overlay = document.getElementById('sidebar-overlay');
+        if(overlay) overlay.style.display = document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none';
     }
 
     function checkOther(select) {
         const manualInput = document.getElementById('manual-acc');
-        manualInput.classList.toggle('hidden', select.value !== 'not listed');
-        if(select.value === 'not listed') manualInput.focus();
+        if(manualInput) {
+            manualInput.classList.toggle('hidden', select.value !== 'not listed');
+            if(select.value === 'not listed') manualInput.focus();
+        }
     }
 
-    // --- FAIL-SAFE IDENTITY INITIALIZATION ---
     function initializeIdentity() {
         try {
             const storedUser = localStorage.getItem('userData');
             if(storedUser) {
                 const user = JSON.parse(storedUser);
-                // Robust check for Name and ID
                 const displayName = user.fullName || user.name || "Agent";
                 const displayId = user.agentId || user.id || "---";
 
-                document.getElementById('side-name').innerText = displayName;
-                document.getElementById('side-id').innerText = "ID: " + displayId;
+                if(document.getElementById('side-name')) document.getElementById('side-name').innerText = displayName;
+                if(document.getElementById('side-id')) document.getElementById('side-id').innerText = "ID: " + displayId;
                 
                 const names = displayName.trim().split(' ');
-                let initials = "";
-                if(names.length > 1) {
-                    initials = (names[0][0] + names[names.length - 1][0]).toUpperCase();
-                } else {
-                    initials = names[0].substring(0, 2).toUpperCase();
-                }
-                document.getElementById('agent-initials').innerText = initials;
+                let initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0].substring(0, 2).toUpperCase();
+                if(document.getElementById('agent-initials')) document.getElementById('agent-initials').innerText = initials;
             }
         } catch(e) { console.log("Identity Error", e); }
     }
 
     function downloadPDF() {
-    if (!recruitsData || recruitsData.length === 0) {
-        alert("No recruit data available to download.");
-        return;
+        if (!recruitsData || recruitsData.length === 0) {
+            alert("No recruit data available to download.");
+            return;
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.width;
+        const agentName = document.getElementById('side-name')?.innerText || "Agent";
+        const agentID = document.getElementById('side-id')?.innerText.replace("ID: ", "") || "---";
+
+        doc.setDrawColor(37, 99, 235);
+        doc.rect(5, 5, pageWidth - 10, doc.internal.pageSize.height - 10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(37, 99, 235);
+        doc.text("Campus Collective Report", 14, 20);
+        
+        const totalCommission = recruitsData.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
+        const rows = recruitsData.map(r => [`${r.studentName} ${r.studentSurname}`, r.studentPhone || 'N/A', r.accommodation, r.status, `R ${parseFloat(r.commissionEarned || 0).toFixed(2)}`]);
+
+        doc.autoTable({
+            head: [['Student', 'Phone', 'Accommodation', 'Status', 'Commission']],
+            body: rows,
+            startY: 40,
+            theme: 'grid'
+        });
+        doc.save(`Report_${agentID}.pdf`);
     }
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-
-    // --- 0. GET AGENT DETAILS FROM THE PAGE ---
-    // These match the IDs in your "Agent profil.html" sidebar
-    const agentName = document.getElementById('side-name')?.innerText || "Agent";
-    const agentID = document.getElementById('side-id')?.innerText.replace("ID: ", "") || "---";
-
-    // --- 1. THEME: BLUE BORDER ---
-    doc.setDrawColor(37, 99, 235);
-    doc.setLineWidth(1.5);
-    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
-
-    // --- 2. HEADER: LOGO & DETAILS ---
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(37, 99, 235);
-    doc.setFontSize(22);
-    doc.text("Campus", 14, 20);
-    doc.setFontSize(10);
-    doc.text("COLLECTIVE", 14, 25);
-
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
-    doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
-    doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
-
-    doc.setDrawColor(37, 99, 235);
-    doc.line(14, 35, pageWidth - 14, 35);
-
-    // --- 3. AGENT INFO & SUMMARY STATS ---
-    doc.setFontSize(14);
-    doc.setTextColor(0);
-    doc.text("MY RECRUITMENT REPORT", 14, 45);
-    
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Agent Name: ${agentName}`, 14, 52);
-    doc.text(`Agent ID: ${agentID}`, 14, 57);
-
-    doc.setFont("helvetica", "normal");
-    const totalRecruits = recruitsData.length;
-    const totalCommission = recruitsData.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
-    
-    doc.text(`Total Recruits: ${totalRecruits}`, 14, 65);
-    doc.text(`Total Commission Earned: R ${totalCommission.toFixed(2)}`, 14, 70);
-
-    // --- 4. DATA TABLE ---
-    const rows = recruitsData.map(r => [
-        `${r.studentName} ${r.studentSurname}`,
-        r.studentPhone || 'N/A',
-        r.studentEmail || 'N/A',
-        r.accommodation,
-        r.status,
-        r.commissionEarned ? `R ${parseFloat(r.commissionEarned).toFixed(2)}` : 'R 0.00'
-    ]);
-
-    doc.autoTable({
-        head: [['Student Name', 'Phone', 'Email', 'Accommodation', 'Status', 'Commission']],
-        body: rows,
-        startY: 75, // Lowered slightly to fit agent info
-        theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
-        styles: { fontSize: 7, cellPadding: 2 },
-        alternateRowStyles: { fillColor: [242, 247, 255] },
-        margin: { left: 14, right: 14 }
-    });
-
-    // --- 5. FOOTER SUMMARY ---
-    const finalY = doc.lastAutoTable.finalY + 10;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(37, 99, 235);
-    doc.text(`GRAND TOTAL COMMISSION: R ${totalCommission.toFixed(2)}`, pageWidth - 100, finalY);
-
-    doc.save(`Recruits_Report_${agentID.replace(/\s+/g, '_')}.pdf`);
-}
 
     async function fetchAgentData() {
         try {
@@ -341,19 +283,9 @@
             });
             const data = await response.json();
             recruitsData = data; 
+            allRecruits = data; // FIX: Sync allRecruits so editRecruit() works
             renderTable(data);
             updateStats(data);
-            
-            const profRes = await fetch(`${API_URL}/profiles`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-            const allProfiles = await profRes.json();
-            const myEmail = parseJwt(getToken()).email; 
-            const me = allProfiles.find(p => p.email === myEmail);
-            if(me && me.banking) {
-                document.querySelector('[name="bankName"]').value = me.banking.bankName || '';
-                document.querySelector('[name="accHolder"]').value = me.banking.accHolder || '';
-                document.querySelector('[name="accNumber"]').value = me.banking.accNumber || '';
-                document.querySelector('[name="bankPhone"]').value = me.banking.bankPhone || '';
-            }
         } catch (err) { console.error(err); }
         finally { hideLoader(); }
     }
@@ -363,18 +295,19 @@
     }
 
     function updateStats(recruits) {
-        if(!recruits || !recruits.length) return;
+        if(!recruits) return;
         const pending = recruits.filter(r => r.status === 'Pending').length;
         const approved = recruits.filter(r => r.status === 'Approved').length;
         const commission = recruits.reduce((acc, curr) => acc + (curr.commissionEarned || 0), 0);
-        document.getElementById('pending-count').innerText = pending;
-        document.getElementById('approved-count').innerText = approved;
-        document.getElementById('total-commission').innerText = `R ${commission.toFixed(2)}`;
+        if(document.getElementById('pending-count')) document.getElementById('pending-count').innerText = pending;
+        if(document.getElementById('approved-count')) document.getElementById('approved-count').innerText = approved;
+        if(document.getElementById('total-commission')) document.getElementById('total-commission').innerText = `R ${commission.toFixed(2)}`;
     }
 
     function renderTable(recruits) {
-        if(!recruits) return;
-        document.getElementById('submissions-table').innerHTML = recruits.map(r => `
+        const tableBody = document.getElementById('submissions-table');
+        if(!tableBody || !recruits) return;
+        tableBody.innerHTML = recruits.map(r => `
             <tr class="border-b hover:bg-gray-50 transition">
                 <td class="py-4 font-medium">${r.studentName} ${r.studentSurname}</td>
                 <td class="py-4 text-gray-600">${r.accommodation}</td>
@@ -383,153 +316,90 @@
                     <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status==='Approved'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${r.status}</span>
                 </td>
                 <td class="py-4 font-bold text-blue-600">R ${r.commissionEarned || 0}</td>
-            
-             <td class="px-6 py-4 text-sm font-medium space-x-3">
-                <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                </button>
-                <button onclick="deleteRecruit('${r._id}')" class="text-red-600 hover:text-red-900">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
-             </td>
+                <td class="px-6 py-4 text-sm font-medium space-x-3">
+                    <button onclick="editRecruit('${r._id}')" class="text-blue-600 hover:text-blue-900">Edit</button>
+                    <button onclick="deleteRecruit('${r._id}')" class="text-red-600 hover:text-red-900">Delete</button>
+                </td>
             </tr>
         `).join('');
     }
 
-    document.getElementById('bankForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        triggerLoader("Updating Records...");
-        const formData = new FormData(e.target);
-        const banking = Object.fromEntries(formData);
-        
-        try {
-            const res = await fetch(`${API_URL}/update-banking`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-                body: JSON.stringify({ banking })
+    // HANDLER FOR ADD/EDIT STUDENT
+    // FIX: Using DOMContentLoaded and correct form ID 'studentform'
+    window.addEventListener('DOMContentLoaded', () => {
+        const sForm = document.getElementById('studentform');
+        if (sForm) {
+            sForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                triggerLoader("Saving...");
+                const formData = new FormData(e.target);
+                const payload = Object.fromEntries(formData.entries());
+
+                const url = currentEditId 
+                    ? `https://www.mycampuscollective.me/api/auth/recruit/${currentEditId}` 
+                    : 'https://www.mycampuscollective.me/api/auth/submit-recruit';
+                const method = currentEditId ? 'PUT' : 'POST';
+
+                try {
+                    const res = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await res.json();
+                    hideLoader();
+                    if (res.ok) {
+                        alert(currentEditId ? "Student updated!" : "Student added!");
+                        currentEditId = null;
+                        e.target.reset();
+                        const submitBtn = e.target.querySelector('button[type="submit"]');
+                        if(submitBtn) {
+                            submitBtn.innerText = "Add Student";
+                            submitBtn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition";
+                        }
+                        fetchAgentData(); 
+                    } else { alert("Error: " + (result.message || "Failed")); }
+                } catch (error) { hideLoader(); console.error(error); }
             });
-            hideLoader();
-            if(res.ok) alert("Banking details saved!");
-        } catch (error) { hideLoader(); alert("Error saving bank info"); }
+        }
     });
 
-    document.getElementById('studentform').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    showLoader("Saving...");
-
-    const formData = new FormData(e.target);
-    const payload = Object.fromEntries(formData.entries());
-
-    // Determine if we are updating or adding
-    const url = currentEditId 
-        ? `https://www.mycampuscollective.me/api/auth/recruit/${currentEditId}` 
-        : 'https://www.mycampuscollective.me/api/auth/submit-recruit';
-    
-    const method = currentEditId ? 'PUT' : 'POST';
-
-    try {
-        const res = await fetch(url, {
-            method: method,
-            headers: { 
-                'Content-Type': 'application/json', 
-                'Authorization': `Bearer ${getToken()}` 
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await res.json();
-        hideLoader();
-
-        if (res.ok) {
-            alert(currentEditId ? "Student updated successfully!" : "Student added successfully!");
-            
-            // Reset everything back to "Add Mode"
-            currentEditId = null;
-            e.target.reset();
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.innerText = "Add Student";
-            submitBtn.classList.replace('bg-green-600', 'bg-blue-600');
-            
-            fetchAgentData(); 
-        } else {
-            alert("Action Failed: " + (result.message || "Unknown error"));
-        }
-    } catch (error) {
-        hideLoader();
-        console.error("Submission Error:", error);
+    async function deleteRecruit(id) {
+        if (!confirm("Delete this student?")) return;
+        try {
+            const res = await fetch(`https://www.mycampuscollective.me/api/auth/recruit/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            if (res.ok) { alert("Deleted!"); fetchAgentData(); }
+        } catch (err) { console.error(err); }
     }
-});
+
+    async function editRecruit(id) {
+        const recruit = allRecruits.find(r => r._id === id); 
+        if (!recruit) return;
+        currentEditId = id;
+        document.getElementById('studentName').value = recruit.studentName;
+        document.getElementById('studentSurname').value = recruit.studentSurname;
+        document.getElementById('studentEmail').value = recruit.studentEmail;
+        document.getElementById('studentPhone').value = recruit.studentPhone;
+        document.getElementById('accommodation').value = recruit.accommodation;
+        document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
+        
+        const submitBtn = document.querySelector('#studentform button[type="submit"]');
+        if(submitBtn) {
+            submitBtn.innerText = "Update Student Details";
+            submitBtn.classList.replace('bg-blue-600', 'bg-green-600');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
     
     window.onload = () => { 
-        if(!getToken()) {
-            window.location.href = 'agent login.html';
-        } else {
-            setTimeout(hideLoader, 4000); 
-            triggerLoader("CONNECTING...");
-            initializeIdentity();
-            fetchAgentData();
-        }
+        if(!getToken()) { window.location.href = 'agent login.html'; } 
+        else { initializeIdentity(); fetchAgentData(); }
     };
-    // Function to Delete a Recruit
-async function deleteRecruit(id) {
-    if (!confirm("Are you sure you want to delete this student?")) return;
-    
-    try {
-        const res = await fetch(`https://www.mycampuscollective.me/api/auth/recruit/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-    });
-        
-        
-        if (res.ok) {
-            alert("Student deleted successfully");
-            fetchAgentData(); // Refresh the list
-        } else {
-            alert("Failed to delete student");
-        }
-    } catch (err) {
-        console.error("Delete error:", err);
-    }
-}
-
-// Function to Edit a Recruit
-async function editRecruit(id) {
-    const recruit = allRecruits.find(r => r._id === id); 
-   
-document.getElementById('accommodation').value = recruit.accommodation;
-// Check if we need to show the manual input box
-const manualDiv = document.getElementById('manual-accommodation-div');
-if (!['Embizeni', 'Boniville', 'Mashimula', 'Cecil', 'Vuyani', 'Eagle Push', 'View In'].includes(recruit.accommodation)) {
-    document.getElementById('accommodation').value = 'not listed';
-    document.getElementById('manualAccommodation').value = recruit.accommodation;
-    manualDiv.classList.remove('hidden');
-} else {
-    manualDiv.classList.add('hidden');
-}
-    if (!recruit) return;
-
-    currentEditId = id; // Store the ID we are editing
-
-    // Fill the form
-    document.getElementById('studentName').value = recruit.studentName;
-    document.getElementById('studentSurname').value = recruit.studentSurname;
-    document.getElementById('studentEmail').value = recruit.studentEmail;
-    document.getElementById('studentPhone').value = recruit.studentPhone;
-    document.getElementById('accommodation').value = recruit.accommodation;
-    document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
-
-    // Change the button text so the user knows they are updating
-    const submitBtn = document.querySelector('#recruitForm button[type="submit"]');
-    submitBtn.innerText = "Update Student Details";
-    submitBtn.classList.replace('bg-blue-600', 'bg-green-600');
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
 </script>
 </body>
 </html>   
