@@ -549,5 +549,20 @@ router.post('/submit-recruit', auth, async (req, res) => {
     }
 });
 
+/**
+ * @route   GET /api/auth/all-recruits
+ * @desc    Get all student recruits for Admin dashboard
+ * @access  Private (Admin Only)
+ */
+router.get('/all-recruits', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        // This fetches all recruits and fills in the Agent's name instead of just their ID
+        const recruits = await Recruit.find().populate('agent', 'fullName'); 
+        res.json(recruits);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error fetching recruits');
+    }
+});
 
 module.exports = router;

@@ -330,17 +330,23 @@
     }
 
     async function fetchRecruits() {
-        try {
-            const res = await fetch(`${API_BASE_URL}/recruits`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const data = await res.json();
+    try {
+        // Change this to match your actual backend route
+        const res = await fetch('/api/auth/all-recruits', { 
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
             allRecruits = data;
-            
-            const accSet = new Set(data.map(r => r.accommodation));
-            document.getElementById('acc-filter').innerHTML = Array.from(accSet).map(a => `<option value="${a}">${a}</option>`).join('');
-
             renderRecruits(data);
-        } catch (e) { console.error(e); }
+        } else {
+            console.error("Failed to fetch recruits:", data.message);
+        }
+    } catch (err) {
+        console.error("Error fetching recruits:", err);
     }
+}
 
     function renderRecruits(recruits) {
     const body = document.getElementById('recruit-table-body');
