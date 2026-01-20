@@ -247,75 +247,76 @@
     }
 
     function downloadPDF() {
-        try {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const dateStr = new Date().toLocaleDateString();
-            
-            doc.setFillColor(37, 99, 235);
-            doc.rect(0, 0, 210, 40, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(22);
-            doc.text("CAMPUS COLLECTIVE", 14, 25);
-            doc.setFontSize(10);
-            doc.text("OFFICIAL AGENT RECRUITMENT REPORT", 14, 33);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
 
-            doc.setTextColor(40, 40, 40);
-            doc.setFontSize(11);
-            doc.text("Agent: " + document.getElementById('side-name').innerText, 14, 50);
-            doc.text("Date Generated: " + dateStr, 14, 57);
+    // --- 1. THEME: BLUE BORDER ---
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(1.5);
+    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
 
-            const tableColumn = ["Student Name", "Surname", "Phone", "Accommodation", "Move-in", "Status", "Comm."];
-            const tableRows = [];
-            let totalComm = 0;
+    // --- 2. HEADER: LOGO & DETAILS ---
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(22);
+    doc.text("Campus", 14, 20);
+    doc.setFontSize(10);
+    doc.text("COLLECTIVE", 14, 25);
 
-            recruitsData.forEach(r => {
-                const commValue = parseFloat(r.commissionEarned || 0);
-                totalComm += commValue;
-                tableRows.push([
-                    r.studentName,
-                    r.studentSurname,
-                    r.studentPhone,
-                    r.accommodation,
-                    new Date(r.moveInDate).toLocaleDateString(),
-                    r.status,
-                    "R " + commValue.toFixed(2)
-                ]);
-            });
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
+    doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
+    doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
 
-            doc.autoTable({
-                head: [tableColumn],
-                body: tableRows,
-                startY: 65,
-                theme: 'striped',
-                headStyles: { fillColor: [37, 99, 235] }
-            });
+    doc.setDrawColor(37, 99, 235);
+    doc.line(14, 35, pageWidth - 14, 35);
 
-            const finalY = doc.lastAutoTable.finalY + 12;
-            doc.setFontSize(14);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(22, 163, 74); 
-            doc.text(`TOTAL COMMISSION: R ${totalComm.toFixed(2)}`, 130, finalY);
+    // --- 3. SUMMARY STATS ---
+    const totalRecruits = myRecruits.length;
+    const totalCommission = myRecruits.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
 
-            const pageHeight = doc.internal.pageSize.height;
-            doc.setDrawColor(37, 99, 235);
-            doc.setLineWidth(1);
-            doc.circle(170, pageHeight - 25, 18);
-            doc.setLineWidth(0.5);
-            doc.circle(170, pageHeight - 25, 15);
-            
-            doc.setFontSize(7);
-            doc.setTextColor(37, 99, 235);
-            doc.text("CAMPUS", 163, pageHeight - 28);
-            doc.text("COLLECTIVE", 160, pageHeight - 25);
-            doc.setFont("helvetica", "normal");
-            doc.text(dateStr, 163, pageHeight - 21);
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text("MY RECRUITMENT REPORT", 14, 45);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total Recruits: ${totalRecruits}`, 14, 52);
+    doc.text(`Total Commission Earned: R ${totalCommission.toFixed(2)}`, 14, 58);
 
-            doc.save(`Recruits_List_${dateStr}.pdf`);
-        } catch(err) {
-            alert("PDF Generation Error: " + err.message);
-        }
-    }
+    // --- 4. DATA TABLE ---
+    const rows = myRecruits.map(r => [
+        `${r.studentName} ${r.studentSurname}`,
+        r.studentPhone || 'N/A',
+        r.studentEmail || 'N/A',
+        r.accommodation,
+        r.status,
+        r.commissionEarned ? `R ${parseFloat(r.commissionEarned).toFixed(2)}` : 'R 0.00'
+    ]);
+
+    doc.autoTable({
+        head: [['Student Name', 'Phone', 'Email', 'Accommodation', 'Status', 'Commission']],
+        body: rows,
+        startY: 65,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
+        styles: { fontSize: 7, cellPadding: 2 },
+        alternateRowStyles: { fillColor: [242, 247, 255] },
+        margin: { left: 14, right: 14 }
+    });
+
+    // --- 5. FOOTER SUMMARY ---
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(37, 99, 235);
+    doc.text(`GRAND TOTAL COMMISSION: R ${totalCommission.toFixed(2)}`, pageWidth - 100, finalY);
+
+    doc.save(`My_Recruitment_Report_${new Date().toISOString().slice(0,10)}.pdf`);
+}
 
     async function fetchAgentData() {
         try {
