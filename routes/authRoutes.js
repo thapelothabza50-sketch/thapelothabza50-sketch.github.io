@@ -565,4 +565,66 @@ router.get('/all-recruits', auth, hasRole(['Admin']), async (req, res) => {
     }
 });
 
+/**
+ * @route   DELETE /api/auth/recruit/:id
+ * @desc    Delete a specific recruit
+ * @access  Private
+ */
+router.delete('/recruit/:id', auth, async (req, res) => {
+    try {
+        const recruit = await Recruit.findById(req.params.id);
+
+        if (!recruit) {
+            return res.status(404).json({ message: 'Recruit not found' });
+        }
+
+        // Security: Ensure only the agent who created it (or an Admin) can delete it
+        if (recruit.agent.toString() !== req.user.id && req.user.role !== 'Admin') {
+            return res.status(401).json({ message: 'User not authorized to delete this record' });
+        }
+
+        await recruit.deleteOne();
+        res.json({ message: 'Recruit removed successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error during deletion');
+    }
+});
+
+/**
+ * @route   PUT /api/auth/recruit/:id
+ * @desc    Update recruit details
+ * @access  Private
+ */
+router.put('/recruit/:id', auth, async (req, res) => {
+    const { studentName, studentSurname, studentEmail, studentPhone, accommodation, moveInDate } = req.body;
+
+    try {
+        let recruit = await Recruit.findById(req.params.id);
+
+        if (!recruit) {
+            return res.status(404).json({ message: 'Recruit not found' });
+        }
+
+        // Security Check
+        if (recruit.agent.toString() !== req.user.id && req.user.role !== 'Admin') {
+            return res.status(401).json({ message: 'User not authorized' });
+        }
+
+        // Update fields
+        recruit.studentName = studentName || recruit.studentName;
+        recruit.studentSurname = studentSurname || recruit.studentSurname;
+        recruit.studentEmail = studentEmail || recruit.studentEmail;
+        recruit.studentPhone = studentPhone || recruit.studentPhone;
+        recruit.accommodation = accommodation || recruit.accommodation;
+        recruit.moveInDate = moveInDate || recruit.moveInDate;
+
+        await recruit.save();
+        res.json({ message: 'Recruit updated successfully', recruit });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error during update');
+    }
+});
+
 module.exports = router;
