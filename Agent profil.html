@@ -137,10 +137,10 @@
         <div class="lg:col-span-1 card p-5 md:p-6 h-fit">
             <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Submit New Student</h3>
             <form id="studentForm" class="space-y-4">
-                <input type="text" name="studentName" placeholder="First Name" required class="w-full p-2 border rounded">
-                <input type="text" name="studentSurname" placeholder="Surname" required class="w-full p-2 border rounded">
-                <input type="email" name="studentEmail" placeholder="Student Email" required class="w-full p-2 border rounded">
-                <input type="tel" name="studentPhone" placeholder="Student Phone Number" required class="w-full p-2 border rounded">
+                <input type="text" id="studentName" name="studentName" placeholder="First Name" required class="w-full p-2 border rounded">
+                <input type="text" id="studentSurname" name="studentSurname" placeholder="Surname" required class="w-full p-2 border rounded">
+                <input type="email" id="studentEmail" name="studentEmail" placeholder="Student Email" required class="w-full p-2 border rounded">
+                <input type="tel" id="studentPhone" name="studentPhone" placeholder="Student Phone Number" required class="w-full p-2 border rounded">
                 <select name="accommodation" id="acc-select" required class="w-full p-2 border rounded" onchange="checkOther(this)">
                     <option value="" disabled selected>Select Accommodation</option>
                     <option value="Vuyani Student Accomodation">Vuyani Student Accomodation</option>
@@ -376,23 +376,41 @@
     }
 
     async function editRecruit(id) {
-        const recruit = allRecruits.find(r => r._id === id); 
-        if (!recruit) return;
-        currentEditId = id;
-        document.getElementById('studentName').value = recruit.studentName;
-        document.getElementById('studentSurname').value = recruit.studentSurname;
-        document.getElementById('studentEmail').value = recruit.studentEmail;
-        document.getElementById('studentPhone').value = recruit.studentPhone;
-        document.getElementById('accommodation').value = recruit.accommodation;
-        document.getElementById('moveInDate').value = recruit.moveInDate.split('T')[0];
-        
-        const submitBtn = document.querySelector('#studentform button[type="submit"]');
-        if(submitBtn) {
-            submitBtn.innerText = "Update Student Details";
-            submitBtn.classList.replace('bg-blue-600', 'bg-green-600');
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    const recruit = allRecruits.find(r => r._id === id); 
+    if (!recruit) {
+        console.error("Recruit not found in local array");
+        return;
     }
+
+    currentEditId = id; // Store the ID for the update logic
+
+    // SAFE SETTING: Checks if the element exists first
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if(el) el.value = val;
+        else console.warn(`Element with ID "${id}" was not found in HTML.`);
+    };
+
+    setVal('studentName', recruit.studentName);
+    setVal('studentSurname', recruit.studentSurname);
+    setVal('studentEmail', recruit.studentEmail);
+    setVal('studentPhone', recruit.studentPhone);
+    setVal('accommodation', recruit.accommodation);
+    
+    if (recruit.moveInDate) {
+        setVal('moveInDate', recruit.moveInDate.split('T')[0]);
+    }
+
+    // Update the button text
+    // NOTE: Make sure your form ID is 'studentform'
+    const submitBtn = document.querySelector('#studentform button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.innerText = "Update Student Details";
+        submitBtn.classList.replace('bg-blue-600', 'bg-green-600');
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
     function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
     
