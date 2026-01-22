@@ -393,7 +393,21 @@ function downloadPDF() {
     function hideLoader() { loader.style.opacity = '0'; setTimeout(() => { loader.style.visibility = 'hidden'; }, 500); }
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); }
     function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
+    
+    // --- INACTIVITY TIMER ---
+    let inactivityTimer;
+    const resetTimer = () => {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+        alert("Session expired due to inactivity. Please login again.");
+        logout();
+    }, 300000); // 5 minutes
+    };
 
+// Listen for user activity to reset the clock
+window.onmousemove = resetTimer;
+window.onkeydown = resetTimer;
+window.onclick = resetTimer;
     window.onload = () => { 
         if(!getToken()) return logout();
         setupPhoneMask();
