@@ -146,23 +146,55 @@
     </form>
 </div>
 
-<div id="sidebar-overlay" class="fixed inset-0 bg-black/30 hidden z-50" onclick="toggleSidebar()"></div>
 <div id="sidebar">
     <div class="flex justify-between items-center mb-10">
-        <h2 class="text-xl font-black text-blue-600">AGENT PROFILE</h2>
+        <h2 class="text-xl font-black text-blue-600">AGENT HUB</h2>
         <button onclick="toggleSidebar()" class="text-3xl">&times;</button>
     </div>
-    <div class="mb-6 p-4 bg-blue-50 rounded-xl">
-        <p id="side-name" class="font-bold text-gray-800">Loading...</p>
-        <p id="side-id" class="text-xs text-blue-600 mt-1 font-mono">ID: ---</p>
+
+    <div class="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+        <div class="flex items-center gap-3 mb-2">
+            <div id="side-initials" class="w-10 h-10 bg-blue-600 text-white flex items-center justify-center rounded-full font-bold text-sm">..</div>
+            <div>
+                <p id="side-name" class="font-bold text-gray-800 leading-tight">Loading...</p>
+                <p id="side-id" class="text-[10px] text-blue-600 font-mono">ID: ---</p>
+            </div>
+        </div>
     </div>
-    <form id="bankForm" class="space-y-4">
-        <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">Settlement Account</p>
-        <input type="text" name="bankName" placeholder="Bank Name" required class="w-full p-3 border rounded-xl bg-gray-50 text-sm">
-        <input type="text" name="accHolder" placeholder="Account Holder" required class="w-full p-3 border rounded-xl bg-gray-50 text-sm">
-        <input type="number" name="accNumber" placeholder="Account Number" required class="w-full p-3 border rounded-xl bg-gray-50 text-sm">
-        <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-100">SAVE BANKING</button>
-    </form>
+
+    <div class="space-y-2">
+        <button onclick="toggleSection('personal-section')" class="w-full flex justify-between items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition font-bold text-gray-700 text-sm">
+            <span>👤 Edit Personal Details</span>
+            <span class="text-gray-400">›</span>
+        </button>
+
+        <button id="bank-nav-btn" onclick="toggleSection('bank-section')" class="w-full flex justify-between items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition font-bold text-gray-700 text-sm">
+            <span id="bank-btn-text">🏦 Add Banking Details</span>
+            <span class="text-gray-400">›</span>
+        </button>
+    </div>
+
+    <hr class="my-6 border-gray-100">
+
+    <div id="personal-section" class="hidden space-y-4 animate-in fade-in duration-300">
+        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Update Profile</p>
+        <form id="profileUpdateForm" class="space-y-3">
+            <input type="text" name="fullName" id="edit-fullname" placeholder="Full Name" class="w-full p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="email" name="email" id="edit-email" placeholder="Email Address" class="w-full p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="tel" name="phone" id="edit-phone" placeholder="Phone Number" class="w-full p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95">Update Profile</button>
+        </form>
+    </div>
+
+    <div id="bank-section" class="hidden space-y-4 animate-in fade-in duration-300">
+        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Settlement Account</p>
+        <form id="bankForm" class="space-y-3">
+            <input type="text" name="bankName" id="bnk-name" placeholder="Bank Name" required class="w-full p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" name="accHolder" id="bnk-holder" placeholder="Account Holder" required class="w-full p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="number" name="accNumber" id="bnk-num" placeholder="Account Number" required class="w-full p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95">Save Banking</button>
+        </form>
+    </div>
 </div>
 
 <script>
@@ -403,6 +435,35 @@ function downloadPDF() {
         logout();
     }, 300000); // 5 minutes
     };
+   
+    function syncSidebarData() {
+        const user = JSON.parse(localStorage.getItem('userData') || '{}');
+        
+        // Update Profile Displays
+        document.getElementById('side-name').innerText = user.fullName || "Agent";
+        document.getElementById('side-id').innerText = "ID: " + (user.agentId || "---");
+        const initials = (user.fullName || "A").split(' ').map(n=>n[0]).join('').toUpperCase();
+        document.getElementById('side-initials').innerText = initials.substring(0,2);
+        document.getElementById('agent-initials').innerText = initials.substring(0,2);
+
+        // Pre-fill Profile Form
+        document.getElementById('edit-fullname').value = user.fullName || "";
+        document.getElementById('edit-email').value = user.email || "";
+        document.getElementById('edit-phone').value = user.phone || "";
+
+        // Check for Banking Data
+        const bankBtnText = document.getElementById('bank-btn-text');
+        if (user.bankName) {
+            bankBtnText.innerText = "🏦 View / Edit Banking";
+            // Pre-fill Banking Form
+            document.getElementById('bnk-name').value = user.bankName || "";
+            document.getElementById('bnk-holder').value = user.accHolder || "";
+            document.getElementById('bnk-num').value = user.accNumber || "";
+        } else {
+            bankBtnText.innerText = "🏦 Add Banking Details";
+        }
+    }
+   
 
 // Listen for user activity to reset the clock
 window.onmousemove = resetTimer;
@@ -411,8 +472,26 @@ window.onclick = resetTimer;
     window.onload = () => { 
         if(!getToken()) return logout();
         setupPhoneMask();
-        fetchAgentData(); 
+        fetchAgentData();
+        syncSidebarData(); 
+        resetTimer();
         document.getElementById('studentForm').addEventListener('submit', handleFormSubmit);
+        
+        // New: Handle Profile Updates
+        document.getElementById('profileUpdateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            triggerLoader("Updating Profile...");
+            // Logic to send to /api/auth/update-profile would go here
+            // For now, we update local storage to demonstrate
+            const updated = Object.fromEntries(new FormData(e.target));
+            const current = JSON.parse(localStorage.getItem('userData'));
+            localStorage.setItem('userData', JSON.stringify({...current, ...updated}));
+            syncSidebarData();
+            hideLoader();
+            toggleSection('personal-section');
+        });
+    
+        
         const user = JSON.parse(localStorage.getItem('userData') || '{}');
         document.getElementById('side-name').innerText = user.fullName || "Agent";
         document.getElementById('side-id').innerText = "ID: " + (user.agentId || "---");
