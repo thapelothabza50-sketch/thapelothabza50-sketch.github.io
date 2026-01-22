@@ -287,20 +287,87 @@
         finally { hideLoader(); }
     }
 
-    // --- RESTORED PDF LOGIC ---
-    function downloadPDF() {
-        if (allRecruits.length === 0) return alert("No data to export");
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFontSize(18); doc.text("Agent Recruitment Report", 14, 20);
-        doc.setFontSize(11); doc.setTextColor(100);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-        const tableData = allRecruits.map(r => [
-            `${r.studentName} ${r.studentSurname}`, r.accommodation, r.status, `R ${r.commissionEarned || 0}`
-        ]);
-        doc.autoTable({ head: [['Student Name', 'Accommodation', 'Status', 'Commission']], body: tableData, startY: 40, theme: 'striped' });
-        doc.save(`Recruits_Report_${new Date().getTime()}.pdf`);
+    // --- PDF EXPORT ---
+function downloadPDF() {
+    if (allRecruits.length === 0) return alert("No data to export");
+    
+    // Get current Agent details from localStorage
+    const user = JSON.parse(localStorage.getItem('userData') || '{}');
+    const agentName = user.fullName || "Agent";
+    const agentId = user.agentId || "N/A";
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // 1. Blue Border
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(1.5);
+    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+
+    // 2. Branded Header (Top Left)
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(22);
+    doc.text("Campus", 15, 22); 
+    doc.setFontSize(10);
+    doc.text("COLLECTIVE", 15, 27);
+
+    // 3. Contact Info (Top Right)
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
+    doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
+    doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
+
+    // 4. Horizontal Line
+    doc.setDrawColor(37, 99, 235);
+    doc.line(12, 40, pageWidth - 12, 40);
+
+    // 5. Report Title & Agent Details
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text("MY RECRUITMENT REPORT", 12, 50);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Agent Name: ${agentName}`, 12, 57);
+    doc.text(`Agent ID: ${agentId}`, 12, 63);
+    doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, pageWidth - 60, 63);
+
+    // 6. Data Table
+    const tableData = allRecruits.map(r => [
+        `${r.studentName} ${r.studentSurname}`, 
+        r.studentPhone || 'N/A',
+        r.accommodation, 
+        r.status, 
+        new Date(r.createdAt || Date.now()).toLocaleDateString()
+    ]);
+
+    doc.autoTable({
+        head: [['Student Name', 'Phone', 'Accommodation', 'Status', 'Date Applied']],
+        body: tableData,
+        startY: 70,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [242, 247, 255] },
+        margin: { left: 12, right: 12 }
+    });
+
+    // 7. Footer Page Numbers
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 15, { align: 'center' });
     }
+
+    // 8. Save with custom filename: My recruits (Agent Name)
+    doc.save(`My recruits (${agentName}).pdf`);
+}
 
     // --- RESTORED PHONE MASKING ---
     function setupPhoneMask() {
