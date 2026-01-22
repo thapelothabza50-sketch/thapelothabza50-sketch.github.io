@@ -662,12 +662,15 @@ router.put('/update-banking', auth, async (req, res) => {
         const agent = await Agent.findById(req.user.id);
         if (!agent) return res.status(404).json({ message: 'Agent not found' });
 
-        // Save banking info to the agent model
+        // Assign the new values
         agent.bankName = bankName;
         agent.accHolder = accHolder;
         agent.accNumber = accNumber;
 
-        await agent.save();
+        // CRITICAL FIX: Save the changes to the database
+        await agent.save(); 
+
+        // Send back the UPDATED agent object so the frontend can update localStorage
         res.json({ message: 'Banking details saved', user: agent });
     } catch (err) {
         console.error(err.message);
