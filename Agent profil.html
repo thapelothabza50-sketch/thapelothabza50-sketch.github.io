@@ -401,6 +401,20 @@ function downloadPDF() {
     doc.save(`My recruits (${agentName}).pdf`);
 }
 
+function toggleSection(sectionId) {
+    const sections = ['personal-section', 'bank-section'];
+    sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (id === sectionId) {
+            // This shows the clicked section and hides it if clicked again
+            el.classList.toggle('hidden');
+        } else {
+            // This ensures only one section is open at a time
+            el.classList.add('hidden');
+        }
+    });
+}
+
     // --- RESTORED PHONE MASKING ---
     function setupPhoneMask() {
         const phoneInput = document.getElementById('studentPhone');
