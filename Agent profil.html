@@ -477,19 +477,56 @@ window.onclick = resetTimer;
         resetTimer();
         document.getElementById('studentForm').addEventListener('submit', handleFormSubmit);
         
-        // New: Handle Profile Updates
+        // Handle Profile Updates
         document.getElementById('profileUpdateForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            triggerLoader("Updating Profile...");
-            // Logic to send to /api/auth/update-profile would go here
-            // For now, we update local storage to demonstrate
-            const updated = Object.fromEntries(new FormData(e.target));
-            const current = JSON.parse(localStorage.getItem('userData'));
-            localStorage.setItem('userData', JSON.stringify({...current, ...updated}));
-            syncSidebarData();
-            hideLoader();
-            toggleSection('personal-section');
-        });
+        e.preventDefault();
+        triggerLoader("Updating Profile...");
+        const payload = Object.fromEntries(new FormData(e.target));
+        
+        try {
+            const res = await fetch('/api/auth/update-profile', {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}` 
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('userData', JSON.stringify(data.user));
+                syncSidebarData();
+                toggleSection('personal-section');
+                alert("Profile Updated!");
+            }
+        } catch (error) { console.error(error); }
+        finally { hideLoader(); }
+    });
+    // Handle banking details update.
+    document.getElementById('bankForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        triggerLoader("Saving Banking...");
+        const payload = Object.fromEntries(new FormData(e.target));
+        
+        try {
+            const res = await fetch('/api/auth/update-banking', {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}` 
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('userData', JSON.stringify(data.user));
+                syncSidebarData();
+                toggleSection('bank-section');
+                alert("Banking Details Saved!");
+            }
+        } catch (error) { console.error(error); }
+        finally { hideLoader(); }
+    });
     
         
         const user = JSON.parse(localStorage.getItem('userData') || '{}');

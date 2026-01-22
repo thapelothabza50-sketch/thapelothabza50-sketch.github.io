@@ -627,4 +627,52 @@ router.put('/recruit/:id', auth, async (req, res) => {
     }
 });
 
+/**
+ * @route   PUT /api/auth/update-profile
+ * @desc    Update Agent personal details (Name, Email, Phone)
+ * @access  Private
+ */
+router.put('/update-profile', auth, async (req, res) => {
+    const { fullName, email, phone } = req.body;
+    try {
+        const agent = await Agent.findById(req.user.id);
+        if (!agent) return res.status(404).json({ message: 'Agent not found' });
+
+        // Update fields if they are provided
+        agent.fullName = fullName || agent.fullName;
+        agent.email = email || agent.email;
+        agent.phone = phone || agent.phone;
+
+        await agent.save();
+        res.json({ message: 'Profile updated successfully', user: agent });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error updating profile');
+    }
+});
+
+/**
+ * @route   PUT /api/auth/update-banking
+ * @desc    Update Agent banking details
+ * @access  Private
+ */
+router.put('/update-banking', auth, async (req, res) => {
+    const { bankName, accHolder, accNumber } = req.body;
+    try {
+        const agent = await Agent.findById(req.user.id);
+        if (!agent) return res.status(404).json({ message: 'Agent not found' });
+
+        // Save banking info to the agent model
+        agent.bankName = bankName;
+        agent.accHolder = accHolder;
+        agent.accNumber = accNumber;
+
+        await agent.save();
+        res.json({ message: 'Banking details saved', user: agent });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error updating banking');
+    }
+});
+
 module.exports = router;
