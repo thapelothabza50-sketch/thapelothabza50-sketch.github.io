@@ -2,10 +2,10 @@ const mongoose = require('mongoose');
 
 const WaterLogSchema = new mongoose.Schema({
     date: { type: Date, required: true },
-    truckQuantity: { type: Number, required: true }, // e.g., in Liters or Units
-    pricePerTruck: { type: Number, required: true },
+    truckQuantity: { type: Number, required: true }, 
+    pricePerUnit: { type: Number, required: true }, // Standardized name
     totalCost: { type: Number, required: true },
-    month: { type: String, required: true }, // Format: "YYYY-MM" for easy grouping
+    month: { type: String, required: true }, // Format: "YYYY-MM"
     createdAt: { type: Date, default: Date.now }
 });
 

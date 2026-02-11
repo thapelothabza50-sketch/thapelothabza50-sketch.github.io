@@ -678,15 +678,12 @@ router.put('/update-banking', auth, async (req, res) => {
 
 const WaterLog = require('../models/WaterLog');
 
-/**
- * @route   POST /api/auth/water/add
- * @desc    Log a new water truck delivery
- */
+// 1. ADD WATER TRUCK ENTRY
 router.post('/water/add', auth, hasRole(['Admin']), async (req, res) => {
     try {
         const { date, truckQuantity, pricePerUnit } = req.body;
-        const totalCost = truckQuantity * pricePerUnit;
-        const month = date.substring(0, 7); // Extracts "2026-02" from "2026-02-11"
+        const totalCost = truckQuantity * pricePerUnit; 
+        const month = date.substring(0, 7); // Extracts YYYY-MM
 
         const newLog = new WaterLog({
             date,
@@ -699,19 +696,15 @@ router.post('/water/add', auth, hasRole(['Admin']), async (req, res) => {
         await newLog.save();
         res.status(201).json({ message: 'Water delivery logged successfully!' });
     } catch (err) {
-        res.status(500).json({ message: 'Server Error', error: err.message });
+        res.status(500).json({ message: 'Error saving log', error: err.message });
     }
 });
 
-/**
- * @route   GET /api/auth/water/summary
- * @desc    Get logs and compare current month to previous month (Smart Trend)
- */
+// 2. GET SMART SUMMARY & TRENDS
 router.get('/water/summary', auth, hasRole(['Admin']), async (req, res) => {
     try {
         const logs = await WaterLog.find().sort({ date: -1 });
         
-        // Group data by month
         const stats = logs.reduce((acc, log) => {
             if (!acc[log.month]) acc[log.month] = { totalQty: 0, totalSpend: 0 };
             acc[log.month].totalQty += log.truckQuantity;
@@ -719,8 +712,7 @@ router.get('/water/summary', auth, hasRole(['Admin']), async (req, res) => {
             return acc;
         }, {});
 
-        // Smart Trend Logic
-        const months = Object.keys(stats).sort().reverse(); // [Current, Previous, ...]
+        const months = Object.keys(stats).sort().reverse(); 
         let trendMsg = "Insufficient data for trend";
         let trendColor = "text-gray-500";
 
@@ -731,7 +723,7 @@ router.get('/water/summary', auth, hasRole(['Admin']), async (req, res) => {
             
             if (diff > 0) {
                 trendMsg = `Increased by ${diff.toFixed(1)}% ↑`;
-                trendColor = "text-red-600"; // Increase in usage/cost is usually red
+                trendColor = "text-red-600"; 
             } else {
                 trendMsg = `Decreased by ${Math.abs(diff).toFixed(1)}% ↓`;
                 trendColor = "text-green-600";
