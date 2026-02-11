@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Application | Campus Collective</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; }
+        .form-card { background: white; border-radius: 24px; box-shadow: 0 10px 40px rgba(37, 99, 235, 0.1); }
+        .input-field { width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; outline: none; transition: all 0.3s; font-size: 14px; background-color: #ffffff; }
+        .input-field:focus { border-color: #2563eb; background-color: #fff; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
+        .label-text { display: block; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em; }
+        .section-title { font-size: 14px; font-weight: 800; color: #1e40af; border-bottom: 2px solid #dbeafe; padding-bottom: 4px; margin-bottom: 20px; }
+    </style>
+</head>
+<body class="py-12 px-4">
+
+    <div class="max-w-2xl mx-auto form-card overflow-hidden border border-gray-100">
+        <div class="p-10 text-center bg-white">
+            <img src="Images/Campus collective logo origin.jpg" alt="Campus Collective Logo" class="h-24 mx-auto mb-6 drop-shadow-sm">
+            <h1 class="text-2xl font-black text-gray-900 tracking-tight">Accommodation Application</h1>
+            <p class="text-gray-500 font-medium text-sm mt-1">Official Enrollment & Placement Form</p>
+        </div>
+
+        <form id="formalAppForm" class="p-10 pt-4 space-y-6">
+            
+            <p class="section-title">Academic & Placement Details</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="label-text">Application for:</label>
+                    <input type="text" id="display-acc" readonly class="input-field bg-blue-50 border-blue-100 text-blue-700 font-bold">
+                </div>
+                <div>
+                    <label class="label-text">Preferred Move-in Date</label>
+                    <input type="date" name="moveInDate" required class="input-field">
+                </div>
+            </div>
+
+            <div>
+                <label class="label-text">Year of Study</label>
+                <select name="yearOfStudy" required class="input-field">
+                    <option value="">-- Select your current year --</option>
+                    <optgroup label="Undergraduate">
+                        <option value="1st Year">Undergraduate: First Year</option>
+                        <option value="2nd Year">Undergraduate: Second Year</option>
+                        <option value="3rd Year">Undergraduate: Third Year</option>
+                        <option value="4th Year">Undergraduate: Fourth Year / Honours</option>
+                    </optgroup>
+                    <optgroup label="Postgraduate">
+                        <option value="Postgraduate">Postgraduate (Masters / PhD)</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <p class="section-title">Personal Identification</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="label-text">First Name(s)</label>
+                    <input type="text" name="studentName" required class="input-field">
+                </div>
+                <div>
+                    <label class="label-text">Surname</label>
+                    <input type="text" name="studentSurname" required class="input-field">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="label-text">Student Number</label>
+                    <input type="text" name="studentNumber" placeholder="Required for verification" required class="input-field">
+                </div>
+                <div>
+                    <label class="label-text">Mobile Phone</label>
+                    <input type="tel" name="studentPhone" required placeholder="071 234 5678" class="input-field">
+                </div>
+            </div>
+
+            <div>
+                <label class="label-text">Email Address</label>
+                <input type="email" name="studentEmail" required placeholder="name@example.com" class="input-field">
+            </div>
+            <div>
+    <label class="label-text">Room Type Preference</label>
+    <select name="roomType" id="room-type-select" required class="input-field">
+        <option value="">-- Select Room Type --</option>
+        <option id="opt-single" value="Single">Single Room</option>
+        <option id="opt-sharing" value="Sharing">Sharing Room</option>
+    </select>
+    <p id="room-warning" class="text-red-500 text-[10px] mt-1 hidden font-bold">* Single rooms are currently at capacity.</p>
+</div>
+
+            <p class="section-title">Financial Information</p>
+            <div>
+                <label class="label-text">Source of Funding</label>
+                <select name="fundingType" id="funding-select" required onchange="toggleFundingFields()" class="input-field">
+                    <option value="">-- Select Funding Type --</option>
+                    <option value="NSFAS">NSFAS Funded</option>
+                    <option value="Bursary">External Bursary</option>
+                    <option value="Self-Funded">Self-Funded / Private</option>
+                </select>
+            </div>
+
+            <div id="nsfas-group" class="hidden bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300">
+                <label class="label-text">NSFAS Status</label>
+                <select name="nsfasStatus" id="nsfas-status" class="input-field bg-white">
+                    <option value="">-- Select Status --</option>
+                    <option value="Provisionally Approved">Provisionally Approved</option>
+                    <option value="Application Pending">Application Pending</option>
+                    <option value="Awaiting Evaluation">Awaiting Evaluation</option>
+                    <option value="Funding Eligible Bursary">Funding Eligible for Bursary</option>
+                </select>
+            </div>
+
+            <div id="bursary-group" class="hidden bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300">
+                <label class="label-text">Bursary Provider / Name</label>
+                <input type="text" name="bursaryName" id="bursary-name" placeholder="Enter Funder Name" class="input-field bg-white">
+            </div>
+
+            <div class="pt-6">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-xl shadow-xl shadow-blue-200 transition-all active:scale-95 text-lg">
+                    SUBMIT APPLICATION
+                </button>
+                <p class="text-center text-[10px] text-gray-400 mt-4 font-bold uppercase tracking-widest">Campus Collective © 2026 Security Verified</p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        document.getElementById('display-acc').value = urlParams.get('res') || "General Residence";
+
+        function toggleFundingFields() {
+            const funding = document.getElementById('funding-select').value;
+            const nsfasGroup = document.getElementById('nsfas-group');
+            const bursaryGroup = document.getElementById('bursary-group');
+
+            nsfasGroup.classList.add('hidden');
+            bursaryGroup.classList.add('hidden');
+            document.getElementById('nsfas-status').required = false;
+            document.getElementById('bursary-name').required = false;
+
+            if (funding === 'NSFAS') {
+                nsfasGroup.classList.remove('hidden');
+                document.getElementById('nsfas-status').required = true;
+            } else if (funding === 'Bursary') {
+                bursaryGroup.classList.remove('hidden');
+                document.getElementById('bursary-name').required = true;
+            }
+        }
+
+        document.getElementById('formalAppForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.innerText = "SUBMITTING...";
+            btn.disabled = true;
+
+            const formData = Object.fromEntries(new FormData(e.target));
+            formData.accommodation = document.getElementById('display-acc').value;
+
+            try {
+                const response = await fetch('/api/auth/student-apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    alert("Application Submitted! Management will contact you shortly.");
+                    window.location.href = "success.html";
+                } else {
+                    alert("Submission failed. Check your data and try again.");
+                }
+            } catch (err) {
+                alert("Server Error. Please contact support.");
+            } finally {
+                btn.innerText = "SUBMIT APPLICATION";
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

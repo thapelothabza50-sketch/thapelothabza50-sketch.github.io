@@ -17,8 +17,6 @@ const { auth, hasRole } = require('../middleware/auth');
 const multer = require('multer');
 const fs = require('fs');
 
-
-
 // --------------------------------------------------------------------------
 // NODEMAILER CONFIGURATION 
 // --------------------------------------------------------------------------
@@ -675,6 +673,79 @@ router.put('/update-banking', auth, async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error updating banking');
+    }
+});
+
+const WaterLog = require('../models/WaterLog');
+
+/**
+ * @route   POST /api/auth/water/add
+ * @desc    Log a new water truck delivery
+ */
+router.post('/water/add', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const { date, truckQuantity, pricePerUnit } = req.body;
+        const totalCost = truckQuantity * pricePerUnit;
+        const month = date.substring(0, 7); // Extracts "2026-02" from "2026-02-11"
+
+        const newLog = new WaterLog({
+            date,
+            truckQuantity,
+            pricePerUnit,
+            totalCost,
+            month
+        });
+
+        await newLog.save();
+        res.status(201).json({ message: 'Water delivery logged successfully!' });
+    } catch (err) {
+        res.status(500).json({ message: 'Server Error', error: err.message });
+    }
+});
+
+/**
+ * @route   GET /api/auth/water/summary
+ * @desc    Get logs and compare current month to previous month (Smart Trend)
+ */
+router.get('/water/summary', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const logs = await WaterLog.find().sort({ date: -1 });
+        
+        // Group data by month
+        const stats = logs.reduce((acc, log) => {
+            if (!acc[log.month]) acc[log.month] = { totalQty: 0, totalSpend: 0 };
+            acc[log.month].totalQty += log.truckQuantity;
+            acc[log.month].totalSpend += log.totalCost;
+            return acc;
+        }, {});
+
+        // Smart Trend Logic
+        const months = Object.keys(stats).sort().reverse(); // [Current, Previous, ...]
+        let trendMsg = "Insufficient data for trend";
+        let trendColor = "text-gray-500";
+
+        if (months.length >= 2) {
+            const current = stats[months[0]].totalQty;
+            const previous = stats[months[1]].totalQty;
+            const diff = ((current - previous) / previous) * 100;
+            
+            if (diff > 0) {
+                trendMsg = `Increased by ${diff.toFixed(1)}% ↑`;
+                trendColor = "text-red-600"; // Increase in usage/cost is usually red
+            } else {
+                trendMsg = `Decreased by ${Math.abs(diff).toFixed(1)}% ↓`;
+                trendColor = "text-green-600";
+            }
+        }
+
+        res.json({ 
+            logs, 
+            currentMonth: months[0] ? stats[months[0]] : { totalQty: 0, totalSpend: 0 },
+            trend: trendMsg,
+            trendColor: trendColor
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Server Error' });
     }
 });
 
