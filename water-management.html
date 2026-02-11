@@ -75,82 +75,109 @@
     </div>
 
     <script>
-        const API_URL = '/api/auth/water'; // Adjust based on your server path
-        const token = localStorage.getItem('token'); // Assumes you store JWT in localStorage
+    const API_URL = '/api/auth/water'; 
+    // We use 'jwtToken' because that is what management.html uses
+    const token = localStorage.getItem('jwtToken'); 
 
-        async function loadSummary() {
+    async function loadSummary() {
+        if(!token) return window.location.href = 'Admin.html';
+
+        try {
             const res = await fetch(`${API_URL}/summary`, {
-                headers: { 'x-auth-token': token }
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
+            
+            if (res.status === 401) {
+                console.error("Auth failed. Check if token is valid.");
+                return;
+            }
+
             const data = await res.json();
 
-            document.getElementById('dispQty').innerText = `${data.currentMonth.totalQty.toLocaleString()} L`;
-            document.getElementById('dispSpend').innerText = `R ${data.currentMonth.totalSpend.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            
-            const trendEl = document.getElementById('dispTrend');
-            trendEl.innerText = data.trend;
-            trendEl.className = `text-lg font-bold ${data.trendColor}`;
-
-            const body = document.getElementById('logBody');
-            body.innerHTML = data.logs.map(log => `
-                <tr class="hover:bg-gray-50 border-b last:border-0">
-                    <td class="p-4 font-medium">${new Date(log.date).toLocaleDateString()}</td>
-                    <td class="p-4">${log.truckQuantity} L</td>
-                    <td class="p-4 font-bold">R ${log.totalCost.toFixed(2)}</td>
-                </tr>
-            `).join('');
-            
-            window.allLogs = data.logs; // Store for PDF
-        }
-
-        document.getElementById('waterForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = {
-                date: document.getElementById('date').value,
-                truckQuantity: Number(document.getElementById('qty').value),
-                pricePerUnit: Number(document.getElementById('price').value)
-            };
-
-            const res = await fetch(`${API_URL}/add`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                body: JSON.stringify(payload)
-            });
-
             if (res.ok) {
-                alert('Saved!');
-                document.getElementById('waterForm').reset();
-                loadSummary();
+                // The '?' ensures it doesn't crash if currentMonth is empty
+                document.getElementById('dispQty').innerText = `${(data.currentMonth?.totalQty || 0).toLocaleString()} L`;
+                document.getElementById('dispSpend').innerText = `R ${(data.currentMonth?.totalSpend || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                
+                const trendEl = document.getElementById('dispTrend');
+                trendEl.innerText = data.trend;
+                trendEl.className = `text-lg font-bold ${data.trendColor}`;
+
+                const body = document.getElementById('logBody');
+                body.innerHTML = data.logs.map(log => `
+                    <tr class="hover:bg-gray-50 border-b last:border-0">
+                        <td class="p-4 font-medium">${new Date(log.date).toLocaleDateString()}</td>
+                        <td class="p-4">${log.truckQuantity} L</td>
+                        <td class="p-4 font-bold">R ${log.totalCost.toFixed(2)}</td>
+                    </tr>
+                `).join('');
+                
+                window.allLogs = data.logs; 
             }
+        } catch (err) {
+            console.error("Failed to load water data:", err);
+        }
+    }
+
+    document.getElementById('waterForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            date: document.getElementById('date').value,
+            truckQuantity: Number(document.getElementById('qty').value),
+            pricePerUnit: Number(document.getElementById('price').value)
+        };
+
+        const res = await fetch(`${API_URL}/add`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify(payload)
         });
 
-        function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            doc.setFontSize(18);
-            doc.text("Campus Collective: Water Supply Report", 14, 20);
-            doc.setFontSize(10);
-            doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
-
-            const tableData = window.allLogs.map(log => [
-                new Date(log.date).toLocaleDateString(),
-                `${log.truckQuantity} L`,
-                `R ${log.totalCost.toFixed(2)}`
-            ]);
-
-            doc.autoTable({
-                startY: 35,
-                head: [['Date', 'Quantity', 'Total Cost']],
-                body: tableData,
-                theme: 'striped',
-                headStyles: { fillColor: [30, 64, 175] }
-            });
-
-            doc.save(`Water_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+        if (res.ok) {
+            alert('Delivery Logged Successfully!');
+            document.getElementById('waterForm').reset();
+            loadSummary();
+        } else {
+            const err = await res.json();
+            alert('Error: ' + err.message);
         }
+    });
 
-        loadSummary();
-    </script>
+    function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(18);
+        doc.setTextColor(30, 64, 175);
+        doc.text("Campus Collective: Water Supply Report", 14, 20);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+        const tableData = (window.allLogs || []).map(log => [
+            new Date(log.date).toLocaleDateString(),
+            `${log.truckQuantity} L`,
+            `R ${log.totalCost.toFixed(2)}`
+        ]);
+
+        doc.autoTable({
+            startY: 35,
+            head: [['Date', 'Quantity (Liters)', 'Total Cost']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [30, 64, 175] }
+        });
+
+        doc.save(`Water_Supply_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
+
+    loadSummary();
+</script>
 </body>
 </html>
