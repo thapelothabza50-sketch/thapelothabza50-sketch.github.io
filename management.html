@@ -232,99 +232,209 @@
 </div>
 
 <script>
-    const API_URL = '/api/auth/water'; 
-    const token = localStorage.getItem('jwtToken'); // Fixed to match management.html
+    // 1. GLOBAL CONFIGURATION
+    const API_BASE_URL = '/api/admin';
+    const API_AUTH_URL = '/api/auth';
+    const WATER_API_URL = '/api/auth/water'; 
+    const token = localStorage.getItem('jwtToken');
+    const loader = document.getElementById('loader-overlay');
+    const loaderText = document.getElementById('loader-text');
+    
+    let allRecruits = [];
+    let allUsers = [];
 
-    async function loadSummary() {
-        if(!token) return window.location.href = 'Admin.html';
+    // 2. SECURITY: 5-MINUTE INACTIVITY TIMEOUT
+    let inactivityTimer;
+    const resetTimer = () => {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            alert("Session expired due to 5 minutes of inactivity.");
+            logout();
+        }, 300000); 
+    };
+    window.onmousemove = resetTimer;
+    window.onkeydown = resetTimer;
 
+    // 3. UI HELPERS
+    function triggerLoader(text, duration = 1200) {
+        if (!loader || !loaderText) return Promise.resolve();
+        loaderText.textContent = text;
+        loader.style.visibility = 'visible'; loader.style.opacity = '1';
+        return new Promise(resolve => setTimeout(() => {
+            loader.style.opacity = '0'; loader.style.visibility = 'hidden';
+            setTimeout(resolve, 500);
+        }, duration));
+    }
+
+    function switchTab(tab) {
+        const sections = ['profiles', 'recruits', 'escrow', 'agents', 'residences'];
+        sections.forEach(t => {
+            const sec = document.getElementById('section-' + t);
+            const btn = document.getElementById('tab-' + t);
+            if (sec) sec.classList.add('hidden');
+            if (btn) btn.classList.remove('tab-active');
+        });
+        
+        const targetSec = document.getElementById('section-' + tab);
+        const targetBtn = document.getElementById('tab-' + tab);
+        if (targetSec) targetSec.classList.remove('hidden');
+        if (targetBtn) targetBtn.classList.add('tab-active');
+
+        if(tab === 'profiles' || tab === 'agents') fetchProfiles();
+        if(tab === 'recruits') fetchRecruits();
+    }
+
+    // 4. CORE DATA FETCHING
+    async function fetchProfiles() {
         try {
-            const res = await fetch(`${API_URL}/summary`, {
-                headers: { 'Authorization': `Bearer ${token}` } // Fixed Header
+            const res = await fetch(`${API_BASE_URL}/profiles`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            allUsers = data;
+            renderAllUsers(data);
+            if (document.getElementById('stat-users')) document.getElementById('stat-users').innerText = data.length;
+        } catch (e) { console.error("Profile Error:", e); }
+    }
+
+    async function fetchRecruits() {
+        try {
+            const res = await fetch('/api/auth/all-recruits', { 
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
-
             if (res.ok) {
-                document.getElementById('dispQty').innerText = `${data.currentMonth.totalQty.toLocaleString()} L`;
-                document.getElementById('dispSpend').innerText = `R ${data.currentMonth.totalSpend.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                
-                const trendEl = document.getElementById('dispTrend');
-                trendEl.innerText = data.trend;
-                trendEl.className = `text-lg font-bold ${data.trendColor}`;
+                allRecruits = data;
+                const accFilter = document.getElementById('acc-filter');
+                if (accFilter) {
+                    const uniqueAccs = [...new Set(data.map(r => r.accommodation))];
+                    accFilter.innerHTML = '<option value="">Select Accommodation...</option>' + 
+                        uniqueAccs.map(acc => `<option value="${acc}">${acc}</option>`).join('');
+                }
+                renderRecruits(data);
+            }
+        } catch (err) { console.error("Recruit Error:", err); }
+    }
 
-                const body = document.getElementById('logBody');
-                body.innerHTML = data.logs.map(log => `
-                    <tr class="hover:bg-gray-50 border-b last:border-0">
-                        <td class="p-4 font-medium">${new Date(log.date).toLocaleDateString()}</td>
-                        <td class="p-4">${log.truckQuantity} L</td>
-                        <td class="p-4 font-bold">R ${log.totalCost.toFixed(2)}</td>
-                    </tr>
-                `).join('');
+    // 5. RENDERING LOGIC
+    function renderAllUsers(users) {
+        const agentBody = document.getElementById('agent-table-body');
+        const sellerBody = document.getElementById('profile-table-body');
+        if (!agentBody || !sellerBody) return;
+
+        const agents = users.filter(u => u.role?.toLowerCase() === 'agent');
+        const sellers = users.filter(u => u.role?.toLowerCase() !== 'agent');
+
+        agentBody.innerHTML = agents.map(u => `
+            <tr class="hover:bg-blue-50 cursor-pointer" onclick="openAgentPayment('${u._id}')">
+                <td><b>${u.fullName}</b><br><small class="text-gray-400">${u.email}</small></td>
+                <td><span class="text-blue-600 font-mono font-bold">${u.agentId || '---'}</span></td>
+                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
+                <td>
+                    <button onclick="event.stopPropagation(); toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 px-3 py-1 rounded text-xs font-bold border">LOCK/UNLOCK</button>
+                    <button onclick="event.stopPropagation(); deleteAccount('${u._id}')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-xs font-bold border ml-1">DEL</button>
+                </td>
+            </tr>`).join('');
+
+        sellerBody.innerHTML = sellers.map(u => `
+            <tr>
+                <td><b>${u.businessName || u.fullName}</b></td>
+                <td>${u.role}</td>
+                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
+                <td>
+                    <button onclick="toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 px-3 py-1 rounded text-xs font-bold border">LOCK</button>
+                </td>
+            </tr>`).join('');
+    }
+
+    function renderRecruits(recruits) {
+        const body = document.getElementById('recruit-table-body');
+        if (!body) return;
+        body.innerHTML = recruits.map(r => `
+            <tr>
+                <td><b>${r.studentName} ${r.studentSurname}</b></td>
+                <td>${r.accommodation}</td>
+                <td><span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${r.status}</span></td>
+                <td>
+                    <select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded">
+                        <option value="">Update...</option>
+                        <option value="Approved">Approve</option>
+                        <option value="Cancelled">Cancel</option>
+                    </select>
+                </td>
+            </tr>`).join('');
+    }
+
+    // 6. WATER MANAGEMENT LOGIC
+    async function loadWaterSummary() {
+        try {
+            const res = await fetch(`${WATER_API_URL}/summary`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                if(document.getElementById('dispQty')) document.getElementById('dispQty').innerText = `${(data.currentMonth?.totalQty || 0).toLocaleString()} L`;
+                if(document.getElementById('dispSpend')) document.getElementById('dispSpend').innerText = `R ${(data.currentMonth?.totalSpend || 0).toLocaleString()}`;
                 
+                const body = document.getElementById('logBody');
+                if(body) {
+                    body.innerHTML = data.logs.map(log => `
+                        <tr class="hover:bg-gray-50 border-b">
+                            <td class="p-4">${new Date(log.date).toLocaleDateString()}</td>
+                            <td class="p-4">${log.truckQuantity} L</td>
+                            <td class="p-4 font-bold">R ${log.totalCost.toFixed(2)}</td>
+                        </tr>`).join('');
+                }
                 window.allLogs = data.logs; 
             }
-        } catch (err) {
-            console.error("Failed to load water data", err);
-        }
+        } catch (err) { console.error("Water Summary Error:", err); }
     }
 
-    document.getElementById('waterForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const payload = {
-            date: document.getElementById('date').value,
-            truckQuantity: Number(document.getElementById('qty').value),
-            pricePerUnit: Number(document.getElementById('price').value)
-        };
-
-        const res = await fetch(`${API_URL}/add`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'Authorization': `Bearer ${token}` // Fixed Header
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            alert('Delivery Logged Successfully!');
-            document.getElementById('waterForm').reset();
-            loadSummary();
-        } else {
-            const err = await res.json();
-            alert('Error: ' + err.message);
-        }
-    });
-
-    function generatePDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        doc.setFontSize(18);
-        doc.setTextColor(30, 64, 175);
-        doc.text("Campus Collective: Water Supply Report", 14, 20);
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
-
-        const tableData = window.allLogs.map(log => [
-            new Date(log.date).toLocaleDateString(),
-            `${log.truckQuantity} L`,
-            `R ${log.totalCost.toFixed(2)}`
-        ]);
-
-        doc.autoTable({
-            startY: 35,
-            head: [['Date', 'Quantity (Liters)', 'Total Cost']],
-            body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [30, 64, 175] }
-        });
-
-        doc.save(`Water_Supply_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    // 7. ACCOUNT ACTIONS
+    async function toggleLock(userId, currentStatus) {
+        const newStatus = currentStatus === 'active' ? 'locked' : 'active';
+        await triggerLoader("Updating Status...");
+        try {
+            const res = await fetch(`${API_BASE_URL}/toggle-lock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ userId, status: newStatus })
+            });
+            if (res.ok) fetchProfiles();
+        } catch (err) { alert(err.message); }
     }
 
-    // Initial Load
-    loadSummary();
+    async function deleteAccount(userId) {
+        if (!confirm("Permanently delete this user?")) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/delete-user/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) fetchProfiles();
+        } catch (err) { console.error(err); }
+    }
+
+    // 8. INITIALIZATION
+    window.onload = async () => { 
+        if(!token) { 
+            window.location.href = 'Admin.html'; 
+        } else { 
+            await Promise.all([fetchProfiles(), fetchRecruits(), loadWaterSummary()]); 
+            resetTimer(); 
+        } 
+    };
+
+    async function logout() { 
+        await triggerLoader("Ending Session..."); 
+        localStorage.clear(); 
+        window.location.href = 'Admin.html'; 
+    }
+
+    function handleGlobalSearch() {
+        const query = document.getElementById('globalSearch').value.toLowerCase();
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none');
+    }
+
 </script>
 </body>
 </html>
