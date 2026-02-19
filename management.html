@@ -243,7 +243,7 @@
     let allRecruits = [];
     let allUsers = [];
 
-    // 2. SECURITY: 5-MINUTE INACTIVITY TIMEOUT
+    // 2. SECURITY & INITIALIZATION
     let inactivityTimer;
     const resetTimer = () => {
         clearTimeout(inactivityTimer);
@@ -255,120 +255,122 @@
     window.onmousemove = resetTimer;
     window.onkeydown = resetTimer;
 
-    // 3. UI HELPERS
-    function triggerLoader(text, duration = 1200) {
-        if (!loader || !loaderText) return Promise.resolve();
-        loaderText.textContent = text;
-        loader.style.visibility = 'visible'; loader.style.opacity = '1';
-        return new Promise(resolve => setTimeout(() => {
-            loader.style.opacity = '0'; loader.style.visibility = 'hidden';
-            setTimeout(resolve, 500);
-        }, duration));
+    window.onload = async () => { 
+        if(!token) { 
+            window.location.href = 'Admin.html'; 
+        } else { 
+            // Load Profiles first so we can map Agent IDs to Names in the Recruit table
+            await fetchProfiles(); 
+            await fetchRecruits();
+            await loadWaterSummary();
+            resetTimer(); 
+        } 
+    };
+
+    // 3. CALCULATOR LOGIC (FULLY INCLUDED)
+    function openCalculator() { 
+        const calcModal = document.getElementById('calc-modal');
+        if(calcModal) calcModal.classList.remove('hidden'); 
+    }
+    
+    function closeCalculator() { 
+        const calcModal = document.getElementById('calc-modal');
+        if(calcModal) calcModal.classList.add('hidden'); 
+    }
+    
+    function toggleManualInput() { 
+        const mode = document.getElementById('calc-mode').value;
+        const manualDiv = document.getElementById('manual-val-div');
+        if(manualDiv) manualDiv.classList.toggle('hidden', mode !== 'manual');
+        runCalc();
     }
 
-    function switchTab(tab) {
-        const sections = ['profiles', 'recruits', 'escrow', 'agents', 'residences'];
-        sections.forEach(t => {
-            const sec = document.getElementById('section-' + t);
-            const btn = document.getElementById('tab-' + t);
-            if (sec) sec.classList.add('hidden');
-            if (btn) btn.classList.remove('tab-active');
-        });
+    function runCalc() {
+        const mode = document.getElementById('calc-mode').value;
+        const price = parseFloat(document.getElementById('calc-price').value) || 0;
+        const qty = parseFloat(document.getElementById('calc-qty').value) || 1;
+        const manualVal = parseFloat(document.getElementById('calc-manual-val').value) || 0;
         
-        const targetSec = document.getElementById('section-' + tab);
-        const targetBtn = document.getElementById('tab-' + tab);
-        if (targetSec) targetSec.classList.remove('hidden');
-        if (targetBtn) targetBtn.classList.add('tab-active');
+        let admin = 0, partner = 0;
 
-        if(tab === 'profiles' || tab === 'agents') fetchProfiles();
-        if(tab === 'recruits') fetchRecruits();
+        if (mode === 'seller') { 
+            admin = (price * qty) * 0.10; 
+            partner = (price * qty) - admin; 
+        } else if (mode === 'agent') { 
+            admin = price * qty; 
+            partner = 250 * qty; 
+        } else { 
+            partner = manualVal * qty; 
+            admin = (price * qty) - partner; 
+        }
+
+        document.getElementById('calc-admin').innerText = 'R ' + admin.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('calc-partner').innerText = 'R ' + partner.toLocaleString(undefined, {minimumFractionDigits: 2});
     }
 
-    // 4. CORE DATA FETCHING
-    async function fetchProfiles() {
-        try {
-            const res = await fetch(`${API_BASE_URL}/profiles`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const data = await res.json();
-            allUsers = data;
-            renderAllUsers(data);
-            if (document.getElementById('stat-users')) document.getElementById('stat-users').innerText = data.length;
-        } catch (e) { console.error("Profile Error:", e); }
-    }
-
+    // 4. RECRUITMENT MANAGEMENT (FIXED COLUMNS)
     async function fetchRecruits() {
         try {
-            const res = await fetch('/api/auth/all-recruits', { 
+            const res = await fetch(`${API_AUTH_URL}/all-recruits`, { 
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
             if (res.ok) {
                 allRecruits = data;
-                const accFilter = document.getElementById('acc-filter');
-                if (accFilter) {
-                    const uniqueAccs = [...new Set(data.map(r => r.accommodation))];
-                    accFilter.innerHTML = '<option value="">Select Accommodation...</option>' + 
-                        uniqueAccs.map(acc => `<option value="${acc}">${acc}</option>`).join('');
-                }
                 renderRecruits(data);
             }
-        } catch (err) { console.error("Recruit Error:", err); }
-    }
-
-    // 5. RENDERING LOGIC
-    function renderAllUsers(users) {
-        const agentBody = document.getElementById('agent-table-body');
-        const sellerBody = document.getElementById('profile-table-body');
-        if (!agentBody || !sellerBody) return;
-
-        const agents = users.filter(u => u.role?.toLowerCase() === 'agent');
-        const sellers = users.filter(u => u.role?.toLowerCase() !== 'agent');
-
-        agentBody.innerHTML = agents.map(u => `
-            <tr class="hover:bg-blue-50 cursor-pointer" onclick="openAgentPayment('${u._id}')">
-                <td><b>${u.fullName}</b><br><small class="text-gray-400">${u.email}</small></td>
-                <td><span class="text-blue-600 font-mono font-bold">${u.agentId || '---'}</span></td>
-                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
-                <td>
-                    <button onclick="event.stopPropagation(); toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 px-3 py-1 rounded text-xs font-bold border">LOCK/UNLOCK</button>
-                    <button onclick="event.stopPropagation(); deleteAccount('${u._id}')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-xs font-bold border ml-1">DEL</button>
-                </td>
-            </tr>`).join('');
-
-        sellerBody.innerHTML = sellers.map(u => `
-            <tr>
-                <td><b>${u.businessName || u.fullName}</b></td>
-                <td>${u.role}</td>
-                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
-                <td>
-                    <button onclick="toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 px-3 py-1 rounded text-xs font-bold border">LOCK</button>
-                </td>
-            </tr>`).join('');
+        } catch (err) { console.error("Recruit Fetch Error:", err); }
     }
 
     function renderRecruits(recruits) {
         const body = document.getElementById('recruit-table-body');
         if (!body) return;
-        body.innerHTML = recruits.map(r => `
-            <tr>
-                <td><b>${r.studentName} ${r.studentSurname}</b></td>
-                <td>${r.accommodation}</td>
-                <td><span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${r.status}</span></td>
-                <td>
-                    <select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded">
-                        <option value="">Update...</option>
-                        <option value="Approved">Approve</option>
-                        <option value="Cancelled">Cancel</option>
-                    </select>
+
+        body.innerHTML = recruits.map(r => {
+            let agentName = "System/Direct";
+            // Map Agent ID to Name from allUsers array
+            if (r.agent && r.agent.fullName) {
+                agentName = r.agent.fullName;
+            } else if (r.agent) {
+                const found = allUsers.find(u => u._id === (r.agent._id || r.agent));
+                if (found) agentName = found.fullName;
+            }
+
+            return `
+            <tr class="border-b hover:bg-gray-50">
+                <td class="p-3">
+                    <div class="font-bold text-gray-800">${r.studentName || ''} ${r.studentSurname || ''}</div>
+                    <div class="text-[10px] text-gray-500">${r.studentEmail || ''}</div>
                 </td>
-            </tr>`).join('');
+                <td class="p-3 text-xs font-mono">${r.studentPhone || 'N/A'}</td>
+                <td class="p-3">${r.accommodation || 'N/A'}</td>
+                <td class="p-3 text-blue-600 font-bold">${agentName}</td>
+                <td class="p-3 text-xs">${new Date(r.createdAt).toLocaleDateString()}</td>
+                <td class="p-3">
+                    <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                        ${r.status}
+                    </span>
+                </td>
+                <td class="p-3">
+                    <div class="flex items-center gap-2">
+                        <select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded bg-white">
+                            <option value="">Update...</option>
+                            <option value="Approved">Approve</option>
+                            <option value="Cancelled">Cancel</option>
+                        </select>
+                        <button onclick="deleteRecruit('${r._id}')" class="text-red-500">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
     }
 
-    // 6. WATER MANAGEMENT LOGIC
+    // 5. WATER MANAGEMENT (FULL CYCLE)
     async function loadWaterSummary() {
         try {
-            const res = await fetch(`${WATER_API_URL}/summary`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await fetch(`${WATER_API_URL}/summary`, { headers: { 'Authorization': `Bearer ${token}` } });
             const data = await res.json();
             if (res.ok) {
                 if(document.getElementById('dispQty')) document.getElementById('dispQty').innerText = `${(data.currentMonth?.totalQty || 0).toLocaleString()} L`;
@@ -385,56 +387,53 @@
                 }
                 window.allLogs = data.logs; 
             }
-        } catch (err) { console.error("Water Summary Error:", err); }
+        } catch (err) { console.error("Water Load Error:", err); }
     }
 
-    // 7. ACCOUNT ACTIONS
-    async function toggleLock(userId, currentStatus) {
-        const newStatus = currentStatus === 'active' ? 'locked' : 'active';
-        await triggerLoader("Updating Status...");
+    // 6. PDF EXPORT (RE-ADDED)
+    function printAllRecruitsPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("Master Recruitment Report", 14, 20);
+        const rows = allRecruits.map(r => [`${r.studentName} ${r.studentSurname}`, r.accommodation, r.status, new Date(r.createdAt).toLocaleDateString()]);
+        doc.autoTable({ head: [['Student', 'Accommodation', 'Status', 'Date']], body: rows, startY: 25 });
+        doc.save('Master_Recruits.pdf');
+    }
+
+    // 7. USER & UTILITIES
+    async function fetchProfiles() {
         try {
-            const res = await fetch(`${API_BASE_URL}/toggle-lock`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ userId, status: newStatus })
-            });
-            if (res.ok) fetchProfiles();
-        } catch (err) { alert(err.message); }
+            const res = await fetch(`${API_BASE_URL}/profiles`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            allUsers = data;
+            renderAllUsers(data);
+        } catch (e) { console.error(e); }
     }
 
-    async function deleteAccount(userId) {
-        if (!confirm("Permanently delete this user?")) return;
-        try {
-            const res = await fetch(`${API_BASE_URL}/delete-user/${userId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) fetchProfiles();
-        } catch (err) { console.error(err); }
+    function renderAllUsers(users) {
+        const agentBody = document.getElementById('agent-table-body');
+        if(!agentBody) return;
+        const agents = users.filter(u => u.role?.toLowerCase() === 'agent');
+        agentBody.innerHTML = agents.map(u => `
+            <tr class="hover:bg-blue-50 cursor-pointer" onclick="openAgentPayment('${u._id}')">
+                <td><b>${u.fullName}</b></td>
+                <td><span class="text-blue-600 font-mono">${u.agentId || '---'}</span></td>
+                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
+                <td><button onclick="event.stopPropagation(); toggleLock('${u._id}', '${u.status}')" class="text-xs border p-1 rounded">LOCK/UNLOCK</button></td>
+            </tr>`).join('');
     }
-
-    // 8. INITIALIZATION
-    window.onload = async () => { 
-        if(!token) { 
-            window.location.href = 'Admin.html'; 
-        } else { 
-            await Promise.all([fetchProfiles(), fetchRecruits(), loadWaterSummary()]); 
-            resetTimer(); 
-        } 
-    };
 
     async function logout() { 
-        await triggerLoader("Ending Session..."); 
         localStorage.clear(); 
         window.location.href = 'Admin.html'; 
     }
 
-    function handleGlobalSearch() {
-        const query = document.getElementById('globalSearch').value.toLowerCase();
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach(row => row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none');
+    async function triggerLoader(text, duration = 1200) {
+        if (!loaderText) return;
+        loaderText.textContent = text;
+        loader.style.visibility = 'visible'; loader.style.opacity = '1';
+        return new Promise(r => setTimeout(() => { loader.style.opacity = '0'; loader.style.visibility = 'hidden'; setTimeout(r, 500); }, duration));
     }
-
 </script>
 </body>
 </html>
