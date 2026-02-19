@@ -232,573 +232,247 @@
 </div>
 
 <script>
-
-    const API_BASE_URL = '/api/admin';
-    const API_AUTH_URL = '/api/auth';
-    const token = localStorage.getItem('jwtToken');
-    const loader = document.getElementById('loader-overlay');
-    const loaderText = document.getElementById('loader-text');
-    
-    let allRecruits = [];
-    let allUsers = [];
-
-    // --- NEW FIX 1: 5-MINUTE SECURITY TIMEOUT ---
-    let inactivityTimer;
-    const resetTimer = () => {
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            alert("Session expired due to 5 minutes of inactivity.");
-            logout();
-        }, 300000); 
-    };
-    window.onmousemove = resetTimer;
-    window.onkeydown = resetTimer;
-
-    function triggerLoader(text, duration = 1200) {
-        loaderText.textContent = text;
-        loader.style.visibility = 'visible'; loader.style.opacity = '1';
-        return new Promise(resolve => setTimeout(() => {
-            loader.style.opacity = '0'; loader.style.visibility = 'hidden';
-            setTimeout(resolve, 500);
-        }, duration));
-    }
-
-    function switchTab(tab) {
-        ['profiles', 'recruits', 'escrow', 'agents', 'residences'].forEach(t => {
-            document.getElementById('section-' + t).classList.add('hidden');
-            document.getElementById('tab-' + t).classList.remove('tab-active');
-        });
-        document.getElementById('section-' + tab).classList.remove('hidden');
-        document.getElementById('tab-' + tab).classList.add('tab-active');
-
-        if(tab === 'profiles' || tab === 'agents') fetchProfiles();
-        if(tab === 'recruits') fetchRecruits();
-        // if(tab === 'escrow') fetchEscrowOrders(); // Restored from original
-    }
-
-    async function handleResidence(mode) {
-        const fileInput = document.getElementById('resImage');
-        const formData = new FormData();
-        
-        if (fileInput.files[0]) formData.append('resImage', fileInput.files[0]);
-        formData.append('resName', document.getElementById('resName').value);
-        formData.append('location', document.getElementById('resLocation').value);
-        formData.append('rooms', document.getElementById('resRooms').value);
-        formData.append('funding', document.getElementById('resFunding').value);
-        formData.append('resSlug', document.getElementById('resSlug').value);
-        formData.append('mode', mode);
-
-        await triggerLoader(mode === 'send' ? "Broadcasting Emails..." : "Saving Draft...");
-        try {
-            const res = await fetch(`${API_AUTH_URL}/announce-residence`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
-            });
-            const data = await res.json();
-            alert(data.message);
-        } catch (err) { alert("Error: " + err.message); }
-    }
-
-    async function fetchProfiles() {
-        try {
-            const res = await fetch(`${API_BASE_URL}/profiles`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const data = await res.json();
-            allUsers = data;
-            renderAllUsers(data);
-            document.getElementById('stat-users').innerText = data.length;
-        } catch (e) { console.error(e); }
-    }
-    
-
-    function renderAllUsers(users) {
-        const agentBody = document.getElementById('agent-table-body');
-        const sellerBody = document.getElementById('profile-table-body');
-        
-        const agents = users.filter(u => u.role === 'Agent' || u.role === 'agent');
-        const sellers = users.filter(u => u.role !== 'Agent' && u.role !== 'agent');
-
-        agentBody.innerHTML = agents.map(u => `
-            <tr class="hover:bg-blue-50 cursor-pointer" onclick="openAgentPayment('${u._id}')">
-                <td><b>${u.fullName}</b><br><small class="text-gray-400">${u.email}</small></td>
-                <td><span class="text-blue-600 font-mono font-bold">${u.agentId || '---'}</span></td>
-                <td>${u.phone || 'N/A'}</td>
-                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
-                <td>
-                    <div class="flex gap-2">
-                        <button onclick="event.stopPropagation(); toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 text-gray-700 px-3 py-1 rounded text-xs font-bold border">LOCK/UNLOCK</button>
-                        <button onclick="event.stopPropagation(); deleteAccount('${u._id}', 'Agent')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-xs font-bold border border-red-200">DELETE</button>
-                    </div>
-                </td>
-            </tr>`).join('');
-
-        sellerBody.innerHTML = sellers.map(u => `
-            <tr>
-                <td><b>${u.businessName || u.fullName}</b><br><small>${u.email}</small></td>
-                <td>${u.phone || 'N/A'}</td>
-                <td>${u.role}</td>
-                <td><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
-                <td>
-                    <button onclick="toggleLock('${u._id}', '${u.status}')" class="bg-gray-100 text-gray-700 px-3 py-1 rounded text-xs font-bold border mr-2">LOCK/UNLOCK</button>
-                    <button onclick="deleteAccount('${u._id}', 'Seller')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-xs font-bold border">DELETE</button>
-                </td>
-            </tr>`).join('');
-    }
-
-    async function fetchRecruits() {
-    try {
-        const res = await fetch('/api/auth/all-recruits', { 
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        
-        if (res.ok) {
-            allRecruits = data;
-
-            // --- NEW FIX 2: POPULATE ACC DROPDOWN FOR PDF FILTER ---
-            const accFilter = document.getElementById('acc-filter');
-            if (accFilter) {
-                const uniqueAccs = [...new Set(data.map(r => r.accommodation))];
-                accFilter.innerHTML = '<option value="">Select Accommodation...</option>' + 
-                    uniqueAccs.map(acc => `<option value="${acc}">${acc}</option>`).join('');
-            }
-
-            renderRecruits(data);
-        } else {
-            console.error("Failed to fetch recruits:", data.message);
-        }
-    } catch (err) {
-        console.error("Error fetching recruits:", err);
-    }
-}
-
-    function renderRecruits(recruits) {
-    const body = document.getElementById('recruit-table-body');
-    body.innerHTML = recruits.map(r => {
-        let agentName = "System/Direct";
-        if (r.agent && r.agent.fullName) agentName = r.agent.fullName;
-        else if (typeof r.agent === 'string') {
-            const found = allUsers.find(u => u._id === r.agent);
-            if (found) agentName = found.fullName;
-        }
-
-        return `
-        <tr>
-            <td><b>${r.studentName} ${r.studentSurname}</b><br><small>${r.studentEmail}</small></td>
-            <td class="text-xs font-mono">${r.studentPhone || 'N/A'}</td> 
-            <td>${r.accommodation}</td>
-            <td class="text-blue-600 font-bold">${agentName}</td>
-            <td>${new Date(r.createdAt).toLocaleDateString()}</td>
-            <td>${new Date(r.moveInDate).toLocaleDateString()}</td>
-            <td>
-                <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
-                    ${r.status}
-                </span>
-            </td>
-            <td>
-                <div class="flex items-center gap-2">
-                    <select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded">
-                        <option value="">Update...</option>
-                        <option value="Approved">Approve</option>
-                        <option value="Cancelled">Cancel</option>
-                        <option value="Pending..">Pending</option>
-                    </select>
-                    <button onclick="deleteRecruit('${r._id}')" class="bg-red-50 text-red-600 p-1.5 rounded hover:bg-red-600 hover:text-white transition shadow-sm border border-red-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                </div>
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-
-   function printAllRecruitsPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-
-    doc.setDrawColor(37, 99, 235);
-    doc.setLineWidth(1.5);
-    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
-
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(37, 99, 235);
-    doc.setFontSize(22);
-    doc.text("Campus", 40, 22); 
-    doc.setFontSize(10);
-    doc.text("COLLECTIVE", 40, 27);
-
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
-    doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
-    doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
-
-    doc.setDrawColor(37, 99, 235);
-    doc.line(12, 40, pageWidth - 12, 40);
-
-    doc.setFontSize(14);
-    doc.setTextColor(0);
-    doc.text("MASTER RECRUITMENT REPORT", 12, 50);
-
-    const getAgentName = (r) => {
-        if (r.agent && r.agent.fullName) return r.agent.fullName;
-        const found = allUsers.find(u => u._id === (r.agent?._id || r.agent));
-        return found ? found.fullName : "Direct/System";
-    };
-
-    const groupedRecruits = [...allRecruits].sort((a, b) => 
-        getAgentName(a).localeCompare(getAgentName(b))
-    );
-
-    const rows = groupedRecruits.map(r => [
-        `${r.studentName} ${r.studentSurname}`,
-        r.studentPhone || 'N/A',
-        r.accommodation,
-        getAgentName(r),
-        r.status,
-        new Date(r.createdAt).toLocaleDateString()
-    ]);
-
-    doc.autoTable({
-        head: [['Student', 'Phone', 'Accommodation', 'Agent', 'Status', 'Date']],
-        body: rows,
-        startY: 55,
-        theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
-        styles: { fontSize: 8, cellPadding: 3 },
-        alternateRowStyles: { fillColor: [242, 247, 255] },
-        margin: { left: 12, right: 12 }
-    });
-
-    doc.save('Campus_Collective_Master_Recruits.pdf');
-}
-
-function printAccPDF() {
-    const val = document.getElementById('acc-filter').value;
-    if (!val) {
-        alert("Please select an accommodation first");
-        return;
-    }
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    const filtered = allRecruits.filter(r => r.accommodation === val);
-
-    const getAgentName = (r) => {
-        if (r.agent && r.agent.fullName) return r.agent.fullName;
-        const found = allUsers.find(u => u._id === (r.agent?._id || r.agent));
-        return found ? found.fullName : "Direct/System";
-    };
-
-    const rows = filtered.map(r => [
-        `${r.studentName} ${r.studentSurname}`,
-        r.studentPhone || 'N/A',
-        getAgentName(r),
-        r.status,
-        new Date(r.createdAt).toLocaleDateString()
-    ]);
-
-    doc.autoTable({
-        head: [['Student', 'Phone', 'Agent', 'Status', 'Date Applied']],
-        body: rows,
-        startY: 20,
-        theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
-        margin: { left: 12, right: 12 }
-    });
-
-    doc.save(`Recruits_Report_${val.replace(/\s+/g, '_')}.pdf`);
-}
-
-    function printAgentPDF(agentName, agentId) {
-        const filtered = allRecruits.filter(r => (r.agent && r.agent._id === agentId) || (r.agent === agentId));
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text(`RECRUITMENT REPORT: ${agentName}`, 14, 20);
-        const rows = filtered.map(r => [`${r.studentName} ${r.studentSurname}`, r.accommodation, r.status]);
-        doc.autoTable({ head: [['Student', 'Accommodation', 'Status']], body: rows, startY: 25 });
-        doc.save(`Agent_${agentName}.pdf`);
-    }
-
-    function openAgentPayment(userId) {
-        const agent = allUsers.find(u => u._id === userId);
-        if(!agent) return;
-
-        const agentRecruits = allRecruits.filter(r => ((r.agent && r.agent._id === userId) || (r.agent === userId)) && r.status === 'Approved');
-        const totalPayout = agentRecruits.reduce((sum, r) => sum + (parseFloat(r.commissionEarned) || 0), 0);
-
-        const modal = document.getElementById('payment-modal');
-        const content = document.getElementById('payment-content');
-        const bank = agent.banking || {};
-
-        content.innerHTML = `
-            <div class="bg-gray-100 p-4 rounded-xl border">
-                <h3 class="font-bold text-lg">${agent.fullName}</h3>
-                <p class="text-sm text-blue-600 font-mono">${agent.agentId || 'ID: ---'}</p>
-            </div>
-            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-2">
-                <p class="text-[10px] font-bold text-blue-400 uppercase">Settlement Banking Details</p>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <p><b>Bank:</b> ${bank.bankName || 'N/A'}</p>
-                    <p><b>Acc Holder:</b> ${bank.accHolder || 'N/A'}</p>
-                    <p><b>Acc Num:</b> ${bank.accNumber || 'N/A'}</p>
-                    <p class="text-emerald-600"><b>Phone:</b> ${bank.bankPhone || 'N/A'}</p>
-                </div>
-            </div>
-            <div class="flex justify-between items-center py-4">
-                <p class="font-black text-gray-500 uppercase text-xs">Total Due for Payout:</p>
-                <h3 class="text-4xl font-black text-green-600">R ${totalPayout.toFixed(2)}</h3>
-            </div>
-            <button onclick="payWithPaystack('${agent.email}', ${totalPayout})" 
-                class="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 shadow-lg transition uppercase">
-                Authorize Bank Payout
-            </button>
-            <button onclick="printAgentPDF('${agent.fullName}', '${agent._id}')" class="w-full text-gray-400 text-xs uppercase font-bold hover:text-gray-800 transition">塘 Generate Report PDF</button>
-        `;
-        modal.style.display = 'flex';
-    }
-
-    function closePaymentModal() { document.getElementById('payment-modal').style.display = 'none'; }
-
-    function payWithPaystack(email, amount) {
-        if(amount <= 0) { alert("Balance is zero."); return; }
-        const handler = PaystackPop.setup({
-            key: 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxx', 
-            email: email,
-            amount: amount * 100,
-            currency: "ZAR",
-            callback: function(response) {
-                alert('Success! Reference: ' + response.reference);
-                closePaymentModal();
-                location.reload();
-            }
-        });
-        handler.openIframe();
-    }
-
-    async function updateRecruitStatus(id, status) {
-        if(!status) return;
-        let commissionAmount = 0;
-        if(status === 'Approved') {
-            const val = prompt("Enter Commission Amount:", "250");
-            if(val === null) return;
-            commissionAmount = parseFloat(val) || 0;
-        }
-        await triggerLoader("Updating...");
-        try {
-            await fetch(`${API_BASE_URL}/approve-recruit/${id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ status, commissionAmount })
-            });
-            fetchRecruits();
-        } catch (e) { console.error(e); }
-    }
-
-async function toggleLock(userId, currentStatus) {
-    const newStatus = currentStatus === 'active' ? 'locked' : 'active';
-    await triggerLoader(newStatus === 'locked' ? "Locking..." : "Unlocking...");
-
-    try {
-        const response = await fetch('/api/admin/toggle-lock', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
-            },
-            body: JSON.stringify({ userId, status: newStatus })
-        });
-
-        if (response.ok) {
-            alert(`Account ${newStatus} successfully`);
-            location.reload(); 
-        } else {
-            throw new Error("Failed to update status");
-        }
-    } catch (err) {
-        alert(err.message);
-    }
-}
-
-async function deleteAccount(userId) {
-    if (!confirm("Are you sure you want to PERMANENTLY delete this account?")) return;
-
-    try {
-        const response = await fetch(`/api/admin/delete-user/${userId}`, {
-            method: 'DELETE',
-            headers: { 
-                'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` 
-            }
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-            alert(data.message);
-            location.reload(); 
-        } else {
-            alert(data.message);
-        }
-    } catch (err) {
-        console.error("Delete Error:", err);
-    }
-}
-
-async function deleteRecruit(recruitId) {
-    if (!confirm("Delete this student recruit?")) return;
-    await triggerLoader("Deleting Recruit...");
-
-    try {
-        const response = await fetch(`/api/admin/delete-recruit/${recruitId}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
-        });
-
-        if (response.ok) {
-            alert("Recruit removed");
-            location.reload();
-        }
-    } catch (err) {
-        alert("Error deleting recruit");
-    }
-}
-    function handleGlobalSearch() {
-        const query = document.getElementById('globalSearch').value.toLowerCase();
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach(row => row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none');
-    }
-
-    function openCalculator() { document.getElementById('calc-modal').classList.remove('hidden'); }
-    function closeCalculator() { document.getElementById('calc-modal').classList.add('hidden'); }
-    function toggleManualInput() { 
-        const mode = document.getElementById('calc-mode').value;
-        document.getElementById('manual-val-div').classList.toggle('hidden', mode !== 'manual');
-        runCalc();
-    }
-    function runCalc() {
-        const mode = document.getElementById('calc-mode').value;
-        const price = parseFloat(document.getElementById('calc-price').value) || 0;
-        const qty = parseFloat(document.getElementById('calc-qty').value) || 1;
-        const manualVal = parseFloat(document.getElementById('calc-manual-val').value) || 0;
-        let admin = 0, partner = 0;
-        if (mode === 'seller') { admin = (price * qty) * 0.10; partner = (price * qty) - admin; }
-        else if (mode === 'agent') { admin = price * qty; partner = 250 * qty; }
-        else { partner = manualVal * qty; admin = (price * qty) - partner; }
-        document.getElementById('calc-admin').innerText = 'R ' + admin.toFixed(2);
-        document.getElementById('calc-partner').innerText = 'R ' + partner.toFixed(2);
-    }
-
-    async function addNewAccount() { await triggerLoader("Redirecting..."); window.location.href = 'Admin-register-agent.html'; }
-    async function logout() { await triggerLoader("Ending Session..."); localStorage.clear(); window.location.href = 'Admin.html'; }
-
-    // --- NEW FIX 3: ASYNC INITIALIZATION TO ENSURE DATA LOADS ---
-    window.onload = async () => { 
-        if(!token) { 
-            window.location.href = 'Admin.html'; 
-        } else { 
-            // Load both datasets before hiding the startup screen
-            await Promise.all([fetchProfiles(), fetchRecruits()]); 
-            resetTimer(); // Start inactivity clock
-        } 
-    };
-    const API_URL = '/api/auth/water'; 
-    const token = localStorage.getItem('jwtToken'); // Fixed to match management.html
-
-    async function loadSummary() {
-        if(!token) return window.location.href = 'Admin.html';
-
-        try {
-            const res = await fetch(`${API_URL}/summary`, {
-                headers: { 'Authorization': `Bearer ${token}` } // Fixed Header
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                document.getElementById('dispQty').innerText = `${data.currentMonth.totalQty.toLocaleString()} L`;
-                document.getElementById('dispSpend').innerText = `R ${data.currentMonth.totalSpend.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                
-                const trendEl = document.getElementById('dispTrend');
-                trendEl.innerText = data.trend;
-                trendEl.className = `text-lg font-bold ${data.trendColor}`;
-
-                const body = document.getElementById('logBody');
-                body.innerHTML = data.logs.map(log => `
-                    <tr class="hover:bg-gray-50 border-b last:border-0">
-                        <td class="p-4 font-medium">${new Date(log.date).toLocaleDateString()}</td>
-                        <td class="p-4">${log.truckQuantity} L</td>
-                        <td class="p-4 font-bold">R ${log.totalCost.toFixed(2)}</td>
-                    </tr>
-                `).join('');
-                
-                window.allLogs = data.logs; 
-            }
-        } catch (err) {
-            console.error("Failed to load water data", err);
-        }
-    }
-
-    document.getElementById('waterForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const payload = {
-            date: document.getElementById('date').value,
-            truckQuantity: Number(document.getElementById('qty').value),
-            pricePerUnit: Number(document.getElementById('price').value)
-        };
-
-        const res = await fetch(`${API_URL}/add`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'Authorization': `Bearer ${token}` // Fixed Header
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            alert('Delivery Logged Successfully!');
-            document.getElementById('waterForm').reset();
-            loadSummary();
-        } else {
-            const err = await res.json();
-            alert('Error: ' + err.message);
-        }
-    });
-
-    function generatePDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        doc.setFontSize(18);
-        doc.setTextColor(30, 64, 175);
-        doc.text("Campus Collective: Water Supply Report", 14, 20);
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
-
-        const tableData = window.allLogs.map(log => [
-            new Date(log.date).toLocaleDateString(),
-            `${log.truckQuantity} L`,
-            `R ${log.totalCost.toFixed(2)}`
-        ]);
-
-        doc.autoTable({
-            startY: 35,
-            head: [['Date', 'Quantity (Liters)', 'Total Cost']],
-            body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [30, 64, 175] }
-        });
-
-        doc.save(`Water_Supply_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-    }
-
-    // Initial Load
-    loadSummary();
+    // 1. GLOBAL CONFIGURATION (Declared once)
+    const API_BASE_URL = '/api/admin';
+    const API_AUTH_URL = '/api/auth';
+    const WATER_API_URL = '/api/auth/water'; 
+    const token = localStorage.getItem('jwtToken');
+    const loader = document.getElementById('loader-overlay');
+    const loaderText = document.getElementById('loader-text');
+    
+    let allRecruits = [];
+    let allUsers = [];
+
+    // 2. SECURITY: 5-MINUTE INACTIVITY TIMEOUT
+    let inactivityTimer;
+    const resetTimer = () => {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            alert("Session expired due to 5 minutes of inactivity.");
+            logout();
+        }, 300000); 
+    };
+    window.onmousemove = resetTimer;
+    window.onkeydown = resetTimer;
+
+    // 3. UI HELPERS
+    function triggerLoader(text, duration = 1200) {
+        if (!loader || !loaderText) return Promise.resolve();
+        loaderText.textContent = text;
+        loader.style.visibility = 'visible'; loader.style.opacity = '1';
+        return new Promise(resolve => setTimeout(() => {
+            loader.style.opacity = '0'; loader.style.visibility = 'hidden';
+            setTimeout(resolve, 500);
+        }, duration));
+    }
+
+    function switchTab(tab) {
+        const sections = ['profiles', 'recruits', 'escrow', 'agents', 'residences'];
+        sections.forEach(t => {
+            const sec = document.getElementById('section-' + t);
+            const btn = document.getElementById('tab-' + t);
+            if (sec) sec.classList.add('hidden');
+            if (btn) btn.classList.remove('tab-active');
+        });
+        
+        const targetSec = document.getElementById('section-' + tab);
+        const targetBtn = document.getElementById('tab-' + tab);
+        if (targetSec) targetSec.classList.remove('hidden');
+        if (targetBtn) targetBtn.classList.add('tab-active');
+
+        if(tab === 'profiles' || tab === 'agents') fetchProfiles();
+        if(tab === 'recruits') fetchRecruits();
+    }
+
+    // 4. DATA FETCHING
+    async function fetchProfiles() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/profiles`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            allUsers = data;
+            renderAllUsers(data);
+            const statUsers = document.getElementById('stat-users');
+            if(statUsers) statUsers.innerText = data.length;
+        } catch (e) { console.error("Profile Error:", e); }
+    }
+
+    async function fetchRecruits() {
+        try {
+            const res = await fetch(`${API_AUTH_URL}/all-recruits`, { 
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                allRecruits = data;
+                
+                const accFilter = document.getElementById('acc-filter');
+                if (accFilter) {
+                    const uniqueAccs = [...new Set(data.map(r => r.accommodation))];
+                    accFilter.innerHTML = '<option value="">Select Accommodation...</option>' + 
+                        uniqueAccs.map(acc => `<option value="${acc}">${acc}</option>`).join('');
+                }
+                renderRecruits(data);
+            }
+        } catch (err) { console.error("Recruit Error:", err); }
+    }
+
+    // 5. RENDERING TABLES
+    function renderAllUsers(users) {
+        const agentBody = document.getElementById('agent-table-body');
+        const sellerBody = document.getElementById('profile-table-body');
+        
+        if(agentBody) {
+            const agents = users.filter(u => u.role?.toLowerCase() === 'agent');
+            agentBody.innerHTML = agents.map(u => `
+                <tr class="hover:bg-blue-50 cursor-pointer" onclick="openAgentPayment('${u._id}')">
+                    <td class="p-3"><b>${u.fullName}</b><br><small class="text-gray-400">${u.email}</small></td>
+                    <td class="p-3"><span class="text-blue-600 font-mono font-bold">${u.agentId || '---'}</span></td>
+                    <td class="p-3">${u.phone || 'N/A'}</td>
+                    <td class="p-3"><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
+                    <td class="p-3">
+                        <div class="flex gap-2">
+                            <button onclick="event.stopPropagation(); toggleLock('${u._id}', '${u.status}')" class="border px-2 py-1 rounded text-xs font-bold">LOCK/UNLOCK</button>
+                            <button onclick="event.stopPropagation(); deleteAccount('${u._id}')" class="text-red-600 border border-red-200 px-2 py-1 rounded text-xs font-bold">DELETE</button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+        }
+
+        if(sellerBody) {
+            const sellers = users.filter(u => u.role?.toLowerCase() !== 'agent');
+            sellerBody.innerHTML = sellers.map(u => `
+                <tr class="border-b">
+                    <td class="p-3"><b>${u.businessName || u.fullName}</b><br><small>${u.email}</small></td>
+                    <td class="p-3">${u.phone || 'N/A'}</td>
+                    <td class="p-3 text-xs uppercase">${u.role}</td>
+                    <td class="p-3"><span class="${u.status === 'active' ? 'text-green-600' : 'text-red-600'} font-bold uppercase text-xs">${u.status}</span></td>
+                    <td class="p-3">
+                        <button onclick="toggleLock('${u._id}', '${u.status}')" class="border px-2 py-1 rounded text-xs font-bold mr-2">STATUS</button>
+                        <button onclick="deleteAccount('${u._id}')" class="text-red-600 border px-2 py-1 rounded text-xs font-bold">DEL</button>
+                    </td>
+                </tr>`).join('');
+        }
+    }
+
+    function renderRecruits(recruits) {
+        const body = document.getElementById('recruit-table-body');
+        if(!body) return;
+        body.innerHTML = recruits.map(r => {
+            let agentName = "System/Direct";
+            const agentRef = r.agent?._id || r.agent;
+            if (agentRef) {
+                const found = allUsers.find(u => u._id === agentRef);
+                if (found) agentName = found.fullName;
+            }
+
+            return `
+            <tr class="border-b hover:bg-gray-50">
+                <td class="p-3"><b>${r.studentName} ${r.studentSurname}</b><br><small>${r.studentEmail}</small></td>
+                <td class="p-3 text-xs font-mono">${r.studentPhone || 'N/A'}</td> 
+                <td class="p-3">${r.accommodation}</td>
+                <td class="p-3 text-blue-600 font-bold">${agentName}</td>
+                <td class="p-3 text-xs">${new Date(r.createdAt).toLocaleDateString()}</td>
+                <td class="p-3">
+                    <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                        ${r.status}
+                    </span>
+                </td>
+                <td class="p-3">
+                    <div class="flex items-center gap-2">
+                        <select onchange="updateRecruitStatus('${r._id}', this.value)" class="text-xs p-1 border rounded bg-white">
+                            <option value="">Update...</option>
+                            <option value="Approved">Approve</option>
+                            <option value="Cancelled">Cancel</option>
+                        </select>
+                        <button onclick="deleteRecruit('${r._id}')" class="text-red-500">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // 6. CALCULATOR LOGIC
+    function openCalculator() { document.getElementById('calc-modal').classList.remove('hidden'); }
+    function closeCalculator() { document.getElementById('calc-modal').classList.add('hidden'); }
+    function toggleManualInput() { 
+        const mode = document.getElementById('calc-mode').value;
+        document.getElementById('manual-val-div').classList.toggle('hidden', mode !== 'manual');
+        runCalc();
+    }
+    function runCalc() {
+        const mode = document.getElementById('calc-mode').value;
+        const price = parseFloat(document.getElementById('calc-price').value) || 0;
+        const qty = parseFloat(document.getElementById('calc-qty').value) || 1;
+        const manualVal = parseFloat(document.getElementById('calc-manual-val').value) || 0;
+        let admin = 0, partner = 0;
+        if (mode === 'seller') { admin = (price * qty) * 0.10; partner = (price * qty) - admin; }
+        else if (mode === 'agent') { admin = price * qty; partner = 250 * qty; }
+        else { partner = manualVal * qty; admin = (price * qty) - partner; }
+        document.getElementById('calc-admin').innerText = 'R ' + admin.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('calc-partner').innerText = 'R ' + partner.toLocaleString(undefined, {minimumFractionDigits: 2});
+    }
+
+    // 7. WATER TRACKER LOGIC
+    async function loadWaterSummary() {
+        try {
+            const res = await fetch(`${WATER_API_URL}/summary`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            if (res.ok) {
+                if(document.getElementById('dispQty')) document.getElementById('dispQty').innerText = `${data.currentMonth.totalQty.toLocaleString()} L`;
+                if(document.getElementById('dispSpend')) document.getElementById('dispSpend').innerText = `R ${data.currentMonth.totalSpend.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                
+                const trendEl = document.getElementById('dispTrend');
+                if(trendEl) { trendEl.innerText = data.trend; trendEl.className = `text-lg font-bold ${data.trendColor}`; }
+
+                const body = document.getElementById('logBody');
+                if(body) body.innerHTML = data.logs.map(log => `<tr class="border-b"><td class="p-4">${new Date(log.date).toLocaleDateString()}</td><td class="p-4">${log.truckQuantity} L</td><td class="p-4 font-bold">R ${log.totalCost.toFixed(2)}</td></tr>`).join('');
+                window.allLogs = data.logs; 
+            }
+        } catch (err) { console.error("Water Load Error", err); }
+    }
+
+    // 8. PDF EXPORTS
+    function printAllRecruitsPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("Master Recruitment Report", 14, 20);
+        const rows = allRecruits.map(r => [`${r.studentName} ${r.studentSurname}`, r.accommodation, r.status, new Date(r.createdAt).toLocaleDateString()]);
+        doc.autoTable({ head: [['Student', 'Accommodation', 'Status', 'Date']], body: rows, startY: 25 });
+        doc.save('Campus_Master_Recruits.pdf');
+    }
+
+    // 9. INITIALIZATION & LOGOUT
+    window.onload = async () => { 
+        if(!token) { 
+            window.location.href = 'Admin.html'; 
+        } else { 
+            await Promise.all([fetchProfiles(), fetchRecruits(), loadWaterSummary()]); 
+            resetTimer(); 
+        } 
+    };
+
+    async function logout() { 
+        localStorage.clear(); 
+        window.location.href = 'Admin.html'; 
+    }
+
+    async function deleteAccount(userId) {
+        if (!confirm("Permanently delete?")) return;
+        const res = await fetch(`/api/admin/delete-user/${userId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) location.reload();
+    }
+
+    async function toggleLock(userId, currentStatus) {
+        const status = currentStatus === 'active' ? 'locked' : 'active';
+        const res = await fetch('/api/admin/toggle-lock', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ userId, status })
+        });
+        if (res.ok) location.reload();
+    }
 </script>
 
 
