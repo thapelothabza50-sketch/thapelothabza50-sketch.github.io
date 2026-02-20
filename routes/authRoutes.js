@@ -677,26 +677,21 @@ router.put('/update-banking', auth, async (req, res) => {
 });
 
 const WaterLog = require('../models/WaterLog');
-
-// 1. ADD WATER TRUCK ENTRY
+// --- ADD WATER LOG ---
 router.post('/water/add', auth, hasRole(['Admin']), async (req, res) => {
     try {
-        const { date, truckQuantity, pricePerUnit } = req.body;
-        const totalCost = truckQuantity * pricePerUnit; 
-        const month = date.substring(0, 7); // Extracts YYYY-MM
-
-        const newLog = new WaterLog({
-            date,
-            truckQuantity,
-            pricePerUnit,
-            totalCost,
-            month
+        const { date, truckQuantity, totalCost } = req.body; // Changed from pricePerUnit
+        const newLog = new WaterLog({ 
+            date, 
+            truckQuantity, 
+            totalCost, // Use the flat price per load
+            month: date.substring(0, 7) 
         });
 
         await newLog.save();
-        res.status(201).json({ message: 'Water delivery logged successfully!' });
+        res.status(201).json({ message: 'Water log added successfully' });
     } catch (err) {
-        res.status(500).json({ message: 'Error saving log', error: err.message });
+        res.status(500).json({ message: 'Error saving load', error: err.message });
     }
 });
 
@@ -738,18 +733,7 @@ router.get('/water/summary', auth, hasRole(['Admin']), async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });
-    }
-    
-});
-// --- DELETE WATER LOG ---
-router.delete('/water/delete/:id', auth, hasRole(['Admin']), async (req, res) => {
-    try {
-        const log = await WaterLog.findByIdAndDelete(req.params.id);
-        if (!log) return res.status(404).json({ message: "Log not found" });
-        res.json({ message: "Water log deleted successfully" });
-    } catch (err) {
-        res.status(500).json({ message: "Error deleting log", error: err.message });
-    }
+    }  
 });
 
 // --- EDIT/UPDATE WATER LOG ---
@@ -758,13 +742,28 @@ router.put('/water/edit/:id', auth, hasRole(['Admin']), async (req, res) => {
         const { date, truckQuantity, totalCost } = req.body;
         const updatedLog = await WaterLog.findByIdAndUpdate(
             req.params.id,
-            { date, truckQuantity, totalCost },
-            { new: true } // returns the updated document
+            { 
+                date, 
+                truckQuantity, 
+                totalCost, 
+                month: date.substring(0, 7) 
+            },
+            { new: true }
         );
         if (!updatedLog) return res.status(404).json({ message: "Log not found" });
-        res.json({ message: "Water log updated successfully", updatedLog });
+        res.json({ message: "Water log updated successfully" });
     } catch (err) {
-        res.status(500).json({ message: "Error updating log", error: err.message });
+        res.status(500).json({ message: "Error updating log" });
+    }
+});
+
+// --- DELETE WATER LOG ---
+router.delete('/water/delete/:id', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        await WaterLog.findByIdAndDelete(req.params.id);
+        res.json({ message: "Water log deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Error deleting log" });
     }
 });
 

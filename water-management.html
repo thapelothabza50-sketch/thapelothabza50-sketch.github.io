@@ -103,7 +103,7 @@
                         <td class="p-4">${log.truckQuantity} L</td>
                         <td class="p-4 font-bold">R ${log.totalCost.toFixed(2)}</td>
                         <td class="p-4 flex gap-2">
-                            <button onclick="editLoad('${log._id}', ${log.truckQuantity}, ${log.totalCost}, '${log.date.split('T')[0]}')" class="text-blue-600 hover:underline text-xs font-bold">EDIT</button>
+                            <button onclick="editLoad('${log._id}', ${log.truckQuantity}, ${log.totalCost}, '${log.date}')" class="text-blue-600 hover:underline text-xs font-bold">EDIT</button>
                             <button onclick="deleteLoad('${log._id}')" class="text-red-600 hover:underline text-xs font-bold">DELETE</button>
                         </td>
                     </tr>
@@ -119,15 +119,15 @@
     // 2. ADD / UPDATE LOAD
     document.getElementById('waterForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const loadId = document.getElementById('loadId')?.value; // For editing
+        const loadId = document.getElementById('loadId')?.value; 
         
         const payload = {
             date: document.getElementById('date').value,
             truckQuantity: Number(document.getElementById('qty').value),
-            // Price is now per load, so we send it as the total
             totalCost: Number(document.getElementById('price').value) 
         };
 
+        // FIX: Ensured endpoints match the backend routes precisely
         const endpoint = loadId ? `${API_URL}/edit/${loadId}` : `${API_URL}/add`;
         const method = loadId ? 'PUT' : 'POST';
 
@@ -152,11 +152,12 @@
 
     // 3. EDIT & DELETE ACTIONS
     function editLoad(id, qty, cost, date) {
-        document.getElementById('date').value = date;
+        // FIX: Ensure date is formatted as YYYY-MM-DD for the input field
+        const formattedDate = new Date(date).toISOString().split('T')[0];
+        document.getElementById('date').value = formattedDate;
         document.getElementById('qty').value = qty;
         document.getElementById('price').value = cost;
         
-        // Add a hidden field to keep track of the ID we are editing
         if(!document.getElementById('loadId')){
             const input = document.createElement('input');
             input.type = 'hidden';
@@ -165,6 +166,7 @@
         }
         document.getElementById('loadId').value = id;
         document.querySelector('button[type="submit"]').innerText = "Update Load Details";
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deleteLoad(id) {
@@ -178,6 +180,8 @@
         if(res.ok) {
             alert("Load removed.");
             loadSummary();
+        } else {
+            alert("Failed to delete. Check backend connection.");
         }
     }
 
@@ -189,89 +193,81 @@
     }
 
     // 4. v1 STYLED PDF PRINT OUT (CECIL S COMPLEX MSHOLOZI)
-  function generatePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
+    function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
 
-    // 1. Calculate Totals for the Summary Box
-    const totalQty = (window.allLogs || []).reduce((sum, log) => sum + (log.truckQuantity || 0), 0);
-    const totalCost = (window.allLogs || []).reduce((sum, log) => sum + (log.totalCost || 0), 0);
+        const totalQty = (window.allLogs || []).reduce((sum, log) => sum + (log.truckQuantity || 0), 0);
+        const totalCost = (window.allLogs || []).reduce((sum, log) => sum + (log.totalCost || 0), 0);
 
-    // 2. v1 Blue Border
-    doc.setDrawColor(30, 64, 175);
-    doc.setLineWidth(1.5);
-    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+        doc.setDrawColor(30, 64, 175);
+        doc.setLineWidth(1.5);
+        doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
 
-    // 3. Header Branding: Cecil S Complex Msholozi
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(30, 64, 175);
-    doc.setFontSize(22);
-    doc.text("Cecil S Complex", 14, 22); 
-    doc.setFontSize(10);
-    doc.text("MSHOLOZI WATER MANAGEMENT SYSTEM", 14, 28);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 64, 175);
+        doc.setFontSize(22);
+        doc.text("Cecil S Complex", 14, 22); 
+        doc.setFontSize(10);
+        doc.text("MSHOLOZI WATER MANAGEMENT SYSTEM", 14, 28);
 
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text(`Report Generated: ${new Date().toLocaleString()}`, pageWidth - 80, 22);
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text(`Report Generated: ${new Date().toLocaleString()}`, pageWidth - 80, 22);
 
-    doc.setDrawColor(30, 64, 175);
-    doc.line(12, 35, pageWidth - 12, 35);
+        doc.setDrawColor(30, 64, 175);
+        doc.line(12, 35, pageWidth - 12, 35);
 
-    // 4. Data Table
-    const tableData = (window.allLogs || []).map(log => [
-        new Date(log.date).toLocaleDateString(),
-        `${log.truckQuantity.toLocaleString()} L`,
-        `R ${log.totalCost.toFixed(2)}`
-    ]);
+        const tableData = (window.allLogs || []).map(log => [
+            new Date(log.date).toLocaleDateString(),
+            `${log.truckQuantity.toLocaleString()} L`,
+            `R ${log.totalCost.toFixed(2)}`
+        ]);
 
-    doc.autoTable({
-        startY: 45,
-        head: [['Delivery Date', 'Quantity (Liters)', 'Cost per Load']],
-        body: tableData,
-        theme: 'grid',
-        headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
-        alternateRowStyles: { fillColor: [242, 247, 255] },
-        margin: { left: 12, right: 12 }
-    });
+        doc.autoTable({
+            startY: 45,
+            head: [['Delivery Date', 'Quantity (Liters)', 'Cost per Load']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
+            alternateRowStyles: { fillColor: [242, 247, 255] },
+            margin: { left: 12, right: 12 }
+        });
 
-    // 5. FINANCIAL SUMMARY BOX (At the bottom of the table)
-    const finalY = doc.lastAutoTable.finalY + 10;
-    
-    // Summary Box Background
-    doc.setFillColor(240, 245, 255);
-    doc.rect(12, finalY, pageWidth - 24, 30, 'F');
-    doc.setDrawColor(30, 64, 175);
-    doc.setLineWidth(0.5);
-    doc.rect(12, finalY, pageWidth - 24, 30, 'D');
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFillColor(240, 245, 255);
+        doc.rect(12, finalY, pageWidth - 24, 30, 'F');
+        doc.setDrawColor(30, 64, 175);
+        doc.setLineWidth(0.5);
+        doc.rect(12, finalY, pageWidth - 24, 30, 'D');
 
-    doc.setFontSize(12);
-    doc.setTextColor(30, 64, 175);
-    doc.setFont("helvetica", "bold");
-    doc.text("TOTAL SUMMARY", 18, finalY + 8);
+        doc.setFontSize(12);
+        doc.setTextColor(30, 64, 175);
+        doc.setFont("helvetica", "bold");
+        doc.text("TOTAL SUMMARY", 18, finalY + 8);
 
-    doc.setFontSize(10);
-    doc.setTextColor(0);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Total Water Delivered:`, 18, finalY + 18);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${totalQty.toLocaleString()} Liters`, 80, finalY + 18);
+        doc.setFontSize(10);
+        doc.setTextColor(0);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Total Water Delivered:`, 18, finalY + 18);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${totalQty.toLocaleString()} Liters`, 80, finalY + 18);
 
-    doc.setFont("helvetica", "normal");
-    doc.text(`Total Expenditure:`, 18, finalY + 25);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(180, 0, 0); // Red for money
-    doc.text(`R ${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2})}`, 80, finalY + 25);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Total Expenditure:`, 18, finalY + 25);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(180, 0, 0); 
+        doc.text(`R ${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2})}`, 80, finalY + 25);
 
-    // 6. Footer
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text("End of Cecil S Complex Water Report", pageWidth / 2, pageHeight - 15, { align: "center" });
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text("End of Cecil S Complex Water Report", pageWidth / 2, pageHeight - 15, { align: "center" });
 
-    doc.save(`Cecil_S_Water_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-}
-    // Initial Load
+        doc.save(`Cecil_S_Water_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
+
     loadSummary();
 </script>
 </body>
