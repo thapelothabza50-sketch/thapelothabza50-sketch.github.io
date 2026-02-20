@@ -34,21 +34,25 @@
 
         <div class="bg-white p-6 rounded-2xl shadow-md mb-8">
             <h3 class="font-bold text-gray-700 mb-4">Log New Truck</h3>
-            <form id="waterForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">Date</label>
-                    <input type="date" id="date" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">Quantity (Liters)</label>
-                    <input type="number" id="qty" placeholder="e.g. 10000" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">Price per Load</label>
-                    <input type="number" step="0.01" id="price" placeholder="e.g. 0.50" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <button type="submit" class="md:col-span-3 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Save Log Entry</button>
-            </form>
+            <form id="waterForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div>
+        <label class="block text-xs font-bold text-gray-500 mb-1">Date</label>
+        <input type="date" id="date" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+    </div>
+    <div>
+        <label class="block text-xs font-bold text-gray-500 mb-1">Qty per Load (Liters)</label>
+        <input type="number" id="qty" placeholder="e.g. 10000" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+    </div>
+    <div>
+        <label class="block text-xs font-bold text-gray-500 mb-1">Price per Load</label>
+        <input type="number" step="0.01" id="price" placeholder="e.g. 500" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+    </div>
+    <div>
+        <label class="block text-xs font-bold text-gray-500 mb-1">Number of Loads</label>
+        <input type="number" id="numLoads" value="1" min="1" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50 font-bold">
+    </div>
+    <button type="submit" class="md:col-span-4 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Save Log Entry</button>
+</form>
         </div>
 
         <div class="bg-white rounded-2xl shadow-md overflow-hidden">
@@ -74,7 +78,7 @@
         </div>
     </div>
 
-   <script>
+<script>
     const API_URL = '/api/auth/water'; 
     const token = localStorage.getItem('jwtToken');
 
@@ -100,7 +104,7 @@
                 body.innerHTML = data.logs.map(log => `
                     <tr class="hover:bg-gray-50 border-b last:border-0">
                         <td class="p-4 font-medium">${new Date(log.date).toLocaleDateString()}</td>
-                        <td class="p-4">${log.truckQuantity} L</td>
+                        <td class="p-4">${log.truckQuantity.toLocaleString()} L</td>
                         <td class="p-4 font-bold">R ${log.totalCost.toFixed(2)}</td>
                         <td class="p-4 flex gap-2">
                             <button onclick="editLoad('${log._id}', ${log.truckQuantity}, ${log.totalCost}, '${log.date}')" class="text-blue-600 hover:underline text-xs font-bold">EDIT</button>
@@ -116,18 +120,22 @@
         }
     }
 
-    // 2. ADD / UPDATE LOAD
+    // 2. ADD / UPDATE LOAD (With Multiplication)
     document.getElementById('waterForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const loadId = document.getElementById('loadId')?.value; 
         
+        // Multiplication Logic
+        const qtyPerLoad = Number(document.getElementById('qty').value);
+        const pricePerLoad = Number(document.getElementById('price').value);
+        const numLoads = Number(document.getElementById('numLoads')?.value || 1);
+
         const payload = {
             date: document.getElementById('date').value,
-            truckQuantity: Number(document.getElementById('qty').value),
-            totalCost: Number(document.getElementById('price').value) 
+            truckQuantity: qtyPerLoad * numLoads, // Total liters
+            totalCost: pricePerLoad * numLoads     // Total cost
         };
 
-        // FIX: Ensured endpoints match the backend routes precisely
         const endpoint = loadId ? `${API_URL}/edit/${loadId}` : `${API_URL}/add`;
         const method = loadId ? 'PUT' : 'POST';
 
@@ -141,7 +149,7 @@
         });
 
         if (res.ok) {
-            alert(loadId ? 'Load Updated!' : 'Delivery Logged!');
+            alert(loadId ? 'Load Updated!' : `Success: Logged ${numLoads} loads!`);
             resetWaterForm();
             loadSummary();
         } else {
@@ -152,11 +160,13 @@
 
     // 3. EDIT & DELETE ACTIONS
     function editLoad(id, qty, cost, date) {
-        // FIX: Ensure date is formatted as YYYY-MM-DD for the input field
         const formattedDate = new Date(date).toISOString().split('T')[0];
         document.getElementById('date').value = formattedDate;
+        
+        // When editing, we set the total values and keep numLoads at 1
         document.getElementById('qty').value = qty;
         document.getElementById('price').value = cost;
+        if(document.getElementById('numLoads')) document.getElementById('numLoads').value = 1;
         
         if(!document.getElementById('loadId')){
             const input = document.createElement('input');
@@ -181,27 +191,49 @@
             alert("Load removed.");
             loadSummary();
         } else {
-            alert("Failed to delete. Check backend connection.");
+            alert("Failed to delete.");
         }
     }
 
     function resetWaterForm() {
         document.getElementById('waterForm').reset();
+        if(document.getElementById('numLoads')) document.getElementById('numLoads').value = 1;
         const hid = document.getElementById('loadId');
         if(hid) hid.remove();
         document.querySelector('button[type="submit"]').innerText = "Log Delivery";
     }
 
-    // 4. v1 STYLED PDF PRINT OUT (CECIL S COMPLEX MSHOLOZI)
+    // 4. FILTERED PDF PRINT OUT (CECIL S COMPLEX)
     function generatePDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.width;
         const pageHeight = doc.internal.pageSize.height;
 
-        const totalQty = (window.allLogs || []).reduce((sum, log) => sum + (log.truckQuantity || 0), 0);
-        const totalCost = (window.allLogs || []).reduce((sum, log) => sum + (log.totalCost || 0), 0);
+        // Get filter range
+        const startDate = document.getElementById('filterStart')?.value;
+        const endDate = document.getElementById('filterEnd')?.value;
 
+        // Apply Filter
+        let logsToPrint = window.allLogs || [];
+        if (startDate || endDate) {
+            logsToPrint = logsToPrint.filter(log => {
+                const logDate = log.date.split('T')[0];
+                if (startDate && logDate < startDate) return false;
+                if (endDate && logDate > endDate) return false;
+                return true;
+            });
+        }
+
+        if (logsToPrint.length === 0) {
+            alert("No records found for the selected range.");
+            return;
+        }
+
+        const totalQty = logsToPrint.reduce((sum, log) => sum + (log.truckQuantity || 0), 0);
+        const totalCost = logsToPrint.reduce((sum, log) => sum + (log.totalCost || 0), 0);
+
+        // Styling
         doc.setDrawColor(30, 64, 175);
         doc.setLineWidth(1.5);
         doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
@@ -213,14 +245,17 @@
         doc.setFontSize(10);
         doc.text("MSHOLOZI WATER MANAGEMENT SYSTEM", 14, 28);
 
+        // Show filter info on PDF
         doc.setFontSize(8);
         doc.setTextColor(100);
-        doc.text(`Report Generated: ${new Date().toLocaleString()}`, pageWidth - 80, 22);
+        const rangeText = (startDate || endDate) ? `Range: ${startDate || 'Start'} to ${endDate || 'Today'}` : "Full History Report";
+        doc.text(rangeText, 14, 34);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 80, 22);
 
         doc.setDrawColor(30, 64, 175);
-        doc.line(12, 35, pageWidth - 12, 35);
+        doc.line(12, 38, pageWidth - 12, 38);
 
-        const tableData = (window.allLogs || []).map(log => [
+        const tableData = logsToPrint.map(log => [
             new Date(log.date).toLocaleDateString(),
             `${log.truckQuantity.toLocaleString()} L`,
             `R ${log.totalCost.toFixed(2)}`
@@ -228,7 +263,7 @@
 
         doc.autoTable({
             startY: 45,
-            head: [['Delivery Date', 'Quantity (Liters)', 'Cost per Load']],
+            head: [['Delivery Date', 'Quantity (Liters)', 'Total Cost']],
             body: tableData,
             theme: 'grid',
             headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
@@ -246,17 +281,17 @@
         doc.setFontSize(12);
         doc.setTextColor(30, 64, 175);
         doc.setFont("helvetica", "bold");
-        doc.text("TOTAL SUMMARY", 18, finalY + 8);
+        doc.text("FILTERED SUMMARY", 18, finalY + 8);
 
         doc.setFontSize(10);
         doc.setTextColor(0);
         doc.setFont("helvetica", "normal");
-        doc.text(`Total Water Delivered:`, 18, finalY + 18);
+        doc.text(`Total Water (Selected):`, 18, finalY + 18);
         doc.setFont("helvetica", "bold");
         doc.text(`${totalQty.toLocaleString()} Liters`, 80, finalY + 18);
 
         doc.setFont("helvetica", "normal");
-        doc.text(`Total Expenditure:`, 18, finalY + 25);
+        doc.text(`Total Expenditure (Selected):`, 18, finalY + 25);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(180, 0, 0); 
         doc.text(`R ${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2})}`, 80, finalY + 25);
