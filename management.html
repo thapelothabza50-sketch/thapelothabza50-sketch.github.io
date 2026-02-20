@@ -435,13 +435,70 @@
 
     // 8. PDF EXPORTS
     function printAllRecruitsPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text("Master Recruitment Report", 14, 20);
-        const rows = allRecruits.map(r => [`${r.studentName} ${r.studentSurname}`, r.accommodation, r.status, new Date(r.createdAt).toLocaleDateString()]);
-        doc.autoTable({ head: [['Student', 'Accommodation', 'Status', 'Date']], body: rows, startY: 25 });
-        doc.save('Campus_Master_Recruits.pdf');
-    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // Blue Border
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(1.5);
+    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+
+    // Header Branding
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(22);
+    doc.text("Campus", 40, 22); 
+    doc.setFontSize(10);
+    doc.text("COLLECTIVE", 40, 27);
+
+    // Business Details
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
+    doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
+    doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
+
+    doc.setDrawColor(37, 99, 235);
+    doc.line(12, 40, pageWidth - 12, 40);
+
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text("MASTER RECRUITMENT REPORT", 12, 50);
+
+    const getAgentName = (r) => {
+        if (r.agent && r.agent.fullName) return r.agent.fullName;
+        const found = allUsers.find(u => u._id === (r.agent?._id || r.agent));
+        return found ? found.fullName : "Direct/System";
+    };
+
+    const groupedRecruits = [...allRecruits].sort((a, b) => 
+        getAgentName(a).localeCompare(getAgentName(b))
+    );
+
+    const rows = groupedRecruits.map(r => [
+        `${r.studentName} ${r.studentSurname}`,
+        r.studentPhone || 'N/A',
+        r.accommodation,
+        getAgentName(r),
+        r.status,
+        new Date(r.createdAt).toLocaleDateString()
+    ]);
+
+    doc.autoTable({
+        head: [['Student', 'Phone', 'Accommodation', 'Agent', 'Status', 'Date']],
+        body: rows,
+        startY: 55,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
+        styles: { fontSize: 8, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [242, 247, 255] },
+        margin: { left: 12, right: 12 }
+    });
+
+    doc.save('Campus_Collective_Master_Recruits.pdf');
+}
 
     // 9. INITIALIZATION & LOGOUT
     window.onload = async () => { 

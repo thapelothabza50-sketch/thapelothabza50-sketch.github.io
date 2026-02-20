@@ -74,33 +74,23 @@
         </div>
     </div>
 
-    <script>
+   <script>
     const API_URL = '/api/auth/water'; 
-    // We use 'jwtToken' because that is what management.html uses
-    const token = localStorage.getItem('jwtToken'); 
+    const token = localStorage.getItem('jwtToken');
 
+    // 1. LOAD DATA & SUMMARY
     async function loadSummary() {
         if(!token) return window.location.href = 'Admin.html';
 
         try {
             const res = await fetch(`${API_URL}/summary`, {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-            
-            if (res.status === 401) {
-                console.error("Auth failed. Check if token is valid.");
-                return;
-            }
-
             const data = await res.json();
 
             if (res.ok) {
-                // The '?' ensures it doesn't crash if currentMonth is empty
-                document.getElementById('dispQty').innerText = `${(data.currentMonth?.totalQty || 0).toLocaleString()} L`;
-                document.getElementById('dispSpend').innerText = `R ${(data.currentMonth?.totalSpend || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                document.getElementById('dispQty').innerText = `${data.currentMonth.totalQty.toLocaleString()} L`;
+                document.getElementById('dispSpend').innerText = `R ${data.currentMonth.totalSpend.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
                 
                 const trendEl = document.getElementById('dispTrend');
                 trendEl.innerText = data.trend;
@@ -112,26 +102,37 @@
                         <td class="p-4 font-medium">${new Date(log.date).toLocaleDateString()}</td>
                         <td class="p-4">${log.truckQuantity} L</td>
                         <td class="p-4 font-bold">R ${log.totalCost.toFixed(2)}</td>
+                        <td class="p-4 flex gap-2">
+                            <button onclick="editLoad('${log._id}', ${log.truckQuantity}, ${log.totalCost}, '${log.date.split('T')[0]}')" class="text-blue-600 hover:underline text-xs font-bold">EDIT</button>
+                            <button onclick="deleteLoad('${log._id}')" class="text-red-600 hover:underline text-xs font-bold">DELETE</button>
+                        </td>
                     </tr>
                 `).join('');
                 
                 window.allLogs = data.logs; 
             }
         } catch (err) {
-            console.error("Failed to load water data:", err);
+            console.error("Failed to load water data", err);
         }
     }
 
+    // 2. ADD / UPDATE LOAD
     document.getElementById('waterForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const loadId = document.getElementById('loadId')?.value; // For editing
+        
         const payload = {
             date: document.getElementById('date').value,
             truckQuantity: Number(document.getElementById('qty').value),
-            pricePerUnit: Number(document.getElementById('price').value)
+            // Price is now per load, so we send it as the total
+            totalCost: Number(document.getElementById('price').value) 
         };
 
-        const res = await fetch(`${API_URL}/add`, {
-            method: 'POST',
+        const endpoint = loadId ? `${API_URL}/edit/${loadId}` : `${API_URL}/add`;
+        const method = loadId ? 'PUT' : 'POST';
+
+        const res = await fetch(endpoint, {
+            method: method,
             headers: { 
                 'Content-Type': 'application/json', 
                 'Authorization': `Bearer ${token}` 
@@ -140,8 +141,8 @@
         });
 
         if (res.ok) {
-            alert('Delivery Logged Successfully!');
-            document.getElementById('waterForm').reset();
+            alert(loadId ? 'Load Updated!' : 'Delivery Logged!');
+            resetWaterForm();
             loadSummary();
         } else {
             const err = await res.json();
@@ -149,16 +150,68 @@
         }
     });
 
+    // 3. EDIT & DELETE ACTIONS
+    function editLoad(id, qty, cost, date) {
+        document.getElementById('date').value = date;
+        document.getElementById('qty').value = qty;
+        document.getElementById('price').value = cost;
+        
+        // Add a hidden field to keep track of the ID we are editing
+        if(!document.getElementById('loadId')){
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.id = 'loadId';
+            document.getElementById('waterForm').appendChild(input);
+        }
+        document.getElementById('loadId').value = id;
+        document.querySelector('button[type="submit"]').innerText = "Update Load Details";
+    }
+
+    async function deleteLoad(id) {
+        if(!confirm("Are you sure you want to delete this water load?")) return;
+        
+        const res = await fetch(`${API_URL}/delete/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if(res.ok) {
+            alert("Load removed.");
+            loadSummary();
+        }
+    }
+
+    function resetWaterForm() {
+        document.getElementById('waterForm').reset();
+        const hid = document.getElementById('loadId');
+        if(hid) hid.remove();
+        document.querySelector('button[type="submit"]').innerText = "Log Delivery";
+    }
+
+    // 4. v1 STYLED PDF PRINT OUT (CECIL S COMPLEX MSHOLOZI)
     function generatePDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.width;
 
-        doc.setFontSize(18);
+        // v1 Blue Border
+        doc.setDrawColor(30, 64, 175);
+        doc.setLineWidth(1.5);
+        doc.rect(5, 5, pageWidth - 10, 287);
+
+        // Header Branding: Cecil S Complex Msholozi
+        doc.setFont("helvetica", "bold");
         doc.setTextColor(30, 64, 175);
-        doc.text("Campus Collective: Water Supply Report", 14, 20);
+        doc.setFontSize(20);
+        doc.text("Cecil S Complex", 14, 22); 
         doc.setFontSize(10);
+        doc.text("MSHOLOZI WATER MANAGEMENT", 14, 28);
+
+        doc.setFontSize(8);
         doc.setTextColor(100);
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+        doc.text(`Report Date: ${new Date().toLocaleDateString()}`, pageWidth - 60, 22);
+
+        doc.line(12, 35, pageWidth - 12, 35);
 
         const tableData = (window.allLogs || []).map(log => [
             new Date(log.date).toLocaleDateString(),
@@ -167,16 +220,19 @@
         ]);
 
         doc.autoTable({
-            startY: 35,
-            head: [['Date', 'Quantity (Liters)', 'Total Cost']],
+            startY: 45,
+            head: [['Delivery Date', 'Quantity (Liters)', 'Cost per Load']],
             body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [30, 64, 175] }
+            theme: 'grid',
+            headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
+            alternateRowStyles: { fillColor: [242, 247, 255] },
+            margin: { left: 12, right: 12 }
         });
 
-        doc.save(`Water_Supply_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save(`Cecil_S_Water_Report_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 
+    // Initial Load
     loadSummary();
 </script>
 </body>
