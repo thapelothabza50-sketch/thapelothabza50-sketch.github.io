@@ -44,7 +44,7 @@
                     <input type="number" id="qty" placeholder="e.g. 10000" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">Price per Liter</label>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Price per Load</label>
                     <input type="number" step="0.01" id="price" placeholder="e.g. 0.50" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
                 <button type="submit" class="md:col-span-3 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Save Log Entry</button>
@@ -189,49 +189,88 @@
     }
 
     // 4. v1 STYLED PDF PRINT OUT (CECIL S COMPLEX MSHOLOZI)
-    function generatePDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.width;
+  function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
 
-        // v1 Blue Border
-        doc.setDrawColor(30, 64, 175);
-        doc.setLineWidth(1.5);
-        doc.rect(5, 5, pageWidth - 10, 287);
+    // 1. Calculate Totals for the Summary Box
+    const totalQty = (window.allLogs || []).reduce((sum, log) => sum + (log.truckQuantity || 0), 0);
+    const totalCost = (window.allLogs || []).reduce((sum, log) => sum + (log.totalCost || 0), 0);
 
-        // Header Branding: Cecil S Complex Msholozi
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(30, 64, 175);
-        doc.setFontSize(20);
-        doc.text("Cecil S Complex", 14, 22); 
-        doc.setFontSize(10);
-        doc.text("MSHOLOZI WATER MANAGEMENT", 14, 28);
+    // 2. v1 Blue Border
+    doc.setDrawColor(30, 64, 175);
+    doc.setLineWidth(1.5);
+    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
 
-        doc.setFontSize(8);
-        doc.setTextColor(100);
-        doc.text(`Report Date: ${new Date().toLocaleDateString()}`, pageWidth - 60, 22);
+    // 3. Header Branding: Cecil S Complex Msholozi
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 64, 175);
+    doc.setFontSize(22);
+    doc.text("Cecil S Complex", 14, 22); 
+    doc.setFontSize(10);
+    doc.text("MSHOLOZI WATER MANAGEMENT SYSTEM", 14, 28);
 
-        doc.line(12, 35, pageWidth - 12, 35);
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(`Report Generated: ${new Date().toLocaleString()}`, pageWidth - 80, 22);
 
-        const tableData = (window.allLogs || []).map(log => [
-            new Date(log.date).toLocaleDateString(),
-            `${log.truckQuantity} L`,
-            `R ${log.totalCost.toFixed(2)}`
-        ]);
+    doc.setDrawColor(30, 64, 175);
+    doc.line(12, 35, pageWidth - 12, 35);
 
-        doc.autoTable({
-            startY: 45,
-            head: [['Delivery Date', 'Quantity (Liters)', 'Cost per Load']],
-            body: tableData,
-            theme: 'grid',
-            headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
-            alternateRowStyles: { fillColor: [242, 247, 255] },
-            margin: { left: 12, right: 12 }
-        });
+    // 4. Data Table
+    const tableData = (window.allLogs || []).map(log => [
+        new Date(log.date).toLocaleDateString(),
+        `${log.truckQuantity.toLocaleString()} L`,
+        `R ${log.totalCost.toFixed(2)}`
+    ]);
 
-        doc.save(`Cecil_S_Water_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-    }
+    doc.autoTable({
+        startY: 45,
+        head: [['Delivery Date', 'Quantity (Liters)', 'Cost per Load']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
+        alternateRowStyles: { fillColor: [242, 247, 255] },
+        margin: { left: 12, right: 12 }
+    });
 
+    // 5. FINANCIAL SUMMARY BOX (At the bottom of the table)
+    const finalY = doc.lastAutoTable.finalY + 10;
+    
+    // Summary Box Background
+    doc.setFillColor(240, 245, 255);
+    doc.rect(12, finalY, pageWidth - 24, 30, 'F');
+    doc.setDrawColor(30, 64, 175);
+    doc.setLineWidth(0.5);
+    doc.rect(12, finalY, pageWidth - 24, 30, 'D');
+
+    doc.setFontSize(12);
+    doc.setTextColor(30, 64, 175);
+    doc.setFont("helvetica", "bold");
+    doc.text("TOTAL SUMMARY", 18, finalY + 8);
+
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total Water Delivered:`, 18, finalY + 18);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${totalQty.toLocaleString()} Liters`, 80, finalY + 18);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total Expenditure:`, 18, finalY + 25);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(180, 0, 0); // Red for money
+    doc.text(`R ${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2})}`, 80, finalY + 25);
+
+    // 6. Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text("End of Cecil S Complex Water Report", pageWidth / 2, pageHeight - 15, { align: "center" });
+
+    doc.save(`Cecil_S_Water_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+}
     // Initial Load
     loadSummary();
 </script>

@@ -739,6 +739,33 @@ router.get('/water/summary', auth, hasRole(['Admin']), async (req, res) => {
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });
     }
+    
+});
+// --- DELETE WATER LOG ---
+router.delete('/water/delete/:id', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const log = await WaterLog.findByIdAndDelete(req.params.id);
+        if (!log) return res.status(404).json({ message: "Log not found" });
+        res.json({ message: "Water log deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Error deleting log", error: err.message });
+    }
+});
+
+// --- EDIT/UPDATE WATER LOG ---
+router.put('/water/edit/:id', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const { date, truckQuantity, totalCost } = req.body;
+        const updatedLog = await WaterLog.findByIdAndUpdate(
+            req.params.id,
+            { date, truckQuantity, totalCost },
+            { new: true } // returns the updated document
+        );
+        if (!updatedLog) return res.status(404).json({ message: "Log not found" });
+        res.json({ message: "Water log updated successfully", updatedLog });
+    } catch (err) {
+        res.status(500).json({ message: "Error updating log", error: err.message });
+    }
 });
 
 module.exports = router;
