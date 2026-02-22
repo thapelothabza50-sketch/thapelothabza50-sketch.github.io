@@ -393,6 +393,50 @@
         }).join('');
     }
 
+    // --- PRICE LOGIC ---
+    async function updateRecruitStatus(recruitId, newStatus) {
+        if (!newStatus) return;
+
+        // If approving, ask for the price/booking amount
+        let price = 0;
+        if (newStatus === 'Approved') {
+            const priceInput = prompt("Enter the Booking Fee / Total Price for this student (Numerical only):", "0");
+            price = parseFloat(priceInput);
+            if (isNaN(price)) {
+                alert("Invalid price entered. Operation cancelled.");
+                return;
+            }
+        }
+
+        const confirmChange = confirm(`Update status to ${newStatus}${newStatus === 'Approved' ? ' with price R' + price : ''}?`);
+        if (!confirmChange) return;
+
+        try {
+            await triggerLoader(`Updating to ${newStatus}...`, 800);
+            
+            const res = await fetch(`${API_AUTH_URL}/update-recruit-status`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                // Sending both status and the price we just collected
+                body: JSON.stringify({ recruitId, status: newStatus, price: price })
+            });
+
+            if (res.ok) {
+                alert("Student status and price updated successfully!");
+                fetchRecruits(); // Refresh the table
+            } else {
+                const err = await res.json();
+                alert("Error: " + err.message);
+            }
+        } catch (err) {
+            console.error("Update Status Error:", err);
+            alert("Failed to connect to server.");
+        }
+    }
+
     // 6. CALCULATOR LOGIC
     function openCalculator() { document.getElementById('calc-modal').classList.remove('hidden'); }
     function closeCalculator() { document.getElementById('calc-modal').classList.add('hidden'); }
