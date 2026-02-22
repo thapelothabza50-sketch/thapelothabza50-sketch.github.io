@@ -414,7 +414,7 @@
         try {
             await triggerLoader(`Updating to ${newStatus}...`, 800);
             
-            const res = await fetch(`${API_AUTH_URL}/update-recruit-status`, {
+            const res = await fetch(`${API_AUTH_URL}/update-status`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',

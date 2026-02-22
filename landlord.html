@@ -59,6 +59,20 @@
                     <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
                     <input type="location" id="location" name="location" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300">
                 </div>
+                <div class="mb-4">
+    <label class="block text-sm font-semibold text-gray-700 mb-2">Institution  </label>
+    <input type="text" name="institution" required placeholder="e.g. UMP, TUT" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none">
+</div>
+
+<div class="mb-4">
+    <label class="block text-sm font-semibold text-gray-700 mb-2">Is the property NSFAS Accredited?</label>
+    <select name="nsfasAccredited" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none">
+        <option value="">Select Option</option>
+        <option value="Yes">Yes, it is accredited</option>
+        <option value="No">No, not accredited</option>
+        <option value="In Progress">Application in progress</option>
+    </select>
+</div>
                 <div>
                     <label for="accommodationType" class="block text-sm font-medium text-gray-700">Accommodation Type</label>
                     <select id="accommodationType" name="accommodationType" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300">
@@ -66,9 +80,11 @@
                         <option value="house">House/ Commune</option>
                         <option value="room">Single Room</option>
                         <option value="shared">Shared Room</option>
-                        <option value="apartment">Other</option>
+                        <option value="shared">Single and Shared Room</option>
+                        <option value="other">Other</option>
                     </select>
                 </div>
+
                 <div>
                     <label for="rent" class="block text-sm font-medium text-gray-700">Monthly Rent (in ZAR)</label>
                     <input type="number" id="rent" name="rent" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300">
@@ -160,6 +176,29 @@
             
             showMessage("Thank you for your submission! We'll review your listing shortly.");
         }
+
+        async function handleFormSubmit(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+        const response = await fetch('/api/auth/landlord/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            alert("Application submitted! Check your email for confirmation.");
+            event.target.reset();
+        } else {
+            alert("Something went wrong. Please try again.");
+        }
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
     </script>
 </body>
 </html>

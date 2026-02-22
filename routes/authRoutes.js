@@ -767,4 +767,36 @@ router.delete('/water/delete/:id', auth, hasRole(['Admin']), async (req, res) =>
     }
 });
 
+const Landlord = require('../models/Landlord');
+
+// --- LANDLORD REGISTRATION ROUTE ---
+router.post('/landlord/register', async (req, res) => {
+    try {
+        const { fullName, email, phone, propertyAddress, institution, nsfasAccredited } = req.body;
+
+        const newListing = new Landlord({
+            fullName, email, phone, propertyAddress, institution, nsfasAccredited
+        });
+
+        await newListing.save();
+
+        // Send Automated Email
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Application Received - Campus Collective',
+            html: `<h1>Hello ${fullName}</h1>
+                   <p>Thank you for registering your property with Campus Collective.</p>
+                   <p>Our team is currently reviewing your application for <b>${propertyAddress}</b>.</p>
+                   <p>We will contact you shortly regarding the next steps.</p>`
+        };
+
+        transporter.sendMail(mailOptions);
+
+        res.status(201).json({ message: "Application submitted successfully!" });
+    } catch (err) {
+        res.status(500).json({ message: "Server Error", error: err.message });
+    }
+});
+
 module.exports = router;
