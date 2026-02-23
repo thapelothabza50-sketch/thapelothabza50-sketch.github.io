@@ -590,6 +590,35 @@ router.delete('/recruit/:id', auth, async (req, res) => {
 });
 
 /**
+ * @route   POST /api/auth/update-status
+ * @desc    Update recruit status and set commission/price
+ * @access  Private (Admin Only)
+ */
+router.post('/update-status', auth, hasRole(['Admin']), async (req, res) => {
+    const { recruitId, status, price } = req.body;
+
+    try {
+        const recruit = await Recruit.findById(recruitId);
+        if (!recruit) {
+            return res.status(404).json({ message: 'Recruit record not found' });
+        }
+
+        // Update the fields
+        recruit.status = status;
+        
+        // If price was sent from the prompt, save it as the commission
+        if (price !== undefined) {
+            recruit.commissionEarned = parseFloat(price) || 0;
+        }
+
+        await recruit.save();
+        res.json({ message: 'Status updated successfully', recruit });
+    } catch (err) {
+        console.error("UPDATE STATUS ERROR:", err.message);
+        res.status(500).json({ message: 'Server Error during status update' });
+    }
+});
+/**
  * @route   PUT /api/auth/recruit/:id
  * @desc    Update recruit details
  * @access  Private
