@@ -148,13 +148,11 @@ try {
  * @desc    Login for Admin and Agents using AgentID/StudentID
  */
 router.post('/admin-agent/login', async (req, res) => {
-    // 1. Get agentId and password from the request body
     const { agentId, password } = req.body; 
 
     try {
-        // Use trim() to remove any accidental spaces from the input
-        if (!agentId) {
-            return res.status(400).json({ message: 'Agent ID is required' });
+        if (!agentId || !password) {
+            return res.status(400).json({ message: 'Agent ID and password are required' });
         }
 
         const agent = await Agent.findOne({ agentId: agentId.trim() });
@@ -162,14 +160,20 @@ router.post('/admin-agent/login', async (req, res) => {
         if (!agent) {
             return res.status(400).json({ message: 'Invalid Agent ID' });
         }
-        
+
+        // --- THE MISSING GATEKEEPER STEP START ---
+        const isMatch = await bcrypt.compare(password, agent.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        // --- THE MISSING GATEKEEPER STEP END ---
 
         // 4. Handle first-time login (Mandatory Reset)
         if (agent.mustChangePassword) {
             const tempToken = jwt.sign(
                 { id: agent._id, role: agent.role, agentId: agent.agentId },
                 process.env.JWT_SECRET,
-                { expiresIn: '15m' } // Short-lived token for reset only
+                { expiresIn: '15m' }
             );
             return res.status(200).json({ 
                 action: 'MANDATORY_RESET', 
@@ -177,12 +181,12 @@ router.post('/admin-agent/login', async (req, res) => {
                 message: 'First login detected. Please reset your password.' 
             });
         }
+
         if (agent.status === 'locked') {
             return res.status(403).json({ 
                 message: 'Your account is locked. Please contact administration.' 
             });
         }
-        
 
         // 5. Normal Login: Create the full Token
         const token = jwt.sign(
@@ -202,6 +206,7 @@ router.post('/admin-agent/login', async (req, res) => {
         });
 
     } catch (err) {
+        // Handling exceptions as per Lab Work 5.4 
         console.error("AGENT LOGIN ERROR:", err);
         res.status(500).json({ message: 'Server error' });
     }
