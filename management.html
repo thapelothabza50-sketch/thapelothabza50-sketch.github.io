@@ -537,7 +537,7 @@ function closePaymentModal() {
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
-    // Helper function to draw the blue border on any page
+    // Helper function to draw the blue border on every page
     const drawBorder = (pdfDoc) => {
         pdfDoc.setDrawColor(37, 99, 235);
         pdfDoc.setLineWidth(1.5);
@@ -569,7 +569,7 @@ function closePaymentModal() {
     doc.setTextColor(0);
     doc.text("MASTER RECRUITMENT REPORT", 12, 50);
 
-    // 2. Prepare Data & Logic
+    // 2. Prepare Data & Summary Logic
     const getAgentName = (r) => {
         if (r.agent && r.agent.fullName) return r.agent.fullName;
         const found = allUsers.find(u => u._id === (r.agent?._id || r.agent));
@@ -579,13 +579,25 @@ function closePaymentModal() {
     const totalRecruits = allRecruits.length;
     const agentSummary = {};
     const accSummary = {};
+    const statusSummary = {
+        "Approved/Moved-in": 0,
+        "Pending": 0,
+        "Cancelled": 0
+    };
 
     allRecruits.forEach(r => {
+        // Agent Breakdown
         const agentName = getAgentName(r);
         agentSummary[agentName] = (agentSummary[agentName] || 0) + 1;
         
+        // Accommodation Breakdown
         const acc = r.accommodation || "Not Assigned";
         accSummary[acc] = (accSummary[acc] || 0) + 1;
+
+        // Status Breakdown
+        if (r.status === 'Approved') statusSummary["Approved/Moved-in"]++;
+        else if (r.status === 'Pending') statusSummary["Pending"]++;
+        else if (r.status === 'Rejected' || r.status === 'Cancelled') statusSummary["Cancelled"]++;
     });
 
     const groupedRecruits = [...allRecruits].sort((a, b) => 
@@ -601,7 +613,7 @@ function closePaymentModal() {
         new Date(r.createdAt).toLocaleDateString()
     ]);
 
-    // 3. Render Main Table with Border on Every Page
+    // 3. Render Main Table
     doc.autoTable({
         head: [['Student', 'Phone', 'Accommodation', 'Agent', 'Status', 'Date']],
         body: rows,
@@ -611,17 +623,14 @@ function closePaymentModal() {
         styles: { fontSize: 8, cellPadding: 3 },
         alternateRowStyles: { fillColor: [242, 247, 255] },
         margin: { left: 12, right: 12 },
-        didDrawPage: function (data) {
-            // This ensures the border is drawn on page 2, 3, etc.
-            drawBorder(doc);
-        }
+        didDrawPage: (data) => drawBorder(doc) // Draw border on every page the table spans
     });
 
     // 4. SUMMARY BLOCK (at the end of the list)
     let finalY = doc.lastAutoTable.finalY + 15;
 
-    // Check if we need a new page for the summary if we are at the bottom
-    if (finalY > pageHeight - 50) {
+    // Safety check: if near bottom, start summary on new page
+    if (finalY > pageHeight - 60) {
         doc.addPage();
         drawBorder(doc);
         finalY = 20;
@@ -634,9 +643,14 @@ function closePaymentModal() {
     
     doc.setFontSize(10);
     doc.setTextColor(0);
-    doc.text(`Total Recruits in System: ${totalRecruits}`, 12, finalY + 7);
+    doc.text(`Total Students Recruited: ${totalRecruits}`, 12, finalY + 8);
 
-    // Summary Table for Agents & Accommodations
+    // Status Summary Row
+    const statusText = `Approved: ${statusSummary["Approved/Moved-in"]}  |  Pending: ${statusSummary["Pending"]}  |  Cancelled: ${statusSummary["Cancelled"]}`;
+    doc.setFont("helvetica", "normal");
+    doc.text(statusText, 12, finalY + 14);
+
+    // Tables for Agent and Accommodation breakdown
     const summaryRows = [];
     const agents = Object.keys(agentSummary);
     const accs = Object.keys(accSummary);
@@ -652,14 +666,12 @@ function closePaymentModal() {
     doc.autoTable({
         head: [['Recruits Per Agent', 'Recruits Per Accommodation']],
         body: summaryRows,
-        startY: finalY + 12,
+        startY: finalY + 20,
         theme: 'plain',
         styles: { fontSize: 8, cellPadding: 1 },
         headStyles: { textColor: [37, 99, 235], fontStyle: 'bold' },
         margin: { left: 12 },
-        didDrawPage: function (data) {
-            drawBorder(doc);
-        }
+        didDrawPage: (data) => drawBorder(doc)
     });
 
     doc.save('Campus_Collective_Master_Recruits.pdf');
