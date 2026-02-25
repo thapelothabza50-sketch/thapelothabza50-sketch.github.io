@@ -544,6 +544,70 @@
     doc.save('Campus_Collective_Master_Recruits.pdf');
 }
 
+function printAccPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // Get the selected accommodation from your dropdown
+    const selectedAcc = document.getElementById('acc-filter').value;
+    if (!selectedAcc) {
+        alert("Please select an accommodation first!");
+        return;
+    }
+
+    // 1. Blue Border (Matching Master Style)
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(1.5);
+    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+
+    // 2. Header Branding
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(22);
+    doc.text("Campus", 40, 22); 
+    doc.setFontSize(10);
+    doc.text("COLLECTIVE", 40, 27);
+
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 80, 23);
+
+    doc.setDrawColor(37, 99, 235);
+    doc.line(12, 40, pageWidth - 12, 40);
+
+    // 3. Title for the Specific Residence
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text(`RESIDENCE REPORT: ${selectedAcc.toUpperCase()}`, 12, 50);
+
+    // 4. Filter data for ONLY this residence
+    const filteredData = allRecruits.filter(r => r.accommodation === selectedAcc);
+
+    const rows = filteredData.map(r => [
+        `${r.studentName} ${r.studentSurname}`,
+        r.studentPhone || 'N/A',
+        r.agent?.fullName || "Direct/System",
+        r.status,
+        new Date(r.createdAt).toLocaleDateString()
+    ]);
+
+    // 5. Generate Table (Matching Master Style)
+    doc.autoTable({
+        head: [['Student', 'Phone', 'Assigned Agent', 'Status', 'Date']],
+        body: rows,
+        startY: 55,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
+        styles: { fontSize: 8, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [242, 247, 255] },
+        margin: { left: 12, right: 12 }
+    });
+
+    doc.save(`${selectedAcc.replace(/\s+/g, '_')}_Recruit_Report.pdf`);
+}
+
     // 9. INITIALIZATION & LOGOUT
     window.onload = async () => { 
         if(!token) { 
