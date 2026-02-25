@@ -484,6 +484,13 @@
     modal.style.display = 'flex';
 }
 
+function closePaymentModal() {
+    const modal = document.getElementById('payment-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
     //  CALCULATOR LOGIC
     function openCalculator() { document.getElementById('calc-modal').classList.remove('hidden'); }
     function closeCalculator() { document.getElementById('calc-modal').classList.add('hidden'); }
