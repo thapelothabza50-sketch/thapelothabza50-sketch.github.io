@@ -436,8 +436,55 @@
             alert("Failed to connect to server.");
         }
     }
+    
+    function openAgentPayment(agentId) {
+    // 1. Find the agent's details from our global users list
+    const agent = allUsers.find(u => u._id === agentId);
+    if (!agent) return alert("Agent not found");
 
-    // 6. CALCULATOR LOGIC
+    // 2. Get the specific commission set for THIS agent
+    // Default to 250 if for some reason it's not set in your database
+    const agentCommission = agent.commissionRate || 250;
+
+    // 3. Filter approved recruits for this specific agent
+    const agentRecruits = allRecruits.filter(r => {
+        const ref = r.agent?._id || r.agent;
+        return ref === agentId && r.status === 'Approved';
+    });
+
+    const count = agentRecruits.length;
+    const totalPayout = count * agentCommission;
+
+    // 4. Update the Modal UI
+    const modal = document.getElementById('payment-modal');
+    const content = document.getElementById('payment-content');
+    
+    content.innerHTML = `
+        <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
+            <p class="text-xs uppercase text-blue-400 font-bold mb-1">Target Agent</p>
+            <p class="text-sm font-bold text-black">${agent.fullName} (${agent.agentId || 'N/A'})</p>
+            <p class="text-xs text-blue-600 mt-1">Set Commission: <b>R ${agentCommission}</b> per recruit</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mt-4">
+            <div class="bg-gray-100 p-4 rounded-xl text-center">
+                <p class="text-xs uppercase text-gray-500 font-bold">Approved Recruits</p>
+                <p class="text-2xl font-black">${count}</p>
+            </div>
+            <div class="bg-green-100 p-4 rounded-xl text-center">
+                <p class="text-xs uppercase text-green-700 font-bold">Total Due</p>
+                <p class="text-2xl font-black text-green-700">R ${totalPayout.toLocaleString()}</p>
+            </div>
+        </div>
+        <button onclick="printPayoutPDF('${agent.fullName}', '${agent.agentId}', ${count}, ${totalPayout}, ${agentCommission})" 
+                class="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-black uppercase hover:bg-blue-700 shadow-lg transition">
+            🖨️ Print Proof of Payment
+        </button>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+    //  CALCULATOR LOGIC
     function openCalculator() { document.getElementById('calc-modal').classList.remove('hidden'); }
     function closeCalculator() { document.getElementById('calc-modal').classList.add('hidden'); }
     function toggleManualInput() { 
@@ -613,6 +660,47 @@ function printAccPDF() {
     });
 
     doc.save(`${selectedAcc.replace(/\s+/g, '_')}_Recruit_Report.pdf`);
+}
+
+function printPayoutPDF(name, id, count, amount, rate) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+
+    // Blue Border & Branding
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(1.5);
+    doc.rect(5, 5, pageWidth - 10, 287);
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(22);
+    doc.text("Campus", 20, 25);
+    doc.setFontSize(10);
+    doc.text("COLLECTIVE", 20, 30);
+
+    doc.setTextColor(0);
+    doc.setFontSize(16);
+    doc.text("OFFICIAL COMMISSION SETTLEMENT", 20, 50);
+
+    // Dynamic Table using the specific rate
+    doc.autoTable({
+        startY: 60,
+        theme: 'grid',
+        head: [['Description', 'Value']],
+        body: [
+            ['Agent Name', name],
+            ['Agent ID', id || 'N/A'],
+            ['Number of Successful Recruits', count.toString()],
+            ['Agreed Commission Rate', `R ${rate.toFixed(2)} / student`],
+            ['TOTAL PAYOUT AMOUNT', `R ${amount.toLocaleString(undefined, {minimumFractionDigits: 2})}`],
+            ['Settlement Date', new Date().toLocaleDateString()]
+        ],
+        headStyles: { fillColor: [37, 99, 235] },
+        columnStyles: { 0: { fontStyle: 'bold', width: 60 } }
+    });
+
+    doc.save(`Payout_Statement_${id}.pdf`);
 }
 
     // 9. INITIALIZATION & LOGOUT

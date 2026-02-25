@@ -32,6 +32,11 @@ const AgentSchema = new mongoose.Schema({
         type: String,
         default: 'Agent',
     },
+
+    commissionRate: {
+    type: Number,
+    default: 250, // This ensures every agent has a starting rate
+    },
     status: {
         type: String,
         enum: ['active', 'locked'],
