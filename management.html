@@ -438,26 +438,24 @@
     }
     
  async function openAgentPayment(agentId) {
-    // 1. Find the agent in your local list
+    // 1. Find the agent from the already loaded 'allUsers' array
     const agent = allUsers.find(u => u._id === agentId);
     if (!agent) return alert("Agent not found");
 
-    // 2. FORCE the use of the actual rate stored in the agent object
-    // If the database has it as 300, it will use 300. 
-    // It only uses 250 if the field is literally empty in the database.
-    const agentRateFromProfile = Number(agent.commissionRate); 
+    // 2. FETCH THE EXACT RATE: This pulls the 'commissionRate' from the Agent Portal's data
+    // If the agent portal sees R300, this will now see R300.
+    const agentRate = agent.commissionRate; 
 
-    // 3. Filter approved recruits
-    // We check both the object ID and the string ID to be safe
+    // 3. Filter for recruits that the agent has successfully approved
     const approvedRecruits = allRecruits.filter(r => {
-        const recruitAgentId = r.agent?._id || r.agent;
-        return recruitAgentId === agentId && r.status === 'Approved';
+        const ref = r.agent?._id || r.agent;
+        return ref === agentId && r.status === 'Approved';
     });
 
     const count = approvedRecruits.length;
     
-    // 4. THE CALCULATION (Matches Agent.js Logic)
-    const totalPayout = count * agentRateFromProfile;
+    // 4. EXACT CALCULATION: Matches the logic used on the Agent Side
+    const totalPayout = count * agentRate;
 
     const modal = document.getElementById('payment-modal');
     const content = document.getElementById('payment-content');
@@ -465,21 +463,21 @@
     content.innerHTML = `
         <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
             <p class="text-sm font-bold text-black">${agent.fullName}</p>
-            <p class="text-xs text-blue-600 font-bold uppercase">Rate from Agent Portal: R ${agentRateFromProfile}</p>
+            <p class="text-xs text-blue-600 font-black">AGENT PORTAL RATE: R ${agentRate}</p>
         </div>
         <div class="grid grid-cols-2 gap-4 mt-4">
             <div class="bg-gray-100 p-4 rounded-xl text-center">
-                <p class="text-xs uppercase text-gray-500 font-bold">Approved Recruits</p>
+                <p class="text-xs uppercase text-gray-500 font-bold">Successful Recruits</p>
                 <p class="text-2xl font-black">${count}</p>
             </div>
-            <div class="bg-green-600 p-4 rounded-xl text-center shadow-inner">
-                <p class="text-xs uppercase text-white font-bold opacity-80">Total Due</p>
+            <div class="bg-green-600 p-4 rounded-xl text-center shadow-lg">
+                <p class="text-xs uppercase text-white font-bold">Total Agent Payout</p>
                 <p class="text-2xl font-black text-white">R ${totalPayout.toLocaleString()}</p>
             </div>
         </div>
-        <button onclick="printPayoutPDF('${agent.fullName}', '${agent.agentId}', ${count}, ${totalPayout}, ${agentRateFromProfile})" 
+        <button onclick="printPayoutPDF('${agent.fullName}', '${agent.agentId}', ${count}, ${totalPayout}, ${agentRate})" 
                 class="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-black uppercase hover:bg-blue-700 shadow-lg">
-            🖨️ Print Proof of Payment
+            🖨️ Print Agent Statement
         </button>
     `;
     modal.style.display = 'flex';
@@ -533,16 +531,21 @@ function closePaymentModal() {
     }
 
     // 8. PDF EXPORTS
-    function printAllRecruitsPDF() {
+  function printAllRecruitsPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
-    // Blue Border
-    doc.setDrawColor(37, 99, 235);
-    doc.setLineWidth(1.5);
-    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+    // Helper function to draw the blue border on any page
+    const drawBorder = (pdfDoc) => {
+        pdfDoc.setDrawColor(37, 99, 235);
+        pdfDoc.setLineWidth(1.5);
+        pdfDoc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+    };
+
+    // 1. Initial Page Setup
+    drawBorder(doc);
 
     // Header Branding
     doc.setFont("helvetica", "bold");
@@ -566,11 +569,24 @@ function closePaymentModal() {
     doc.setTextColor(0);
     doc.text("MASTER RECRUITMENT REPORT", 12, 50);
 
+    // 2. Prepare Data & Logic
     const getAgentName = (r) => {
         if (r.agent && r.agent.fullName) return r.agent.fullName;
         const found = allUsers.find(u => u._id === (r.agent?._id || r.agent));
         return found ? found.fullName : "Direct/System";
     };
+
+    const totalRecruits = allRecruits.length;
+    const agentSummary = {};
+    const accSummary = {};
+
+    allRecruits.forEach(r => {
+        const agentName = getAgentName(r);
+        agentSummary[agentName] = (agentSummary[agentName] || 0) + 1;
+        
+        const acc = r.accommodation || "Not Assigned";
+        accSummary[acc] = (accSummary[acc] || 0) + 1;
+    });
 
     const groupedRecruits = [...allRecruits].sort((a, b) => 
         getAgentName(a).localeCompare(getAgentName(b))
@@ -585,6 +601,7 @@ function closePaymentModal() {
         new Date(r.createdAt).toLocaleDateString()
     ]);
 
+    // 3. Render Main Table with Border on Every Page
     doc.autoTable({
         head: [['Student', 'Phone', 'Accommodation', 'Agent', 'Status', 'Date']],
         body: rows,
@@ -593,7 +610,56 @@ function closePaymentModal() {
         headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
         styles: { fontSize: 8, cellPadding: 3 },
         alternateRowStyles: { fillColor: [242, 247, 255] },
-        margin: { left: 12, right: 12 }
+        margin: { left: 12, right: 12 },
+        didDrawPage: function (data) {
+            // This ensures the border is drawn on page 2, 3, etc.
+            drawBorder(doc);
+        }
+    });
+
+    // 4. SUMMARY BLOCK (at the end of the list)
+    let finalY = doc.lastAutoTable.finalY + 15;
+
+    // Check if we need a new page for the summary if we are at the bottom
+    if (finalY > pageHeight - 50) {
+        doc.addPage();
+        drawBorder(doc);
+        finalY = 20;
+    }
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.text("REPORT SUMMARY", 12, finalY);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.text(`Total Recruits in System: ${totalRecruits}`, 12, finalY + 7);
+
+    // Summary Table for Agents & Accommodations
+    const summaryRows = [];
+    const agents = Object.keys(agentSummary);
+    const accs = Object.keys(accSummary);
+    const maxRows = Math.max(agents.length, accs.length);
+
+    for (let i = 0; i < maxRows; i++) {
+        summaryRows.push([
+            agents[i] ? `${agents[i]}: ${agentSummary[agents[i]]}` : "",
+            accs[i] ? `${accs[i]}: ${accSummary[accs[i]]}` : ""
+        ]);
+    }
+
+    doc.autoTable({
+        head: [['Recruits Per Agent', 'Recruits Per Accommodation']],
+        body: summaryRows,
+        startY: finalY + 12,
+        theme: 'plain',
+        styles: { fontSize: 8, cellPadding: 1 },
+        headStyles: { textColor: [37, 99, 235], fontStyle: 'bold' },
+        margin: { left: 12 },
+        didDrawPage: function (data) {
+            drawBorder(doc);
+        }
     });
 
     doc.save('Campus_Collective_Master_Recruits.pdf');
