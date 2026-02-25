@@ -441,44 +441,50 @@
     const agent = allUsers.find(u => u._id === agentId);
     if (!agent) return alert("Agent not found");
 
-    // 1. Filter approved recruits for this specific agent
+    // 1. Get the Agent's specific rate (e.g., R300 or R150)
+    const currentAgentRate = Number(agent.commissionRate) || 150;
+
+    // 2. Filter approved recruits
     const agentRecruits = allRecruits.filter(r => {
         const ref = r.agent?._id || r.agent;
         return ref === agentId && r.status === 'Approved';
     });
 
-    // 2. CALCULATE DYNAMIC TOTAL (Fixed: Only one loop!)
+    // 3. CALCULATE TOTAL
     let totalPayout = 0;
     agentRecruits.forEach(recruit => {
-        // This checks the Recruit's own rate, then the Agent's rate, then the default 150
-        const rate = Number(recruit.commissionRate) || Number(agent.commissionRate) || 150;
+        // We check: 
+        // 1. Did this specific recruit have a custom rate?
+        // 2. If not, use the Agent's current set rate.
+        // 3. Only if BOTH are missing, use 150.
+        const rate = Number(recruit.commissionRate) || currentAgentRate;
         totalPayout += rate;
     });
 
     const count = agentRecruits.length;
 
-    // 3. Update the Modal UI
+    // 4. Update the Modal UI
     const modal = document.getElementById('payment-modal');
     const content = document.getElementById('payment-content');
     
     content.innerHTML = `
         <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
             <p class="text-xs uppercase text-blue-400 font-bold mb-1">Target Agent</p>
-            <p class="text-sm font-bold text-black">${agent.fullName} (${agent.agentId || 'N/A'})</p>
-            <p class="text-xs text-blue-600 mt-1 italic font-medium">Calculation based on individual recruit rates</p>
+            <p class="text-sm font-bold text-black">${agent.fullName}</p>
+            <p class="text-xs text-blue-600 mt-1">Current Profile Rate: <b>R ${currentAgentRate}</b></p>
         </div>
         <div class="grid grid-cols-2 gap-4 mt-4">
-            <div class="bg-gray-100 p-4 rounded-xl text-center">
+            <div class="bg-gray-100 p-4 rounded-xl text-center border border-gray-200">
                 <p class="text-xs uppercase text-gray-500 font-bold">Approved Recruits</p>
                 <p class="text-2xl font-black">${count}</p>
             </div>
-            <div class="bg-green-100 p-4 rounded-xl text-center">
+            <div class="bg-green-100 p-4 rounded-xl text-center border border-green-200">
                 <p class="text-xs uppercase text-green-700 font-bold">Total Due</p>
                 <p class="text-2xl font-black text-green-700">R ${totalPayout.toLocaleString()}</p>
             </div>
         </div>
         <button onclick="printPayoutPDF('${agent.fullName}', '${agent.agentId}', ${count}, ${totalPayout})" 
-                class="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-black uppercase hover:bg-blue-700 shadow-lg transition">
+                class="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-black uppercase hover:bg-blue-700 shadow-lg">
             🖨️ Print Proof of Payment
         </button>
     `;
