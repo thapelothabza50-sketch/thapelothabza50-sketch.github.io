@@ -437,14 +437,15 @@
         }
     }
     
-   function openAgentPayment(agentId) {
+  function openAgentPayment(agentId) {
     const agent = allUsers.find(u => u._id === agentId);
     if (!agent) return alert("Agent not found");
 
-    // 1. PULL the rate directly from the agent profile
-    const agentRateFromProfile = agent.commissionRate; 
+    // 1. FETCH the specific rate from the agent profile (matches Agent side)
+    // This ensures we don't use a hardcoded R250 if the agent has a different rate
+    const agentRateFromProfile = agent.commissionRate || 250; 
 
-    // 2. Filter approved recruits
+    // 2. Filter for 'Approved' recruits linked to this agent
     const approvedRecruits = allRecruits.filter(r => {
         const ref = r.agent?._id || r.agent;
         return ref === agentId && r.status === 'Approved';
@@ -452,7 +453,7 @@
 
     const count = approvedRecruits.length;
     
-    // 3. Match the Agent Side calculation
+    // 3. Mirror Agent Side Calculation: Approved Count * Profile Rate
     const totalPayout = count * agentRateFromProfile;
 
     const modal = document.getElementById('payment-modal');
@@ -461,7 +462,7 @@
     content.innerHTML = `
         <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
             <p class="text-sm font-bold text-black">${agent.fullName}</p>
-            <p class="text-xs text-blue-600">Agent Profile Rate: <b>R ${agentRateFromProfile}</b></p>
+            <p class="text-xs text-blue-600">Active Commission Rate: <b>R ${agentRateFromProfile}</b></p>
         </div>
         <div class="grid grid-cols-2 gap-4 mt-4">
             <div class="bg-gray-100 p-4 rounded-xl text-center">
@@ -473,7 +474,7 @@
                 <p class="text-2xl font-black text-green-700">R ${totalPayout.toLocaleString()}</p>
             </div>
         </div>
-        <button onclick="printPayoutPDF('${agent.fullName}', '${agent.agentId}', ${count}, ${totalPayout})" 
+        <button onclick="printPayoutPDF('${agent.fullName}', '${agent.agentId}', ${count}, ${totalPayout}, ${agentRateFromProfile})" 
                 class="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-black uppercase hover:bg-blue-700 shadow-lg">
             🖨️ Print Proof of Payment
         </button>
