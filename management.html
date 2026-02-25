@@ -569,7 +569,13 @@ function printAccPDF() {
     doc.text("Campus", 40, 22); 
     doc.setFontSize(10);
     doc.text("COLLECTIVE", 40, 27);
-
+    
+    // Business Details
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
+    doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
+    doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
     doc.setFontSize(8);
     doc.setTextColor(100);
     doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 80, 23);
