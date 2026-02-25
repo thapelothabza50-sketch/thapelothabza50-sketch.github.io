@@ -437,44 +437,34 @@
         }
     }
     
-    function openAgentPayment(agentId) {
+   function openAgentPayment(agentId) {
     const agent = allUsers.find(u => u._id === agentId);
     if (!agent) return alert("Agent not found");
 
-    // 1. Get the Agent's specific rate (e.g., R300 or R150)
-    const currentAgentRate = Number(agent.commissionRate) || 150;
+    // 1. PULL the rate directly from the agent profile
+    const agentRateFromProfile = agent.commissionRate; 
 
     // 2. Filter approved recruits
-    const agentRecruits = allRecruits.filter(r => {
+    const approvedRecruits = allRecruits.filter(r => {
         const ref = r.agent?._id || r.agent;
         return ref === agentId && r.status === 'Approved';
     });
 
-    // 3. CALCULATE TOTAL
-    let totalPayout = 0;
-    agentRecruits.forEach(recruit => {
-        // We check: 
-        // 1. Did this specific recruit have a custom rate?
-        // 2. If not, use the Agent's current set rate.
-        // 3. Only if BOTH are missing, use 150.
-        const rate = Number(recruit.commissionRate) || currentAgentRate;
-        totalPayout += rate;
-    });
+    const count = approvedRecruits.length;
+    
+    // 3. Match the Agent Side calculation
+    const totalPayout = count * agentRateFromProfile;
 
-    const count = agentRecruits.length;
-
-    // 4. Update the Modal UI
     const modal = document.getElementById('payment-modal');
     const content = document.getElementById('payment-content');
     
     content.innerHTML = `
         <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
-            <p class="text-xs uppercase text-blue-400 font-bold mb-1">Target Agent</p>
             <p class="text-sm font-bold text-black">${agent.fullName}</p>
-            <p class="text-xs text-blue-600 mt-1">Current Profile Rate: <b>R ${currentAgentRate}</b></p>
+            <p class="text-xs text-blue-600">Agent Profile Rate: <b>R ${agentRateFromProfile}</b></p>
         </div>
         <div class="grid grid-cols-2 gap-4 mt-4">
-            <div class="bg-gray-100 p-4 rounded-xl text-center border border-gray-200">
+            <div class="bg-gray-100 p-4 rounded-xl text-center">
                 <p class="text-xs uppercase text-gray-500 font-bold">Approved Recruits</p>
                 <p class="text-2xl font-black">${count}</p>
             </div>
@@ -488,7 +478,6 @@
             🖨️ Print Proof of Payment
         </button>
     `;
-    
     modal.style.display = 'flex';
 }
 
@@ -605,7 +594,22 @@ function closePaymentModal() {
 
     doc.save('Campus_Collective_Master_Recruits.pdf');
 }
+// --- RESTORED SEARCH LOGIC ---
+document.getElementById('agentSearch')?.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#agent-table-body tr');
+    rows.forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+    });
+});
 
+document.getElementById('recruitSearch')?.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#recruits-table-body tr');
+    rows.forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+    });
+});
 function printAccPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
