@@ -17,6 +17,8 @@ const { auth, hasRole } = require('../middleware/auth');
 const multer = require('multer');
 const fs = require('fs');
 
+
+
 // --------------------------------------------------------------------------
 // NODEMAILER CONFIGURATION 
 // --------------------------------------------------------------------------
@@ -831,6 +833,14 @@ router.post('/landlord/register', async (req, res) => {
     } catch (err) {
         res.status(500).json({ message: "Server Error", error: err.message });
     }
+    // Inside your student recruitment route:
+const agent = await Agent.findById(req.user.id);
+
+const newRecruit = new Recruit({
+    ...req.body,
+    agent: agent._id,
+    commissionRate: agent.commissionRate // This locks the price at the time of recruitment
+});
 });
 
 module.exports = router;
