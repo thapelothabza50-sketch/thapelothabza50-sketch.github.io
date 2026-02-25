@@ -437,23 +437,26 @@
         }
     }
     
-  function openAgentPayment(agentId) {
+ async function openAgentPayment(agentId) {
+    // 1. Find the agent in your local list
     const agent = allUsers.find(u => u._id === agentId);
     if (!agent) return alert("Agent not found");
 
-    // 1. FETCH the specific rate from the agent profile (matches Agent side)
-    // This ensures we don't use a hardcoded R250 if the agent has a different rate
-    const agentRateFromProfile = agent.commissionRate || 250; 
+    // 2. FORCE the use of the actual rate stored in the agent object
+    // If the database has it as 300, it will use 300. 
+    // It only uses 250 if the field is literally empty in the database.
+    const agentRateFromProfile = Number(agent.commissionRate); 
 
-    // 2. Filter for 'Approved' recruits linked to this agent
+    // 3. Filter approved recruits
+    // We check both the object ID and the string ID to be safe
     const approvedRecruits = allRecruits.filter(r => {
-        const ref = r.agent?._id || r.agent;
-        return ref === agentId && r.status === 'Approved';
+        const recruitAgentId = r.agent?._id || r.agent;
+        return recruitAgentId === agentId && r.status === 'Approved';
     });
 
     const count = approvedRecruits.length;
     
-    // 3. Mirror Agent Side Calculation: Approved Count * Profile Rate
+    // 4. THE CALCULATION (Matches Agent.js Logic)
     const totalPayout = count * agentRateFromProfile;
 
     const modal = document.getElementById('payment-modal');
@@ -462,16 +465,16 @@
     content.innerHTML = `
         <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
             <p class="text-sm font-bold text-black">${agent.fullName}</p>
-            <p class="text-xs text-blue-600">Active Commission Rate: <b>R ${agentRateFromProfile}</b></p>
+            <p class="text-xs text-blue-600 font-bold uppercase">Rate from Agent Portal: R ${agentRateFromProfile}</p>
         </div>
         <div class="grid grid-cols-2 gap-4 mt-4">
             <div class="bg-gray-100 p-4 rounded-xl text-center">
                 <p class="text-xs uppercase text-gray-500 font-bold">Approved Recruits</p>
                 <p class="text-2xl font-black">${count}</p>
             </div>
-            <div class="bg-green-100 p-4 rounded-xl text-center border border-green-200">
-                <p class="text-xs uppercase text-green-700 font-bold">Total Due</p>
-                <p class="text-2xl font-black text-green-700">R ${totalPayout.toLocaleString()}</p>
+            <div class="bg-green-600 p-4 rounded-xl text-center shadow-inner">
+                <p class="text-xs uppercase text-white font-bold opacity-80">Total Due</p>
+                <p class="text-2xl font-black text-white">R ${totalPayout.toLocaleString()}</p>
             </div>
         </div>
         <button onclick="printPayoutPDF('${agent.fullName}', '${agent.agentId}', ${count}, ${totalPayout}, ${agentRateFromProfile})" 
