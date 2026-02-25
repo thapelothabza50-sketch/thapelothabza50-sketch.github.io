@@ -576,9 +576,10 @@ function printAccPDF() {
     doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
     doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
     doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 80, 33);
     doc.setFontSize(8);
     doc.setTextColor(100);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 80, 23);
+    
 
     doc.setDrawColor(37, 99, 235);
     doc.line(12, 40, pageWidth - 12, 40);
