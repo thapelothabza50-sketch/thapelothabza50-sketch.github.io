@@ -447,19 +447,11 @@
         return ref === agentId && r.status === 'Approved';
     });
 
-    // 2. CALCULATE DYNAMIC TOTAL
-    // We loop through each recruit and add their specific commission.
-    // If the recruit doesn't have a rate saved, it falls back to the Agent's default.
-let totalPayout = 0;
-agentRecruits.forEach(recruit => {
-    // Priority 1: The rate saved on the specific recruit
-    // Priority 2: The custom rate saved on the agent's profile
-    // Priority 3: The standard R250
-    const rate = Number(recruit.commissionRate) || Number(agent.commissionRate) || 250;
-    totalPayout += rate;
-});
+    // 2. CALCULATE DYNAMIC TOTAL (Fixed: Only one loop!)
+    let totalPayout = 0;
     agentRecruits.forEach(recruit => {
-        const rate = recruit.commissionRate || agent.commissionRate || 250;
+        // This checks the Recruit's own rate, then the Agent's rate, then the default 150
+        const rate = Number(recruit.commissionRate) || Number(agent.commissionRate) || 150;
         totalPayout += rate;
     });
 
