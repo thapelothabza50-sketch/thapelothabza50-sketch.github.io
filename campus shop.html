@@ -105,116 +105,91 @@
         <div class="footer-bottom">&copy; 2025 Campus Collective. All rights reserved | Developed with 🧡 in SA.</div>
     </footer>
 
-    <script>
-        const API_URL = 'http://localhost:8080/api/shop/products';
-        const productsGrid = document.getElementById('productsGrid');
-        const categoryFilter = document.getElementById('categoryFilter');
+   <script>
+        // 1. DOM ELEMENTS & STATE
+        const productsGrid = document.getElementById('products-grid');
         const searchInput = document.getElementById('searchInput');
-        const authArea = document.getElementById('authArea');
+        const categoryFilter = document.getElementById('categoryFilter');
         const loader = document.getElementById('loader-overlay');
-
         let allProducts = [];
 
-        function addToCart(productId) {
-            const product = allProducts.find(p => p._id === productId);
-            if (!product) return;
-
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
-            const existingItem = cart.find(item => item._id === productId);
-
-            if (existingItem) {
-                existingItem.quantity += 1;
-            } else {
-                cart.push({
-                    _id: product._id,
-                    name: product.name || 'Unknown Product',
-                    price: product.price || 0,
-                    image: product.image || '',
-                    quantity: 1
-                });
-            }
-
-            localStorage.setItem('cart', JSON.stringify(cart));
-            alert(`${product.name || 'Product'} added to cart!`);
-        }
+        // 2. UI UTILITIES
+        function showLoader() { if(loader) loader.style.display = 'flex'; }
+        function hideLoader() { if(loader) loader.style.display = 'none'; }
 
         function updateNavbar() {
-            const userData = localStorage.getItem('user');
-            if (userData) {
-                const user = JSON.parse(userData);
-                const initials = (user.firstName ? user.firstName.charAt(0) : 'U') + (user.surname ? user.surname.charAt(0) : '');
-                authArea.innerHTML = `
-                    <a href="customer-orders.html" class="text-blue-600 font-bold hover:underline">Track Orders</a>
-                    <div class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold shadow-md">${initials.toUpperCase()}</div>
-                    <button onclick="logout()" class="text-xs text-red-500">Logout</button>
+            const authSection = document.getElementById('auth-section');
+            const token = localStorage.getItem('token');
+            if (token) {
+                authSection.innerHTML = `
+                    <a href="Profile.html" class="text-gray-700 hover:text-blue-600 font-medium">Profile</a>
+                    <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">Logout</button>
                 `;
             }
         }
 
-        function logout() { localStorage.clear(); window.location.reload(); }
-
-async function fetchProducts() {
-    showLoader();
-    try {
-        // Change this URL to match your server.js mounting point
-        // Usually, it's /api/shop/products
-        const res = await fetch('/api/shop/products'); 
-        
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Server Error: ${res.status} - ${errorText}`);
+        function logout() {
+            localStorage.clear();
+            window.location.reload();
         }
 
-        allProducts = await res.json();
-        filterAndRender();
-    } catch (err) {
-        console.error("Shop Load Error:", err);
-        productsGrid.innerHTML = `
-            <div class="col-span-full text-center py-10">
-                <p class="text-red-500 font-bold">Error loading products</p>
-                <p class="text-gray-500 text-xs">${err.message}</p>
-                <button onclick="fetchProducts()" class="mt-4 text-blue-600 underline">Try Again</button>
-            </div>`;
-    } finally {
-        hideLoader();
-    }
-}
+        // 3. DATA FETCHING
+        async function fetchProducts() {
+            showLoader();
+            try {
+                // We use /api/shop/products to match your shopRoutes.js logic
+                const res = await fetch('/api/shop/products');
+                
+                if (!res.ok) {
+                    throw new Error(`Server returned ${res.status}`);
+                }
 
+                allProducts = await res.json();
+                console.log("Products loaded:", allProducts);
+                
+                filterAndRender();
+            } catch (err) {
+                console.error("Shop Load Error:", err);
+                productsGrid.innerHTML = `
+                    <div class="col-span-full text-center py-10">
+                        <p class="text-red-500 font-bold">Unable to load products.</p>
+                        <p class="text-gray-500 text-sm">${err.message}</p>
+                        <button onclick="fetchProducts()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg">Try Again</button>
+                    </div>`;
+            } finally {
+                hideLoader(); // This ensures the "loading" screen goes away no matter what
+            }
+        }
+
+        // 4. RENDERING LOGIC
         function renderProduct(product) {
             const card = document.createElement('div');
-            card.className = 'product-card bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full relative';
+            card.className = 'product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
             
-            let imgPath = 'Images/placeholder.jpg'; 
-            if (product.image) {
-                imgPath = product.image.startsWith('http') ? product.image : `http://localhost:8080/${product.image}`;
-            }
-
-            const name = product.name || 'Untitled Product';
-            const category = product.category || 'General';
-            const description = product.description || 'No description provided.';
-            const price = typeof product.price === 'number' ? product.price.toFixed(2) : '0.00';
-            
-            // SPECIAL OFFER LOGIC
-            const isOnSpecial = product.onSpecial === true;
-            const oldPrice = product.oldPrice ? `R${product.oldPrice.toFixed(2)}` : '';
+            // Format price
+            const price = product.onSpecial ? 
+                `<span class="text-red-600 font-bold">R${product.price}</span> <span class="text-gray-400 line-through text-xs">R${product.oldPrice}</span>` : 
+                `<span class="text-blue-600 font-bold">R${product.price}</span>`;
 
             card.innerHTML = `
-                ${isOnSpecial ? '<div class="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full z-10 shadow-lg">SALE</div>' : ''}
-                <div class="h-48 overflow-hidden bg-gray-100 flex items-center justify-center">
-                    <img src="${imgPath}" alt="${name}" class="w-full h-full object-cover" onerror="this.src='Images/placeholder.jpg'">
+                <div class="relative h-48 overflow-hidden bg-gray-200">
+                    <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}" class="w-full h-full object-cover">
+                    ${product.onSpecial ? '<span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">SPECIAL</span>' : ''}
                 </div>
-                <div class="p-4 flex flex-col flex-grow">
-                    <h3 class="text-lg font-bold text-gray-800 mb-1">${name}</h3>
-                    <p class="text-gray-500 text-xs mb-2 uppercase font-semibold">${category}</p>
-                    <p class="text-gray-600 text-sm mb-4 flex-grow line-clamp-3">${description}</p>
-                    <div class="mt-auto flex flex-col">
-                        ${isOnSpecial ? `<span class="text-gray-400 text-sm line-through">${oldPrice}</span>` : ''}
-                        <div class="flex items-center justify-between">
-                            <span class="text-blue-600 font-bold text-xl">R${price}</span>
-                            <button onclick="addToCart('${product._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-semibold transition shadow-md">
-                                Add to Cart
-                            </button>
+                <div class="p-4 flex-grow flex flex-col">
+                    <div class="mb-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-1 rounded">${product.category}</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${product.name}</h3>
+                    <p class="text-gray-500 text-xs line-clamp-2 mb-4 flex-grow">${product.description}</p>
+                    <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+                        <div class="flex flex-col">
+                            <span class="text-xs text-gray-400">Price</span>
+                            <div class="flex items-center gap-2">${price}</div>
                         </div>
+                        <button onclick="addToCart('${product._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-semibold transition shadow-md">
+                            Add to Cart
+                        </button>
                     </div>
                 </div>
             `;
@@ -222,26 +197,39 @@ async function fetchProducts() {
         }
 
         function filterAndRender() {
+            if (!productsGrid) return;
             productsGrid.innerHTML = '';
+            
             const search = searchInput.value.toLowerCase();
             const cat = categoryFilter.value;
             
             const filtered = allProducts.filter(p => {
                 const matchesCategory = !cat || p.category === cat;
-                const matchesSearch = (p.name || '').toLowerCase().includes(search) || (p.description || '').toLowerCase().includes(search);
+                const matchesSearch = (p.name || '').toLowerCase().includes(search) || 
+                                     (p.description || '').toLowerCase().includes(search);
                 return matchesCategory && matchesSearch;
             });
 
             if (filtered.length === 0) {
-                productsGrid.innerHTML = '<p class="text-gray-500 col-span-full text-center py-10">No products found.</p>';
+                productsGrid.innerHTML = '<p class="text-gray-500 col-span-full text-center py-10">No products found matching your search.</p>';
             } else {
                 filtered.forEach(p => renderProduct(p));
             }
         }
 
+        // 5. EVENT LISTENERS
         searchInput.addEventListener('input', filterAndRender);
         categoryFilter.addEventListener('change', filterAndRender);
-        window.onload = () => { updateNavbar(); fetchProducts(); };
+
+        window.onload = () => { 
+            updateNavbar(); 
+            fetchProducts(); 
+        };
+
+        // Placeholder for Add to Cart
+        function addToCart(id) {
+            alert("Item added to cart! (ID: " + id + ")");
+        }
     </script>
 </body>
 </html>
