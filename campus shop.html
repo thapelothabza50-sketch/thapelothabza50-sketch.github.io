@@ -153,28 +153,32 @@
 
         function logout() { localStorage.clear(); window.location.reload(); }
 
-        async function fetchProducts() {
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('Failed to fetch');
-                allProducts = await response.json();
-                
-                const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
-                categoryFilter.innerHTML = '<option value="">All Categories</option>';
-                categories.forEach(cat => {
-                    const opt = document.createElement('option');
-                    opt.value = cat; opt.textContent = cat;
-                    categoryFilter.appendChild(opt);
-                });
-
-                filterAndRender();
-            } catch (err) {
-                console.error(err);
-                productsGrid.innerHTML = '<p class="text-red-500 col-span-full text-center font-bold">Error loading products.</p>';
-            } finally {
-                loader.classList.add('hidden-loader');
-            }
+async function fetchProducts() {
+    showLoader();
+    try {
+        // Change this URL to match your server.js mounting point
+        // Usually, it's /api/shop/products
+        const res = await fetch('/api/shop/products'); 
+        
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Server Error: ${res.status} - ${errorText}`);
         }
+
+        allProducts = await res.json();
+        filterAndRender();
+    } catch (err) {
+        console.error("Shop Load Error:", err);
+        productsGrid.innerHTML = `
+            <div class="col-span-full text-center py-10">
+                <p class="text-red-500 font-bold">Error loading products</p>
+                <p class="text-gray-500 text-xs">${err.message}</p>
+                <button onclick="fetchProducts()" class="mt-4 text-blue-600 underline">Try Again</button>
+            </div>`;
+    } finally {
+        hideLoader();
+    }
+}
 
         function renderProduct(product) {
             const card = document.createElement('div');

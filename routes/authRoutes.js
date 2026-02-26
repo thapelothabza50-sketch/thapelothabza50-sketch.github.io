@@ -213,6 +213,25 @@ router.post('/admin-agent/login', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
+router.get('/products', async (req, res) => {
+    try {
+        // We only want to show products that are in stock
+        const products = await Product.find({ stock: { $gt: 0 } })
+            .populate('seller', 'businessName email') 
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // Run the special expiration check on each product
+        const updatedProducts = await Promise.all(products.map(p => checkAndClearSpecial(p)));
+
+        res.json(updatedProducts);
+    } catch (err) {
+        console.error('Shop Fetch Error:', err.message);
+        res.status(500).json({ message: 'Error fetching products', error: err.message });
+    }
+});
+
 /**
  * @route   POST /api/auth/seller/login
  */
