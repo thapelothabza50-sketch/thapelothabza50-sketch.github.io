@@ -106,130 +106,135 @@
     </footer>
 
    <script>
-        // 1. DOM ELEMENTS & STATE
-        const productsGrid = document.getElementById('products-grid');
-        const searchInput = document.getElementById('searchInput');
-        const categoryFilter = document.getElementById('categoryFilter');
-        const loader = document.getElementById('loader-overlay');
-        let allProducts = [];
+    // 1. GLOBAL VARIABLES
+    // We define these at the top so every function below can see them
+    const productsGrid = document.getElementById('products-grid');
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const loader = document.getElementById('loader-overlay');
+    let allProducts = []; // This stores the products we get from the server
 
-        // 2. UI UTILITIES
-        function showLoader() { if(loader) loader.style.display = 'flex'; }
-        function hideLoader() { if(loader) loader.style.display = 'none'; }
+    // 2. LOADER FUNCTIONS
+    function showLoader() { if(loader) loader.style.display = 'flex'; }
+    function hideLoader() { if(loader) loader.style.display = 'none'; }
 
-        function updateNavbar() {
-            const authSection = document.getElementById('auth-section');
-            const token = localStorage.getItem('token');
-            if (token) {
-                authSection.innerHTML = `
-                    <a href="Profile.html" class="text-gray-700 hover:text-blue-600 font-medium">Profile</a>
-                    <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">Logout</button>
-                `;
-            }
+    // 3. NAVBAR & AUTH
+    function updateNavbar() {
+        const authSection = document.getElementById('auth-section');
+        const token = localStorage.getItem('token');
+        if (token && authSection) {
+            authSection.innerHTML = `
+                <a href="Profile.html" class="text-gray-700 hover:text-blue-600 font-medium">Profile</a>
+                <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition ml-4">Logout</button>
+            `;
         }
+    }
 
-        function logout() {
-            localStorage.clear();
-            window.location.reload();
-        }
+    function logout() {
+        localStorage.clear();
+        window.location.reload();
+    }
 
-        // 3. DATA FETCHING
-        async function fetchProducts() {
-            showLoader();
-            try {
-                // We use /api/shop/products to match your shopRoutes.js logic
-                const res = await fetch('/api/shop/products');
-                
-                if (!res.ok) {
-                    throw new Error(`Server returned ${res.status}`);
-                }
+    // 4. FETCH DATA FROM SERVER
+    async function fetchProducts() {
+        showLoader();
+        try {
+            // This URL must match your backend (shopRoutes.js)
+            const res = await fetch('/api/shop/products');
+            
+            if (!res.ok) throw new Error(`Server Error: ${res.status}`);
 
-                allProducts = await res.json();
-                console.log("Products loaded:", allProducts);
-                
-                filterAndRender();
-            } catch (err) {
-                console.error("Shop Load Error:", err);
+            allProducts = await res.json();
+            
+            // Once data is here, show it on the screen
+            filterAndRender();
+        } catch (err) {
+            console.error("Shop Load Error:", err);
+            if (productsGrid) {
                 productsGrid.innerHTML = `
                     <div class="col-span-full text-center py-10">
-                        <p class="text-red-500 font-bold">Unable to load products.</p>
-                        <p class="text-gray-500 text-sm">${err.message}</p>
-                        <button onclick="fetchProducts()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg">Try Again</button>
+                        <p class="text-red-500 font-bold">Error loading products</p>
+                        <p class="text-gray-500 text-xs">${err.message}</p>
+                        <button onclick="fetchProducts()" class="mt-4 text-blue-600 underline">Try Again</button>
                     </div>`;
-            } finally {
-                hideLoader(); // This ensures the "loading" screen goes away no matter what
             }
+        } finally {
+            hideLoader(); // This makes sure the "Loading" screen disappears
         }
+    }
 
-        // 4. RENDERING LOGIC
-        function renderProduct(product) {
-            const card = document.createElement('div');
-            card.className = 'product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
-            
-            // Format price
-            const price = product.onSpecial ? 
-                `<span class="text-red-600 font-bold">R${product.price}</span> <span class="text-gray-400 line-through text-xs">R${product.oldPrice}</span>` : 
-                `<span class="text-blue-600 font-bold">R${product.price}</span>`;
+    // 5. RENDER PRODUCTS TO HTML
+    function renderProduct(product) {
+        const card = document.createElement('div');
+        card.className = 'product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
+        
+        // Logic for Specials
+        const priceDisplay = product.onSpecial ? 
+            `<span class="text-red-600 font-bold">R${product.price}</span> <span class="text-gray-400 line-through text-xs ml-2">R${product.oldPrice}</span>` : 
+            `<span class="text-blue-600 font-bold">R${product.price}</span>`;
 
-            card.innerHTML = `
-                <div class="relative h-48 overflow-hidden bg-gray-200">
-                    <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}" class="w-full h-full object-cover">
-                    ${product.onSpecial ? '<span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">SPECIAL</span>' : ''}
+        card.innerHTML = `
+            <div class="relative h-48 overflow-hidden bg-gray-100">
+                <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}" class="w-full h-full object-cover">
+                ${product.onSpecial ? '<span class="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">SPECIAL</span>' : ''}
+            </div>
+            <div class="p-4 flex-grow flex flex-col">
+                <div class="mb-2">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-1 rounded">${product.category}</span>
                 </div>
-                <div class="p-4 flex-grow flex flex-col">
-                    <div class="mb-2">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-1 rounded">${product.category}</span>
+                <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${product.name}</h3>
+                <p class="text-gray-500 text-xs line-clamp-2 mb-4 flex-grow">${product.description}</p>
+                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-gray-400 uppercase font-bold">Price</span>
+                        <div class="flex items-center">${priceDisplay}</div>
                     </div>
-                    <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${product.name}</h3>
-                    <p class="text-gray-500 text-xs line-clamp-2 mb-4 flex-grow">${product.description}</p>
-                    <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-                        <div class="flex flex-col">
-                            <span class="text-xs text-gray-400">Price</span>
-                            <div class="flex items-center gap-2">${price}</div>
-                        </div>
-                        <button onclick="addToCart('${product._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-semibold transition shadow-md">
-                            Add to Cart
-                        </button>
-                    </div>
+                    <button onclick="addToCart('${product._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-bold transition shadow-md">
+                        Add to Cart
+                    </button>
                 </div>
-            `;
-            productsGrid.appendChild(card);
+            </div>
+        `;
+        productsGrid.appendChild(card);
+    }
+
+    // 6. SEARCH & FILTER LOGIC
+    function filterAndRender() {
+        if (!productsGrid) return;
+        productsGrid.innerHTML = '';
+        
+        const search = searchInput.value.toLowerCase();
+        const cat = categoryFilter.value;
+        
+        const filtered = allProducts.filter(p => {
+            const matchesCategory = !cat || p.category === cat;
+            const matchesSearch = (p.name || '').toLowerCase().includes(search) || 
+                                 (p.description || '').toLowerCase().includes(search);
+            return matchesCategory && matchesSearch;
+        });
+
+        if (filtered.length === 0) {
+            productsGrid.innerHTML = '<p class="text-gray-500 col-span-full text-center py-20">No products found matching your search.</p>';
+        } else {
+            filtered.forEach(p => renderProduct(p));
         }
+    }
 
-        function filterAndRender() {
-            if (!productsGrid) return;
-            productsGrid.innerHTML = '';
-            
-            const search = searchInput.value.toLowerCase();
-            const cat = categoryFilter.value;
-            
-            const filtered = allProducts.filter(p => {
-                const matchesCategory = !cat || p.category === cat;
-                const matchesSearch = (p.name || '').toLowerCase().includes(search) || 
-                                     (p.description || '').toLowerCase().includes(search);
-                return matchesCategory && matchesSearch;
-            });
+    // 7. CART LOGIC (Placeholder)
+    function addToCart(productId) {
+        alert("Product added to cart!");
+        console.log("Cart ID:", productId);
+    }
 
-            if (filtered.length === 0) {
-                productsGrid.innerHTML = '<p class="text-gray-500 col-span-full text-center py-10">No products found matching your search.</p>';
-            } else {
-                filtered.forEach(p => renderProduct(p));
-            }
-        }
+    // 8. EVENT LISTENERS
+    if(searchInput) searchInput.addEventListener('input', filterAndRender);
+    if(categoryFilter) categoryFilter.addEventListener('change', filterAndRender);
 
-        // 5. EVENT LISTENERS
-        searchInput.addEventListener('input', filterAndRender);
-        categoryFilter.addEventListener('change', filterAndRender);
-
-        window.onload = () => { 
-            updateNavbar(); 
-            fetchProducts(); 
-        };
-
-        // Placeholder for Add to Cart
-        function addToCart(id) {
-            alert("Item added to cart! (ID: " + id + ")");
-        }
-    </script>
+    // START EVERYTHING
+    window.onload = () => {
+        updateNavbar();
+        fetchProducts();
+    };
+</script>
 </body>
 </html>
