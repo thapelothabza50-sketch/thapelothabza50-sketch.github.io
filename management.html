@@ -804,23 +804,41 @@ function printPayoutPDF(name, id, count, amount, rate) {
     doc.save(`Payout_Statement_${id}.pdf`);
 }
 
-// --- MISSING SEARCH LOGIC ---
+// --- SEARCH LOGIC ---
 function handleGlobalSearch() {
     const query = document.getElementById('globalSearch').value.toLowerCase();
     
-    // Filter Recruits
-    const filteredRecruits = allRecruits.filter(r => 
-        r.studentName.toLowerCase().includes(query) || 
-        r.studentSurname?.toLowerCase().includes(query) ||
-        r.accommodation.toLowerCase().includes(query)
-    );
-    renderRecruits(filteredRecruits);
+    // 1. SEARCH RECRUITS (Student Name, Surname, Phone, Accommodation, or Agent Name)
+    const filteredRecruits = allRecruits.filter(r => {
+        const studentFirst = (r.studentName || "").toLowerCase();
+        const studentLast = (r.studentSurname || "").toLowerCase();
+        const phone = (r.studentPhone || "").toLowerCase();
+        const acc = (r.accommodation || "").toLowerCase();
+        
+        // Get the agent's name for this recruit
+        const agentObj = allUsers.find(u => u._id === (r.agent?._id || r.agent));
+        const agentName = (agentObj?.fullName || "").toLowerCase();
 
-    // Filter Users/Agents
-    const filteredUsers = allUsers.filter(u => 
-        u.fullName.toLowerCase().includes(query) || 
-        u.email.toLowerCase().includes(query)
-    );
+        return studentFirst.includes(query) || 
+               studentLast.includes(query) || 
+               phone.includes(query) || 
+               acc.includes(query) ||
+               agentName.includes(query);
+    });
+
+    // 2. SEARCH USERS/AGENTS (Full Name, Email, or Agent ID)
+    const filteredUsers = allUsers.filter(u => {
+        const name = (u.fullName || "").toLowerCase();
+        const email = (u.email || "").toLowerCase();
+        const aid = (u.agentId || "").toLowerCase();
+
+        return name.includes(query) || 
+               email.includes(query) ||
+               aid.includes(query);
+    });
+
+    // 3. UPDATE THE UI
+    renderRecruits(filteredRecruits);
     renderAllUsers(filteredUsers);
 }
 
