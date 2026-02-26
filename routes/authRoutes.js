@@ -596,6 +596,16 @@ router.delete('/recruit/:id', auth, async (req, res) => {
     }
 });
 
+// --- DELETE RECRUIT ROUTE ---
+router.delete('/delete-recruit/:id', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        await Recruit.findByIdAndDelete(req.params.id);
+        res.json({ message: "Recruit deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
 /**
  * @route   POST /api/auth/update-status
  * @desc    Update recruit status and set commission/price

@@ -804,6 +804,46 @@ function printPayoutPDF(name, id, count, amount, rate) {
     doc.save(`Payout_Statement_${id}.pdf`);
 }
 
+// --- MISSING SEARCH LOGIC ---
+function handleGlobalSearch() {
+    const query = document.getElementById('globalSearch').value.toLowerCase();
+    
+    // Filter Recruits
+    const filteredRecruits = allRecruits.filter(r => 
+        r.studentName.toLowerCase().includes(query) || 
+        r.studentSurname?.toLowerCase().includes(query) ||
+        r.accommodation.toLowerCase().includes(query)
+    );
+    renderRecruits(filteredRecruits);
+
+    // Filter Users/Agents
+    const filteredUsers = allUsers.filter(u => 
+        u.fullName.toLowerCase().includes(query) || 
+        u.email.toLowerCase().includes(query)
+    );
+    renderAllUsers(filteredUsers);
+}
+
+// --- MISSING DELETE FUNCTION ---
+async function deleteRecruit(id) {
+    if (!confirm("Are you sure you want to delete this recruit?")) return;
+    
+    try {
+        const res = await fetch(`/api/auth/delete-recruit/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            alert("Recruit deleted");
+            fetchRecruits(); // Refresh the list
+        } else {
+            alert("Failed to delete");
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
     // 9. INITIALIZATION & LOGOUT
     window.onload = async () => { 
         if(!token) { 
