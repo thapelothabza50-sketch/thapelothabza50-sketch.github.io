@@ -133,11 +133,15 @@
     </div>
 
     <div id="section-recruits" class="hidden space-y-6">
-        <div class="flex gap-4 items-center bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <span class="text-sm font-bold text-blue-800">Print Accommodation:</span>
-            <select id="acc-filter" class="p-2 border rounded-lg text-sm bg-white"></select>
-            <button onclick="printAccPDF()" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold text-xs hover:bg-blue-700 transition">Print List</button>
-        </div>
+    <div class="flex gap-4 items-center bg-blue-50 p-4 rounded-xl border border-blue-100">
+        <span class="text-sm font-bold text-blue-800">Print Accommodation:</span>
+        <select id="acc-filter" class="p-2 border rounded-lg text-sm bg-white"></select>
+        <button onclick="printAccPDF()" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold text-xs hover:bg-blue-700 transition">Print List</button>
+        
+        <button onclick="printAccommodationStatement()" class="bg-orange-600 text-white px-4 py-1.5 rounded-lg font-bold text-xs hover:bg-orange-700 transition">📄 Generate Statement (Quote)</button>
+    </div>
+    </div>
+        
         <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
             <table class="w-full border-collapse">
                 <thead>
@@ -802,6 +806,110 @@ function printPayoutPDF(name, id, count, amount, rate) {
     });
 
     doc.save(`Payout_Statement_${id}.pdf`);
+}
+
+function printAccommodationStatement() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // 1. Get Inputs
+    const selectedAcc = document.getElementById('acc-filter').value;
+    if (!selectedAcc) return alert("Please select an accommodation first!");
+
+    const priceInput = prompt(`Enter Price Charged Per Student for ${selectedAcc}:`, "1000");
+    const pricePerStudent = parseFloat(priceInput);
+    if (isNaN(pricePerStudent)) return alert("Invalid price entered.");
+
+    const reference = prompt("Enter Reference (e.g., INV-001 or Acc Name):", selectedAcc);
+    
+    // 2. Filter Approved Students for this Acc
+    const approvedRecruits = allRecruits.filter(r => r.accommodation === selectedAcc && r.status === 'Approved');
+    const studentCount = approvedRecruits.length;
+    const totalAmount = studentCount * pricePerStudent;
+
+    // 3. Styling & Header (Matching Master Style)
+    const drawBorder = (pdfDoc) => {
+        pdfDoc.setDrawColor(37, 99, 235);
+        pdfDoc.setLineWidth(1.5);
+        pdfDoc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+    };
+    drawBorder(doc);
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(22);
+    doc.text("Campus", 40, 22); 
+    doc.setFontSize(10);
+    doc.text("COLLECTIVE", 40, 27);
+
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
+    doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
+    doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
+
+    doc.setDrawColor(37, 99, 235);
+    doc.line(12, 40, pageWidth - 12, 40);
+
+    // 4. Statement Title
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text("COMMISSION STATEMENT / QUOTE", 12, 52);
+    
+    // 5. Billing Details Table
+    doc.autoTable({
+        startY: 60,
+        theme: 'plain',
+        body: [
+            ['To:', selectedAcc],
+            ['Date:', new Date().toLocaleDateString()],
+            ['Reference:', reference.toUpperCase()]
+        ],
+        styles: { fontSize: 10, cellPadding: 1 },
+        columnStyles: { 0: { fontStyle: 'bold', width: 30 } }
+    });
+
+    // 6. Main Calculation Table
+    doc.autoTable({
+        startY: 85,
+        head: [['Description', 'Qty (Approved Students)', 'Unit Price', 'Total']],
+        body: [
+            [
+                `Recruitment Services for ${selectedAcc}`,
+                studentCount.toString(),
+                `R ${pricePerStudent.toLocaleString()}`,
+                `R ${totalAmount.toLocaleString()}`
+            ]
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
+        styles: { fontSize: 10, cellPadding: 5 }
+    });
+
+    // 7. Payment Info & Banking (The "Account Number" part)
+    let finalY = doc.lastAutoTable.finalY + 20;
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("BANKING DETAILS FOR SETTLEMENT:", 12, finalY);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Bank Name: FNB (First National Bank)", 12, finalY + 8);
+    doc.text("Account Name: Campus Collective Group", 12, finalY + 14);
+    doc.text("Account Number: 62900000000", 12, finalY + 20); // Replace with your actual number
+    doc.text("Branch Code: 250655", 12, finalY + 26);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Reference: ${reference.toUpperCase()}`, 12, finalY + 32);
+
+    // 8. Signature Area
+    doc.setFontSize(9);
+    doc.setTextColor(150);
+    doc.text("Authorized by Campus Collective Management", 12, pageHeight - 20);
+
+    doc.save(`${selectedAcc.replace(/\s+/g, '_')}_Statement.pdf`);
 }
 
 // --- SEARCH LOGIC ---
