@@ -63,7 +63,12 @@ const RecruitSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
-    }
+    },
+    commissionRate: {
+    type: Number,
+    required: true,
+    default: 150
+}
 });
 
 module.exports = mongoose.model('Recruit', RecruitSchema);

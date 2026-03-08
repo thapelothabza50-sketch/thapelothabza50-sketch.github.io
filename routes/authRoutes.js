@@ -837,39 +837,87 @@ const Landlord = require('../models/Landlord');
 // --- LANDLORD REGISTRATION ROUTE ---
 router.post('/landlord/register', async (req, res) => {
     try {
-        const { fullName, email, phone, propertyAddress, institution, nsfasAccredited } = req.body;
+        // We extract all fields from the form, ensuring they match the HTML "name" attributes
+        const { 
+            fullName, 
+            email, 
+            phone, 
+            address, // This comes from the HTML 'address' name
+            institution, 
+            nsfasAccredited,
+            accommodationType,
+            rent,
+            'accommodation name': accommodationName // Handling the space in your HTML name
+        } = req.body;
 
         const newListing = new Landlord({
-            fullName, email, phone, propertyAddress, institution, nsfasAccredited
+            fullName,
+            email,
+            phone,
+            propertyAddress: address, // Mapping 'address' to 'propertyAddress' for the DB
+            institution,
+            nsfasAccredited,
+            accommodationType, // Make sure to add this to your Landlord.js model!
+            rent,
+            accommodationName
         });
 
         await newListing.save();
 
         // Send Automated Email
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: 'Application Received - Campus Collective',
-            html: `<h1>Hello ${fullName}</h1>
-                   <p>Thank you for registering your property with Campus Collective.</p>
-                   <p>Our team is currently reviewing your application for <b>${propertyAddress}</b>.</p>
-                   <p>We will contact you shortly regarding the next steps.</p>`
-        };
+        // Updated Mail Options with Logo and Formal Styling
+const mailOptions = {
+    from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+    to: email,
+    subject: "Application Received: Property Registration",
+    html: `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #f8fafc;">
+        <div style="background-color: #1e40af; padding: 30px; text-align: center;">
+            <img src="cid:campus_logo" alt="Campus Collective" style="width: 180px; height: auto;">
+        </div>
+        <div style="padding: 40px; background-color: #ffffff;">
+            <h2 style="color: #1e293b; font-size: 22px; margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">Property Application Received</h2>
+            
+            <p style="color: #475569; line-height: 1.6;">Dear <strong>${fullName}</strong>,</p>
+            
+            <p style="color: #475569; line-height: 1.6;">Thank you for submitting an application to list your property, <strong>${req.body['accommodation name'] || 'Accommodation'}</strong>, with Campus Collective.</p>
+            
+            <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                <p style="margin: 0; color: #1e40af; font-weight: 600;">Application Summary:</p>
+                <p style="margin: 10px 0 5px 0; color: #475569;"><strong>Location:</strong> ${address}</p>
+                <p style="margin: 0; color: #475569;"><strong>Status:</strong> Under Review</p>
+            </div>
 
-        transporter.sendMail(mailOptions);
+            <p style="color: #475569; line-height: 1.6;">Our management team is currently reviewing your details and verification documents. You will receive a follow-up email once the review process is complete.</p>
+            
+            <p style="color: #475569; line-height: 1.6;">If you have any urgent inquiries, please contact our support office at <a href="mailto:info@mycampuscollective.me" style="color: #1e40af; text-decoration: none;">info@mycampuscollective.me</a>.</p>
+            
+            <p style="margin-top: 30px; color: #1e293b; font-weight: 600;">Best Regards,<br>
+            <span style="color: #64748b; font-weight: 400;">Campus Collective Management</span></p>
+        </div>
+        <div style="padding: 25px; background-color: #f1f5f9; text-align: center;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">&copy; 2026 Campus Collective. All rights reserved.</p>
+            <p style="color: #94a3b8; font-size: 11px; margin-top: 5px;">This is an automated notification. Please do not reply to this email.</p>
+        </div>
+    </div>`,
+    attachments: [
+        {
+            filename: 'logo.jpg',
+            path: path.join(__dirname, '../Images/Campus collective logo origin.jpg'), 
+            cid: 'campus_logo' // This matches the <img src="cid:campus_logo"> in the HTML above
+        }
+    ]
+};
 
+        await transporter.sendMail(mailOptions);
+
+        
         res.status(201).json({ message: "Application submitted successfully!" });
+
     } catch (err) {
+        console.error("LANDLORD ERROR:", err.message);
         res.status(500).json({ message: "Server Error", error: err.message });
     }
-    // Inside your student recruitment route:
-const agent = await Agent.findById(req.user.id);
-
-const newRecruit = new Recruit({
-    ...req.body,
-    agent: agent._id,
-    commissionRate: agent.commissionRate // This locks the price at the time of recruitment
-});
 });
 
 module.exports = router;
