@@ -904,8 +904,9 @@ const mailOptions = {
         {
             filename: 'logo.jpg',
             path: path.join(__dirname, '../Images/Campus collective logo origin.jpg'), 
-            cid: 'campus_logo' // This matches the <img src="cid:campus_logo"> in the HTML above
-        }
+            cid: 'campus_logo' 
+        },
+
     ]
 };
 
@@ -920,20 +921,39 @@ const mailOptions = {
     }
 });
 
+// 2. STUDENT APPLICATION
 const Student = require('../models/Student');
 
 router.post('/student-apply', async (req, res) => {
     try {
         const newApplication = new Student(req.body);
         await newApplication.save();
-        
-        // Optional: Send a confirmation email to the student here!
-        
-        res.status(201).json({ message: "Application saved successfully" });
+        res.status(201).json({ message: "Application saved" });
     } catch (err) {
-        console.error(err);
+        console.error("Student Error:", err);
         res.status(500).json({ message: "Error saving application" });
     }
+});
+
+// 3. ADMIN: FETCH ALL LANDLORDS (For your Tracker)
+router.get('/admin/landlords', async (req, res) => {
+    try {
+        const data = await Landlord.find().sort({ createdAt: -1 });
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ message: "Error" });
+    }
+});
+
+// 4. ADMIN: FETCH ALL STUDENTS (For your Tracker)
+router.get('/admin/students', async (req, res) => {
+    try {
+        const data = await Student.find().sort({ createdAt: -1 });
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ message: "Error" });
+    }
+
 });
 
 module.exports = router;
