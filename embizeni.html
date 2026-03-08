@@ -270,7 +270,7 @@
             <label class="res-option"><input type="radio" name="loc-choice" value="Embizeni Mattafin"> Embizeni Mattafin</label>
             <label class="res-option"><input type="radio" name="loc-choice" value="Embizeni Likazi 2"> Embizeni Likazi 2</label>
             <label class="res-option"><input type="radio" name="loc-choice" value="Embizeni Entokozweni"> Embizeni Entokozweni</label>
-            <button class="confirm-btn" onclick="sendWhatsApp()">Confirm & Apply</button>
+            <button class="confirm-btn" onclick="goToApply()">Confirm & Apply</button>
         </div>
     </div>
 
@@ -291,17 +291,15 @@
         function closeSelectionModal() {
             document.getElementById("selectionModal").style.display = "none";
         }
-        function sendWhatsApp() {
-            const selected = document.querySelector('input[name="loc-choice"]:checked');
-            if (selected) {
-                const locName = encodeURIComponent(selected.value);
-                const url = `https://wa.me/27774377288?text=Hi%20I%20would%20like%20to%20apply%20for%20${locName}`;
-                window.open(url, '_blank');
-                closeSelectionModal();
-            } else {
-                alert("Please select a location first.");
-            }
-        }
+        function goToApply() {
+    const selected = document.querySelector('input[name="loc-choice"]:checked');
+    if (selected) {
+        const locName = encodeURIComponent(selected.value);
+        window.location.href = `apply.html?res=${locName}`;
+    } else {
+        alert("Please select a location first.");
+    }
+}
         window.onclick = function(event) {
             if (event.target == document.getElementById("selectionModal")) closeSelectionModal();
         }

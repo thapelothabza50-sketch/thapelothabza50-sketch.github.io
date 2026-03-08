@@ -152,7 +152,7 @@
             <label class="res-option"><input type="radio" name="res-choice" value="Cecil Complex #3 (Dubai Ngodini)"> Cecil Complex #3 (Dubai)</label>
             <label class="res-option"><input type="radio" name="res-choice" value="Cecil Complex #4 (White River)"> Cecil Complex #4 (White River)</label>
             <label class="res-option"><input type="radio" name="res-choice" value="Pura Vida (Ngodini)"> Pura Vida (Ngodini)</label>
-            <button class="confirm-btn" onclick="sendWhatsApp()">Confirm & Apply</button>
+            <button class="confirm-btn" onclick="goToApply()">Confirm & Apply</button>
         </div>
     </div>
 
@@ -173,17 +173,16 @@
         function closeSelectionModal() {
             document.getElementById("selectionModal").style.display = "none";
         }
-        function sendWhatsApp() {
-            const selected = document.querySelector('input[name="res-choice"]:checked');
-            if (selected) {
-                const resName = encodeURIComponent(selected.value);
-                const url = `https://wa.me/27774377288?text=Hi%20I%20would%20like%20to%20apply%20for%20${resName}%20at%20Cecil%20Complex`;
-                window.open(url, '_blank');
-                closeSelectionModal();
-            } else {
-                alert("Please select a residence first.");
-            }
-        }
+        function goToApply() {
+    const selected = document.querySelector('input[name="res-choice"]:checked');
+    if (selected) {
+        // This takes the value (e.g., "Cecil 1" or "Cecil 2") and sends it to apply.html
+        const resName = encodeURIComponent(selected.value);
+        window.location.href = `apply.html?res=${resName}`;
+    } else {
+        alert("Please select a residence first.");
+    }
+}
         window.onclick = function(event) {
             if (event.target == document.getElementById("selectionModal")) closeSelectionModal();
         }

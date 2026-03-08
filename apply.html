@@ -179,6 +179,22 @@
                 btn.disabled = false;
             }
         });
+
+        window.onload = () => {
+    // 1. Get the residence name from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedRes = urlParams.get('res');
+
+    // 2. If it exists, put it in the "Accommodation" input field
+    if (selectedRes) {
+        const accInput = document.getElementById('display-acc');
+        if (accInput) {
+            accInput.value = selectedRes;
+            // Make it read-only so they don't accidentally change it
+            accInput.readOnly = true; 
+        }
+    }
+};
     </script>
 </body>
 </html>

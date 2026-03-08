@@ -239,7 +239,7 @@
             <h3>Select Accommodation</h3>
             <label class="res-option"><input type="radio" name="mash-choice" value="Mashimula Entokozweni"> Mashimula Entokozweni</label>
             <label class="res-option"><input type="radio" name="mash-choice" value="Mashimula Likazi"> Mashimula Likazi</label>
-            <button class="confirm-btn" onclick="sendWhatsApp()">Confirm Selection</button>
+            <button class="confirm-btn" onclick="goToApply()">Confirm Selection</button>
         </div>
     </div>
 
@@ -256,14 +256,15 @@
     <script>
         function openSelectionModal() { document.getElementById("selectionModal").style.display = "flex"; }
         function closeSelectionModal() { document.getElementById("selectionModal").style.display = "none"; }
-        function sendWhatsApp() {
-            const selected = document.querySelector('input[name="mash-choice"]:checked');
-            if (selected) {
-                const resName = encodeURIComponent(selected.value);
-                window.open(`https://wa.me/27774377288?text=Hi%20I%20would%20like%20to%20apply%20for%20${resName}`, '_blank');
-                closeSelectionModal();
-            } else { alert("Please select a location."); }
-        }
+        function goToApply() {
+    const selected = document.querySelector('input[name="loc-choice"]:checked');
+    if (selected) {
+        const locName = encodeURIComponent(selected.value);
+        window.location.href = `apply.html?res=${locName}`;
+    } else {
+        alert("Please select a location first.");
+    }
+}
     </script>
 
     <footer>

@@ -920,4 +920,20 @@ const mailOptions = {
     }
 });
 
+const Student = require('../models/Student');
+
+router.post('/student-apply', async (req, res) => {
+    try {
+        const newApplication = new Student(req.body);
+        await newApplication.save();
+        
+        // Optional: Send a confirmation email to the student here!
+        
+        res.status(201).json({ message: "Application saved successfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Error saving application" });
+    }
+});
+
 module.exports = router;
