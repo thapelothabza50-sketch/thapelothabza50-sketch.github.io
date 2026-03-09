@@ -926,12 +926,74 @@ const Student = require('../models/Student');
 
 router.post('/student-apply', async (req, res) => {
     try {
-        const newApplication = new Student(req.body);
+        const studentData = req.body;
+        
+        // 1. Save to Database
+        const newApplication = new Student(studentData);
         await newApplication.save();
-        res.status(201).json({ message: "Application saved" });
+
+        // 2. Prepare the Tabulated Email Content
+        const infoTable = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-family: Arial, sans-serif;">
+                <tr style="background-color: #2563eb; color: white;">
+                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Field</th>
+                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Details</th>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Full Name</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${studentData.fullName}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Accommodation</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${studentData.residenceName || studentData.accommodationName}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Room Type</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${studentData.roomType}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Student ID</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${studentData.studentNumber}</td>
+                </tr>
+            </table>
+        `;
+
+        // 3. Send the Professional Welcome Email
+        const mailOptions = {
+            from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+            to: studentData.email,
+            subject: "Application Received - Campus Collective",
+            html: `
+                <div style="max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+                    <div style="background-color: #2563eb; padding: 20px; text-align: center;">
+                        <h1 style="color: white; margin: 0;">Application Confirmed!</h1>
+                    </div>
+                    <div style="padding: 30px; color: #334155; line-height: 1.6;">
+                        <p>Hello <strong>${studentData.fullName}</strong>,</p>
+                        <p>Thank you for choosing Campus Collective. We have successfully received your application. Below is a summary of the information you captured:</p>
+                        
+                        ${infoTable}
+
+                        <p style="margin-top: 20px;">Our team will review your details and an agent will contact you shortly regarding the next steps.</p>
+                        
+                        <div style="text-align: center; margin-top: 30px;">
+                            <a href="https://www.mycampuscollective.me" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Visit Website</a>
+                        </div>
+                    </div>
+                    <div style="background-color: #f8fafc; padding: 15px; text-align: center; font-size: 12px; color: #64748b;">
+                        &copy; 2026 Campus Collective. All rights reserved.
+                    </div>
+                </div>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.status(201).json({ message: "Application submitted and confirmation email sent!" });
+
     } catch (err) {
-        console.error("Student Error:", err);
-        res.status(500).json({ message: "Error saving application" });
+        console.error("Student Submission Error:", err);
+        res.status(500).json({ message: "Server error during submission. Please check all fields." });
     }
 });
 
