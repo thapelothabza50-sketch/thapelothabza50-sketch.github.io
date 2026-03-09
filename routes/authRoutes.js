@@ -935,6 +935,21 @@ router.post('/student-apply', async (req, res) => {
     }
 });
 
+// Route to toggle room availability
+router.post('/admin/toggle-room/:id', async (req, res) => {
+    try {
+        const { roomType, status } = req.body; // roomType: 'single' or 'shared'
+        const update = {};
+        if (roomType === 'single') update.isSingleRoomFull = status;
+        if (roomType === 'shared') update.isSharedRoomFull = status;
+
+        await Landlord.findByIdAndUpdate(req.params.id, update);
+        res.json({ message: "Availability updated" });
+    } catch (err) {
+        res.status(500).send(err);
+    }
+});
+
 // 3. ADMIN: FETCH ALL LANDLORDS (For your Tracker)
 router.get('/admin/landlords', async (req, res) => {
     try {

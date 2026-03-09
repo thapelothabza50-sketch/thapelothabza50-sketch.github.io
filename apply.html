@@ -194,7 +194,47 @@
             accInput.readOnly = true; 
         }
     }
+    // Inside apply.html window.onload function:
+window.onload = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedRes = urlParams.get('res');
+
+    if (selectedRes) {
+        document.getElementById('display-acc').value = selectedRes;
+
+        // FETCH AVAILABILITY FROM SERVER
+        try {
+            const res = await fetch(`/api/auth/admin/landlords`);
+            const landlords = await res.json();
+            const currentRes = landlords.find(l => l.accommodationName === selectedRes);
+
+            if (currentRes) {
+                if (currentRes.isSingleRoomFull) {
+                    document.getElementById('opt-single').disabled = true;
+                    document.getElementById('room-warning').classList.remove('hidden');
+                    document.getElementById('room-warning').innerText = "Note: Single rooms are currently at capacity.";
+                }
+                if (currentRes.isSharedRoomFull) {
+                    document.getElementById('opt-shared').disabled = true;
+                    // You can add a similar warning for shared rooms here
+                }
+            }
+        } catch (err) {
+            console.error("Error checking availability:", err);
+        }
+    }
 };
+};
+
+        // Optional: Disable single room option if capacity is full (example logic)
+        const singleRoomOption = document.getElementById('opt-single');
+        const roomWarning = document.getElementById('room-warning');
+        const singleRoomFull = true; // This would come from your backend in a real app
+
+        if (singleRoomFull) {
+            singleRoomOption.disabled = true;
+            roomWarning.classList.remove('hidden');
+        }
     </script>
 </body>
 </html>

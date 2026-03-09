@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Tracker | Campus Collective</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 p-6">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-extrabold text-slate-800 border-l-4 border-blue-600 pl-4">Application Tracker</h1>
+            <a href="management.html" class="text-slate-500 hover:text-blue-600 font-medium">← Back to Dashboard</a>
+        </div>
+
+        <div class="flex border-b border-gray-200 mb-6">
+            <button onclick="switchTab('student')" id="tab-student" class="px-6 py-3 font-bold border-b-2 border-blue-600 text-blue-600">Student Applications</button>
+            <button onclick="switchTab('landlord')" id="tab-landlord" class="px-6 py-3 font-bold text-gray-500 border-b-2 border-transparent">Landlord Listings</button>
+        </div>
+
+        <div id="student-section" class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-slate-800 text-white">
+                    <tr>
+                        <th class="p-4">Student Name</th>
+                        <th class="p-4">Residence</th>
+                        <th class="p-4">Funding</th>
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="studentBody"></tbody>
+            </table>
+        </div>
+
+        <div id="landlord-section" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
+            <table class="w-full text-left">
+                <thead class="bg-slate-800 text-white">
+                    <tr>
+                        <th class="p-4">Property Name</th>
+                        <th class="p-4">Owner</th>
+                        <th class="p-4">NSFAS?</th>
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Photos</th>
+                    </tr>
+                </thead>
+                <tbody id="landlordBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Tab Switching Logic
+        function switchTab(type) {
+            const sSec = document.getElementById('student-section');
+            const lSec = document.getElementById('landlord-section');
+            const sTab = document.getElementById('tab-student');
+            const lTab = document.getElementById('tab-landlord');
+
+            if(type === 'student') {
+                sSec.classList.remove('hidden'); lSec.classList.add('hidden');
+                sTab.className = "px-6 py-3 font-bold border-b-2 border-blue-600 text-blue-600";
+                lTab.className = "px-6 py-3 font-bold text-gray-500 border-b-2 border-transparent";
+            } else {
+                lSec.classList.remove('hidden'); sSec.classList.add('hidden');
+                lTab.className = "px-6 py-3 font-bold border-b-2 border-blue-600 text-blue-600";
+                sTab.className = "px-6 py-3 font-bold text-gray-500 border-b-2 border-transparent";
+            }
+        }
+
+        // Fetch Data from Server
+        async function loadData() {
+            try {
+                // Fetch Landlords
+                const lRes = await fetch('/api/auth/admin/landlords');
+                const landlords = await lRes.json();
+                document.getElementById('landlordBody').innerHTML = landlords.map(l => `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="p-4 font-semibold">${l.accommodationName}</td>
+                        <td class="p-4">${l.fullName}</td>
+                        <td class="p-4">${l.nsfasAccredited}</td>
+                        <td class="p-4"><span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">${l.status}</span></td>
+                        <td class="p-4"><button class="text-blue-600 underline">Download Files</button></td>
+                    </tr>
+                `).join('');
+
+                // Fetch Students
+                const sRes = await fetch('/api/auth/admin/students');
+                const students = await sRes.json();
+                document.getElementById('studentBody').innerHTML = students.map(s => `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="p-4 font-semibold">${s.fullName}</td>
+                        <td class="p-4 text-blue-600">${s.accommodation}</td>
+                        <td class="p-4">${s.funding}</td>
+                        <td class="p-4"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${s.status}</span></td>
+                        <td class="p-4"><button class="text-slate-600 border px-3 py-1 rounded">Update</button></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error("Tracker Error:", err);
+            }
+            // Inside your tracker.html loadData() function, update the landlord mapping:
+document.getElementById('landlordBody').innerHTML = landlords.map(l => `
+    <tr class="border-b hover:bg-slate-50">
+        <td class="p-4 font-semibold">${l.accommodationName}</td>
+        <td class="p-4">
+            <div class="flex flex-col gap-2">
+                <button onclick="toggleRoom('${l._id}', 'single', ${!l.isSingleRoomFull})" 
+                    class="px-2 py-1 text-xs rounded ${l.isSingleRoomFull ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}">
+                    Single: ${l.isSingleRoomFull ? 'FULL' : 'AVAILABLE'}
+                </button>
+                <button onclick="toggleRoom('${l._id}', 'shared', ${!l.isSharedRoomFull})" 
+                    class="px-2 py-1 text-xs rounded ${l.isSharedRoomFull ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}">
+                    Shared: ${l.isSharedRoomFull ? 'FULL' : 'AVAILABLE'}
+                </button>
+            </div>
+        </td>
+        <td class="p-4">${l.status}</td>
+    </tr>
+`).join('');
+        }
+
+        async function toggleRoom(id, roomType, status) {
+    await fetch(`/api/auth/admin/toggle-room/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomType, status })
+    });
+    loadData(); // Refresh the table
+}
+
+        window.onload = loadData;
+
+    </script>
+</body>
+</html>
