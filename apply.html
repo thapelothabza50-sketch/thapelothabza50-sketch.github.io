@@ -169,27 +169,28 @@
     btn.innerText = "SUBMITTING...";
     btn.disabled = true;
 
-    // 1. Get all form fields into an object
+    // 1. Get all form fields
     const formData = new FormData(e.target);
     const rawData = Object.fromEntries(formData.entries());
 
-    // 2. Combine "studentName" and "studentSurname" into "fullName"
-    // This matches the "fullName" field in your Student.js model
+    // 2. Map the data to match your Mongoose Schema (Student.js)
     const processedData = {
         fullName: `${rawData.studentName} ${rawData.studentSurname}`.trim(),
         email: rawData.email,
+        phone: rawData.phone,            
+        gender: rawData.gender,          
         studentNumber: rawData.studentNumber,
         institution: rawData.institution,
-        accommodationName: document.getElementById('display-acc').value // Get the value from the read-only input
+        funding: rawData.funding,        
+        bursaryName: rawData.bursaryName || "",
+        roomType: rawData.roomType,     
+        accommodation: document.getElementById('display-acc').value 
     };
 
     try {
-        // 3. Send as JSON to the backend
         const response = await fetch('https://www.mycampuscollective.me/api/auth/student-apply', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(processedData)
         });
 
@@ -199,14 +200,13 @@
             alert('Application submitted successfully! Check your email.');
             window.location.reload();
         } else {
-            // This will show you exactly why the server rejected it (e.g., "fullName is required")
-            alert('Submission Failed: ' + (result.message || 'Unknown error'));
+            alert('Submission Failed: ' + (result.message || 'Check server logs'));
             btn.innerText = "SUBMIT APPLICATION";
             btn.disabled = false;
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Network error. Please try again later.');
+        alert('Network error. Please try again.');
         btn.innerText = "SUBMIT APPLICATION";
         btn.disabled = false;
     }
