@@ -108,7 +108,7 @@
    <script>
     // 1. GLOBAL VARIABLES
     // We define these at the top so every function below can see them
-    const productsGrid = document.getElementById('products-grid');
+    const productsGrid = document.getElementById('productsGrid');
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const loader = document.getElementById('loader-overlay');
@@ -120,7 +120,7 @@
 
     // 3. NAVBAR & AUTH
     function updateNavbar() {
-        const authSection = document.getElementById('auth-section');
+        const authSection = document.getElementById('authArea');
         const token = localStorage.getItem('token');
         if (token && authSection) {
             authSection.innerHTML = `
@@ -140,13 +140,14 @@
         showLoader();
         try {
             // This URL must match your backend (shopRoutes.js)
-            const res = await fetch('/api/shop/products');
+            const res = await fetch('/api/auth/products');
             
             if (!res.ok) throw new Error(`Server Error: ${res.status}`);
 
             allProducts = await res.json();
             
             // Once data is here, show it on the screen
+            populateCategories();
             filterAndRender();
         } catch (err) {
             console.error("Shop Load Error:", err);
@@ -162,41 +163,87 @@
             hideLoader(); // This makes sure the "Loading" screen disappears
         }
     }
+    
+function renderProduct(product) {
+  const card = document.createElement('div');
+  card.className = 'product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
 
-    // 5. RENDER PRODUCTS TO HTML
-    function renderProduct(product) {
-        const card = document.createElement('div');
-        card.className = 'product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
-        
-        // Logic for Specials
-        const priceDisplay = product.onSpecial ? 
-            `<span class="text-red-600 font-bold">R${product.price}</span> <span class="text-gray-400 line-through text-xs ml-2">R${product.oldPrice}</span>` : 
-            `<span class="text-blue-600 font-bold">R${product.price}</span>`;
+  const imgSrc = product.image && product.image.trim()
+    ? product.image
+    : 'https://via.placeholder.com/300';
 
-        card.innerHTML = `
-            <div class="relative h-48 overflow-hidden bg-gray-100">
-                <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}" class="w-full h-full object-cover">
-                ${product.onSpecial ? '<span class="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">SPECIAL</span>' : ''}
-            </div>
-            <div class="p-4 flex-grow flex flex-col">
-                <div class="mb-2">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-1 rounded">${product.category}</span>
-                </div>
-                <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${product.name}</h3>
-                <p class="text-gray-500 text-xs line-clamp-2 mb-4 flex-grow">${product.description}</p>
-                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-                    <div class="flex flex-col">
-                        <span class="text-[10px] text-gray-400 uppercase font-bold">Price</span>
-                        <div class="flex items-center">${priceDisplay}</div>
-                    </div>
-                    <button onclick="addToCart('${product._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-bold transition shadow-md">
-                        Add to Cart
-                    </button>
-                </div>
-            </div>
-        `;
-        productsGrid.appendChild(card);
-    }
+  const priceDisplay = product.onSpecial
+    ? `<span class="text-red-600 font-bold">R${product.price}</span>
+       <span class="text-gray-400 line-through text-xs ml-2">R${product.oldPrice}</span>`
+    : `<span class="text-blue-600 font-bold">R${product.price}</span>`;
+
+  card.innerHTML = `
+    <div class="relative h-48 overflow-hidden bg-gray-100">
+      <img src="${imgSrc}" alt="${product.name}" class="w-full h-full object-cover">
+      ${product.onSpecial ? '<span class="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">SPECIAL</span>' : ''}
+    </div>
+    <div class="p-4 flex-grow flex flex-col">
+      <div class="mb-2">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-1 rounded">${product.category}</span>
+      </div>
+      <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${product.name}</h3>
+      <p class="text-gray-500 text-xs line-clamp-2 mb-4 flex-grow">${product.description}</p>
+      <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+        <div class="flex flex-col">
+          <span class="text-[10px] text-gray-400 uppercase font-bold">Price</span>
+          <div class="flex items-center">${priceDisplay}</div>
+        </div>
+        <button onclick="addToCart('${product._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-bold transition shadow-md">
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  `;
+  productsGrid.appendChild(card);
+}
+
+
+    
+// Helper to fill the category dropdown
+
+function renderProduct(product) {
+  const card = document.createElement('div');
+  card.className = 'product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
+
+  const imgSrc = product.image && product.image.trim()
+    ? product.image
+    : 'https://via.placeholder.com/300';
+
+  const priceDisplay = product.onSpecial
+    ? `<span class="text-red-600 font-bold">R${product.price}</span>
+       <span class="text-gray-400 line-through text-xs ml-2">R${product.oldPrice}</span>`
+    : `<span class="text-blue-600 font-bold">R${product.price}</span>`;
+
+  card.innerHTML = `
+    <div class="relative h-48 overflow-hidden bg-gray-100">
+      <img src="${imgSrc}" alt="${product.name}" class="w-full h-full object-cover">
+      ${product.onSpecial ? '<span class="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">SPECIAL</span>' : ''}
+    </div>
+    <div class="p-4 flex-grow flex flex-col">
+      <div class="mb-2">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-1 rounded">${product.category}</span>
+      </div>
+      <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${product.name}</h3>
+      <p class="text-gray-500 text-xs line-clamp-2 mb-4 flex-grow">${product.description}</p>
+      <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+        <div class="flex flex-col">
+          <span class="text-[10px] text-gray-400 uppercase font-bold">Price</span>
+          <div class="flex items-center">${priceDisplay}</div>
+        </div>
+        <button onclick="addToCart('${product._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-bold transition shadow-md">
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  `;
+  productsGrid.appendChild(card);
+}
+
 
     // 6. SEARCH & FILTER LOGIC
     function filterAndRender() {

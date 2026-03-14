@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Student Lease Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        body { font-family: "Times New Roman", Times, serif; background: #f0f2f5; margin: 0; padding: 20px; color: #000; }
+        
+        /* Landlord Setup UI */
+        #setupPortal { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; border-top: 10px solid #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-family: Arial, sans-serif; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        label { display: block; font-weight: bold; font-size: 12px; margin-bottom: 5px; text-transform: uppercase; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .sig-container { border: 2px solid #000; background: #f9f9f9; height: 140px; margin-top: 5px; }
+        canvas { width: 100%; height: 100%; cursor: crosshair; }
+        .btn-main { background: #000; color: #fff; padding: 18px; width: 100%; border: none; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 5px; margin-top: 20px; }
+
+        /* PDF Document Layout - Optimized for html2pdf */
+        #leaseDocumentView { display: none; }
+        .pdf-page { 
+            background: white; 
+            width: 210mm; 
+            height: 296mm; /* Fixed height for A4 */
+            margin: 0 auto; 
+            padding: 15mm 20mm; 
+            box-sizing: border-box; 
+            border: 6px solid black; /* Formal Border */
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .doc-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+        .official-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        .official-table td { border: 1px solid #000; padding: 8px; width: 50%; vertical-align: top; font-size: 11px; }
+        
+        h3 { font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #000; margin-top: 15px; margin-bottom: 8px; }
+        p, li { font-size: 11.5px; text-align: justify; line-height: 1.4; margin-bottom: 8px; }
+        .policy-box { border: 1px solid #ddd; padding: 10px; background: #fdfdfd; }
+
+        .sig-row { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; }
+        .sig-block { text-align: center; }
+        .sig-box { border: 1px solid #000; height: 80px; width: 100%; background: #fff; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; }
+        
+        .action-bar { position: sticky; top: 0; background: #fff; padding: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; border-bottom: 4px solid #27ae60; }
+        .btn-save { background: #27ae60; color: white; padding: 15px 40px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; border-radius: 5px; }
+
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body>
+
+<div id="setupPortal" class="no-print">
+    <h2 style="text-align:center">Landlord-NSFAS Lease Issuance</h2>
+    <div class="form-grid">
+        <div><label>Landlord/Company Name</label><input type="text" id="lName"></div>
+        <div><label>Registration No.</label><input type="text" id="lReg"></div>
+        <div style="grid-column: span 2;"><label>Property Address</label><input type="text" id="lAddr"></div>
+        <div><label>NSFAS Accreditation No.</label><input type="text" id="lAcc"></div>
+        <div><label>Monthly Rent (R)</label><input type="number" id="lRent"></div>
+        <div><label>Start Date</label><input type="date" id="lStart"></div>
+        <div><label>End Date</label><input type="date" id="lEnd"></div>
+    </div>
+    <label>Landlord Signature (Draw Below)</label>
+    <div class="sig-container"><canvas id="lPad"></canvas></div>
+    <button onclick="lPad.clear()" style="font-size:10px;">Clear</button>
+    <button class="btn-main" onclick="buildDocument()">CREATE SUBMISSION-READY LEASE</button>
+</div>
+
+<div id="leaseDocumentView">
+    <div class="action-bar no-print">
+        <button class="btn-save" onclick="downloadPDF()">⬇ DOWNLOAD PDF FOR NSFAS SUBMISSION</button>
+        <p style="font-size:12px; margin-top:5px;">Check details and ensure student signs page 4 before saving.</p>
+    </div>
+
+    <div id="capture-area">
+        <div class="pdf-page">
+            <div class="doc-header">
+                <div style="font-weight:bold; font-size:18px;">RESIDENTIAL LEASE AGREEMENT</div>
+                <div style="font-size:11px;">Standardized Private Provider Agreement for Student Financial Aid Beneficiaries</div>
+            </div>
+
+            <table class="official-table">
+                <tr>
+                    <td><strong>LESSOR (LANDLORD)</strong><br>Name: <span id="oName"></span><br>Reg: <span id="oReg"></span><br>Address: <span id="oAddr"></span></td>
+                    <td><strong>LESSEE (STUDENT)</strong><br>Full Name: <input type="text" style="width:85%; border:none; border-bottom:1px solid #000;"><br>ID No: <input type="text" style="width:85%; border:none; border-bottom:1px solid #000;"><br>Student No: <input type="text" style="width:85%; border:none; border-bottom:1px solid #000;"><br>Physical address: <input type="text" style="width:85%; border:none; border-bottom:1px solid #000;"></td>
+                </tr>
+                <tr>
+                    <td><strong>PROPERTY & ACCREDITATION</strong><br>NSFAS Acc No: <span id="oAcc"></span><br>Monthly Rent: R<span id="oRent"></span></td>
+                    <td><strong>LEASE PERIOD</strong><br>Commencement: <span id="oStart"></span><br>Termination: <span id="oEnd"></span></td>
+                </tr>
+            </table>
+
+            <h3>1. PREAMBLE & AUTHORITY</h3>
+            <p>1.1 The Lessor warrants that the Premises are accredited by NSFAS or meet the required "Minimum Norms and Standards" for Student Housing. [cite: 247, 249] 1.2 This agreement is governed by the Rental Housing Act and is intended for submission to NSFAS for funding purposes. [cite: 268, 414]</p>
+
+            <h3>2. RENTAL PAYMENT TERMS</h3>
+            <p>2.1 Rent is payable monthly by NSFAS on behalf of the student. [cite: 282, 417] 2.2 The Lessor confirms that no deposit, admin fees, or utility joining fees have been charged to the student. [cite: 284, 418] 2.3 The Lessor shall have no recourse against the student for delays in payment caused by NSFAS processing. </p>
+
+            <h3>3. MAINTENANCE & UTILITIES</h3>
+            <p>3.1 The monthly rent includes water, electricity (fair usage), and uncapped Wi-Fi. [cite: 416] 3.2 The Lessor is responsible for the structural integrity and security of the building. [cite: 311, 421]</p>
+            
+            <div style="position:absolute; bottom:15mm; right:20mm; font-size:10px;">Page 1 of 4</div>
+        </div>
+
+        <div class="pdf-page">
+            <h3>4. SECURITY & ACCESS POLICY</h3>
+            <div class="policy-box">
+                <p><strong>4.1 Access Control:</strong> The Lessor shall provide the Lessee with biometric or key access to the Premises. Sharing of access credentials is a material breach. [cite: 265, 421]</p>
+                <p><strong>4.2 Emergency Access:</strong> The Lessor may enter the premises without notice in cases of emergency (fire, flood, medical) or with 24-hour notice for routine maintenance. [cite: 325, 333]</p>
+                <p><strong>4.3 Visitor Policy:</strong> No overnight visitors are permitted without prior written consent. All guests must adhere to building security protocols. [cite: 266, 307]</p>
+            </div>
+
+            <h3>5. PROPERTY PROTECTION</h3>
+            <p>5.1 The Lessee shall not make any structural alterations, paint, or drive nails into walls without consent. [cite: 323] 5.2 Damage beyond fair wear and tear caused by the Lessee will be for the Lessee's account, provided it is documented in an inspection report. [cite: 315]</p>
+            
+            <div style="position:absolute; bottom:15mm; right:20mm; font-size:10px;">Page 2 of 4</div>
+        </div>
+
+        <div class="pdf-page">
+            <h3>6. NOISE & CONDUCT POLICY</h3>
+            <div class="policy-box">
+                <p><strong>6.1 Quiet Hours:</strong> Strict quiet hours are observed from 22:00 to 07:00 daily. Noise levels must be conducive to an academic environment at all times. </p>
+                <p><strong>6.2 Substance Abuse:</strong> The use, sale, or distribution of illegal substances on the property is strictly prohibited and will lead to immediate lease cancellation. [cite: 303]</p>
+                <p><strong>6.3 Sub-letting:</strong> Sub-letting of the room or sharing the unit with unlisted individuals is strictly forbidden and results in the forfeiture of NSFAS funding. [cite: 289, 425]</p>
+            </div>
+
+            <h3>7. TERMINATION</h3>
+            <p>7.1 This lease terminates automatically if the Lessee ceases to be a registered student at a Higher Education Institution. [cite: 395] 7.2 One month's written notice is required by either party for early termination. [cite: 400]</p>
+            
+            <div style="position:absolute; bottom:15mm; right:20mm; font-size:10px;">Page 3 of 4</div>
+        </div>
+
+        <div class="pdf-page">
+            <h3>8. DECLARATION & SIGNATURES</h3>
+            <p>Both parties acknowledge that they have read and understood the terms of this 4-page agreement and the specific policies contained herein. [cite: 372, 427]</p>
+
+            <div class="sig-row">
+                <div class="sig-block">
+                    <label>LESSOR SIGNATURE</label>
+                    <div class="sig-box"><img id="lSigOut" style="max-height:100%; max-width:100%;"></div>
+                    <p style="font-size:10px;">Date: <span id="lDate"></span></p>
+                </div>
+                <div class="sig-block">
+                    <label>LESSEE SIGNATURE (DRAW BELOW)</label>
+                    <div class="sig-box"><canvas id="sPad"></canvas></div>
+                    <button class="no-print" onclick="sPad.clear()" style="font-size:9px;">Clear</button>
+                    <p style="font-size:10px;">Date: <span id="sDate"></span></p>
+                </div>
+            </div>
+
+            <div style="margin-top:80px; text-align:center; font-style:italic; border-top:1px solid #000; padding-top:15px;">
+                <p style="font-size:9px;">This document serves as the official agreement for NSFAS Accommodation funding submission for the 2026 Academic Cycle. [cite: 433]</p>
+            </div>
+            
+            <div style="position:absolute; bottom:15mm; right:20mm; font-size:10px;">Page 4 of 4</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const lCanvas = document.getElementById('lPad');
+    const sCanvas = document.getElementById('sPad');
+    const lPad = new SignaturePad(lCanvas);
+    const sPad = new SignaturePad(sCanvas);
+
+    function buildDocument() {
+        if (lPad.isEmpty()) { alert("Landlord signature required."); return; }
+
+        // Transfer Data
+        const fields = ['lName','lReg','lAddr','lAcc','lRent','lStart','lEnd'];
+        fields.forEach(f => {
+            const val = document.getElementById(f).value;
+            const targetId = 'o' + f.substring(1);
+            document.getElementById(targetId).innerText = val;
+        });
+
+        document.getElementById('lSigOut').src = lPad.toDataURL();
+        const today = new Date().toLocaleDateString();
+        document.getElementById('lDate').innerText = today;
+        document.getElementById('sDate').innerText = today;
+
+        document.getElementById('setupPortal').style.display = 'none';
+        document.getElementById('leaseDocumentView').style.display = 'block';
+        
+        resizeCanvas(sCanvas, sPad);
+    }
+
+    function downloadPDF() {
+        const element = document.getElementById('capture-area');
+        const opt = {
+            margin: 0,
+            filename: 'NSFAS_Submission_Lease.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+        html2pdf().set(opt).from(element).save();
+    }
+
+    function resizeCanvas(canvas, pad) {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        pad.clear();
+    }
+
+    window.onload = () => resizeCanvas(lCanvas, lPad);
+</script>
+</body>
+</html>

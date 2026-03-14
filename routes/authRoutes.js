@@ -214,6 +214,8 @@ router.post('/admin-agent/login', async (req, res) => {
     }
 });
 
+const Product = require('../models/Product');
+
 router.get('/products', async (req, res) => {
     try {
         // We only want to show products that are in stock
