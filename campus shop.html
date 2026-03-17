@@ -129,11 +129,28 @@
             `;
         }
     }
+    // Helper to fill the category dropdown
+function populateCategories() {
+    if (!categoryFilter) return;
 
-    function logout() {
-        localStorage.clear();
-        window.location.reload();
-    }
+    // Get unique categories from the allProducts array
+    const categories = [...new Set(allProducts.map(p => p.category))];
+    
+    // Reset the dropdown to just the "All Categories" option
+    categoryFilter.innerHTML = '<option value="">All Categories</option>';
+    
+    // Add each unique category found in your data
+    categories.forEach(cat => {
+        if (cat) {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            categoryFilter.appendChild(option);
+        }
+    });
+}
+
+   
 
     // 4. FETCH DATA FROM SERVER
     async function fetchProducts() {
@@ -271,6 +288,10 @@ function renderProduct(product) {
     function addToCart(productId) {
         alert("Product added to cart!");
         console.log("Cart ID:", productId);
+    }
+     function logout() {
+        localStorage.clear();
+        window.location.reload();
     }
 
     // 8. EVENT LISTENERS
