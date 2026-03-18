@@ -309,6 +309,23 @@ window.addEventListener('load', () => {
     }, 1800);
 });
 
+window.triggerLoader = function (url, text) {
+    const loader = document.getElementById("loader-overlay");
+    const loaderText = loader.querySelector(".loader-text");
+
+    // Update loader text (optional)
+    if (text) loaderText.textContent = text;
+
+    // Show loader
+    loader.style.visibility = "visible";
+    loader.style.opacity = "1";
+
+    // Delay then navigate
+    setTimeout(() => {
+        window.location.href = url;
+    }, 1200);
+};
+
 
 /* ============================================================
    MESSAGE BOX
