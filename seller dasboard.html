@@ -237,301 +237,304 @@
     </div>
 
     <!-- SCRIPT -->
-    <script>
-        const API_BASE_URL = "/api";
-        const LOGIN_PAGE = "login czra.html";
+   
+<script>
+/* ============================================================
+   CONFIG
+============================================================ */
+const API_BASE_URL = "/api"; // This is correct for your backend
+const LOGIN_PAGE = "login czra.html";
 
-        const AUTH_TOKEN = localStorage.getItem("jwtToken");
-        const SELLER_ID = localStorage.getItem("userId");
+const AUTH_TOKEN = localStorage.getItem("jwtToken");
+const SELLER_ID = localStorage.getItem("userId");
 
-        const profileName = document.getElementById("profile-name");
-        const profileEmail = document.getElementById("profile-email");
-        const accountStatus = document.getElementById("account-status");
+/* ============================================================
+   DOM ELEMENTS
+============================================================ */
+const profileName = document.getElementById("profile-name");
+const profileEmail = document.getElementById("profile-email");
+const accountStatus = document.getElementById("account-status");
 
-        const productsTableBody = document.getElementById("products-table-body");
-        const ordersTableBody = document.getElementById("orders-table-body");
+const productsTableBody = document.getElementById("products-table-body");
+const ordersTableBody = document.getElementById("orders-table-body");
 
-        const sidebar = document.getElementById("sidebar");
-        const menuBtn = document.getElementById("menu-toggle");
+const sidebar = document.getElementById("sidebar");
+const menuBtn = document.getElementById("menu-toggle");
 
+/* ============================================================
+   MOBILE SIDEBAR TOGGLE (Smooth)
+============================================================ */
+menuBtn.addEventListener("click", () => {
+    sidebar.classList.toggle("-translate-x-full");
+});
 
-        /* ------------------------------
-           Smooth Mobile Sidebar Toggle
-        -------------------------------- */
-        menuBtn.addEventListener("click", () => {
-            if (sidebar.classList.contains("-translate-x-full")) {
-                sidebar.classList.remove("-translate-x-full");
-            } else {
-                sidebar.classList.add("-translate-x-full");
-            }
+/* ============================================================
+   LOADER TRIGGER
+============================================================ */
+window.triggerLoader = (url, text) => {
+    const loader = document.getElementById("loader-overlay");
+    document.querySelector(".loader-text").textContent = text;
+    loader.classList.remove("hidden");
+
+    setTimeout(() => (window.location.href = url), 1200);
+};
+
+/* ============================================================
+   MESSAGE BOX
+============================================================ */
+function showMessage(type, message) {
+    const box = document.getElementById("message-area");
+    box.textContent = message;
+
+    box.className = `p-3 rounded-lg mb-6 text-sm font-medium ${
+        type === "success"
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
+    }`;
+
+    box.classList.remove("hidden");
+    setTimeout(() => box.classList.add("hidden"), 5000);
+}
+
+/* ============================================================
+   LOAD SELLER PROFILE (LOCALSTORAGE ONLY)
+   — This is how your old dashboard worked.
+   — 100% backend-compatible, no /auth/me fetch needed.
+============================================================ */
+function loadSellerProfile() {
+    profileName.textContent =
+        localStorage.getItem("businessName") || "Unknown Seller";
+
+    profileEmail.textContent =
+        localStorage.getItem("sellerEmail") || "No Email";
+
+    accountStatus.textContent = "ACTIVE";
+    accountStatus.className =
+        "px-2 py-1 text-[10px] rounded-full bg-green-200 text-green-800 font-bold";
+}
+
+/* ============================================================
+   TAB SWITCHING (Smooth fade-in animation)
+============================================================ */
+window.switchTab = (tabName) => {
+    // Highlight active button
+    document.querySelectorAll(".tab-button").forEach((btn) => {
+        btn.classList.remove("bg-blue-600", "text-white");
+        btn.classList.add("hover:bg-gray-100", "dark:hover:bg-gray-700");
+    });
+
+    document.getElementById(`tab-${tabName}`).classList.add(
+        "bg-blue-600",
+        "text-white"
+    );
+
+    // Hide all content
+    document.querySelectorAll(".tab-content").forEach((section) => {
+        section.classList.remove("active");
+        section.classList.add("hidden");
+    });
+
+    // Show selected content with animation
+    const activeTab = document.getElementById(`content-${tabName}`);
+    activeTab.classList.remove("hidden");
+
+    setTimeout(() => activeTab.classList.add("active"), 10);
+
+    if (tabName === "products") fetchProducts();
+    if (tabName === "orders") fetchOrders();
+};
+
+/* ============================================================
+   FETCH PRODUCTS
+============================================================ */
+async function fetchProducts() {
+    productsTableBody.innerHTML =
+        `<tr><td colspan="5" class="p-4 text-center">Loading...</td></tr>`;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/seller/products`, {
+            headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
         });
 
-        /* Loader Trigger */
-        window.triggerLoader = (url, text) => {
-            const loader = document.getElementById("loader-overlay");
-            document.querySelector(".loader-text").textContent = text;
-            loader.classList.remove("hidden");
+        if (!res.ok) throw new Error("Failed to load products");
 
-            setTimeout(() => window.location.href = url, 1200);
-        };
+        const products = await res.json();
 
-        /* Show Messages */
-        function showMessage(type, message) {
-            const box = document.getElementById("message-area");
-            box.textContent = message;
-            box.className =
-                `p-3 rounded-lg mb-6 text-sm font-medium ${type === "success"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"}`;
-            box.classList.remove("hidden");
-
-            setTimeout(() => box.classList.add("hidden"), 5000);
-        }
-
-        /* Sidebar User Info */
-        async function fetchUserDetails() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/auth/me`, {
-                    headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
-                });
-
-                if (!response.ok) throw new Error("Failed to fetch user details");
-
-                const user = await response.json();
-
-                profileName.textContent =
-                    user.businessName ||
-                    localStorage.getItem("businessName") ||
-                    "Unknown Seller";
-
-                profileEmail.textContent =
-                    user.email ||
-                    localStorage.getItem("sellerEmail") ||
-                    "No Email";
-
-                accountStatus.textContent = "ACTIVE";
-                accountStatus.className =
-                    "px-2 py-1 text-[10px] rounded-full bg-green-200 text-green-800 font-bold";
-
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        /* Tab Switching (Smooth Animations) */
-        window.switchTab = (tabName) => {
-            document.querySelectorAll(".tab-button").forEach(btn => {
-                btn.classList.remove("bg-blue-600", "text-white");
-                btn.classList.add("hover:bg-gray-100", "dark:hover:bg-gray-700");
-            });
-
-            document.getElementById(`tab-${tabName}`).classList.add(
-                "bg-blue-600",
-                "text-white"
-            );
-
-            document.querySelectorAll(".tab-content").forEach(section => {
-                section.classList.remove("active");
-                section.classList.add("hidden");
-            });
-
-            const activeTab = document.getElementById(`content-${tabName}`);
-            activeTab.classList.remove("hidden");
-
-            setTimeout(() => activeTab.classList.add("active"), 10);
-
-            if (tabName === "products") fetchProducts();
-            if (tabName === "orders") fetchOrders();
-        };
-
-
-        /* Fetch Products */
-        async function fetchProducts() {
+        if (!products.length) {
             productsTableBody.innerHTML =
-                `<tr><td colspan="5" class="p-4 text-center">Loading...</td></tr>`;
-
-            try {
-                const res = await fetch(`${API_BASE_URL}/seller/products`, {
-                    headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
-                });
-
-                if (!res.ok) throw new Error("Failed to load products");
-
-                const products = await res.json();
-
-                if (!products.length) {
-                    productsTableBody.innerHTML =
-                        `<tr><td colspan="5" class="p-4 text-center">No products found</td></tr>`;
-                    return;
-                }
-
-                productsTableBody.innerHTML = products
-                    .map(
-                        (p) => `
-                    <tr class="border-b hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="px-6 py-4">${p.name}</td>
-                        <td class="px-6 py-4">R ${p.price.toFixed(2)}</td>
-                        <td class="px-6 py-4">${p.stock}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 rounded-full text-xs ${p.onSpecial
-                                ? "bg-green-200 text-green-800"
-                                : "bg-gray-300 text-gray-800"}">
-                                ${p.onSpecial ? "Active" : "Inactive"}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 space-x-2">
-                            <a href="edit-product.html?id=${p._id}"
-                                class="text-blue-600 hover:text-blue-800">Edit</a>
-                            <button onclick="deleteProduct('${p._id}')"
-                                class="text-red-600 hover:text-red-800">Delete</button>
-                        </td>
-                    </tr>`
-                    )
-                    .join("");
-
-            } catch (e) {
-                productsTableBody.innerHTML =
-                    `<tr><td colspan="5" class="p-4 text-center text-red-500">${e.message}</td></tr>`;
-            }
+                `<tr><td colspan="5" class="p-4 text-center">No products found</td></tr>`;
+            return;
         }
 
-        /* Delete Product */
-        window.deleteProduct = async function (id) {
-            if (!confirm("Delete this product?")) return;
+        productsTableBody.innerHTML = products
+            .map(
+                (p) => `
+            <tr class="border-b hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-6 py-4">${p.name}</td>
+                <td class="px-6 py-4">R ${p.price.toFixed(2)}</td>
+                <td class="px-6 py-4">${p.stock}</td>
+                <td class="px-6 py-4">
+                    <span class="px-2 py-1 rounded-full text-xs ${
+                        p.onSpecial
+                            ? "bg-green-200 text-green-800"
+                            : "bg-gray-300 text-gray-800"
+                    }">
+                        ${p.onSpecial ? "Active" : "Inactive"}
+                    </span>
+                </td>
+                <td class="px-6 py-4 space-x-2">
+                    <a href="edit-product.html?id=${p._id}" class="text-blue-600 hover:text-blue-800">Edit</a>
+                    <button onclick="deleteProduct('${p._id}')"
+                        class="text-red-600 hover:text-red-800">Delete</button>
+                </td>
+            </tr>`
+            )
+            .join("");
+    } catch (e) {
+        productsTableBody.innerHTML =
+            `<tr><td colspan="5" class="p-4 text-center text-red-500">${e.message}</td></tr>`;
+    }
+}
 
-            try {
-                const res = await fetch(`${API_BASE_URL}/seller/products/${id}`, {
-                    method: "DELETE",
-                    headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
-                });
+/* ============================================================
+   DELETE PRODUCT
+============================================================ */
+window.deleteProduct = async function (id) {
+    if (!confirm("Delete this product?")) return;
 
-                if (!res.ok) throw new Error("Failed to delete product");
+    try {
+        const res = await fetch(`${API_BASE_URL}/seller/products/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
+        });
 
-                showMessage("success", "Product deleted");
-                fetchProducts();
+        if (!res.ok) throw new Error("Failed to delete product");
 
-            } catch (e) {
-                showMessage("error", e.message);
-            }
-        };
+        showMessage("success", "Product deleted");
+        fetchProducts();
+    } catch (e) {
+        showMessage("error", e.message);
+    }
+};
 
-        /* Fetch Orders */
-        async function fetchOrders() {
+/* ============================================================
+   FETCH ORDERS
+============================================================ */
+async function fetchOrders() {
+    ordersTableBody.innerHTML =
+        `<tr><td colspan="6" class="p-4 text-center">Loading...</td></tr>`;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/seller/orders`, {
+            headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
+        });
+
+        if (!res.ok) throw new Error("Failed to load orders");
+
+        const orders = await res.json();
+
+        if (!orders.length) {
             ordersTableBody.innerHTML =
-                `<tr><td colspan="6" class="p-4 text-center">Loading...</td></tr>`;
-
-            try {
-                const res = await fetch(`${API_BASE_URL}/seller/orders`, {
-                    headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
-                });
-
-                if (!res.ok) throw new Error("Failed to load orders");
-
-                const orders = await res.json();
-
-                if (!orders.length) {
-                    ordersTableBody.innerHTML =
-                        `<tr><td colspan="6" class="p-4 text-center">No orders found</td></tr>`;
-                    return;
-                }
-
-                ordersTableBody.innerHTML = orders
-                    .map(
-                        (o) => `
-                    <tr class="border-b hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="px-6 py-4">#${o._id.slice(0, 8)}</td>
-                        <td class="px-6 py-4">${new Date(o.createdAt).toLocaleDateString()}</td>
-                        <td class="px-6 py-4">${o.customerName || "N/A"}</td>
-                        <td class="px-6 py-4">${o.items.length}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 rounded-full text-xs ${
-                                {
-                                    Pending: "bg-yellow-200 text-yellow-800",
-                                    Processing: "bg-yellow-300 text-yellow-900",
-                                    Shipped: "bg-blue-200 text-blue-800",
-                                    Delivered: "bg-green-200 text-green-800",
-                                    Cancelled: "bg-red-200 text-red-800"
-                                }[o.status]
-                            }">${o.status}</span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <button onclick="openModal('${o._id}', '${o.status}')"
-                                class="text-blue-600 hover:text-blue-800">Update</button>
-                        </td>
-                    </tr>`
-                    )
-                    .join("");
-
-            } catch (e) {
-                ordersTableBody.innerHTML =
-                    `<tr><td colspan="6" class="p-4 text-center text-red-500">${e.message}</td></tr>`;
-            }
+                `<tr><td colspan="6" class="p-4 text-center">No orders found</td></tr>`;
+            return;
         }
 
-        /* Modal Actions */
-        window.openModal = function (id, status) {
-            document.getElementById("modal-order-id").textContent = id.slice(0, 8);
-            document.getElementById("order-status").value = status;
-            document.getElementById("order-update-form").dataset.orderId = id;
+        ordersTableBody.innerHTML = orders
+            .map(
+                (o) => `
+            <tr class="border-b hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-6 py-4">#${o._id.slice(0, 8)}</td>
+                <td class="px-6 py-4">${new Date(o.createdAt).toLocaleDateString()}</td>
+                <td class="px-6 py-4">${o.customerName || "N/A"}</td>
+                <td class="px-6 py-4">${o.items.length}</td>
+                <td class="px-6 py-4">
+                    <span class="px-2 py-1 rounded-full text-xs bg-blue-200 text-blue-800">
+                        ${o.status}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <button onclick="openModal('${o._id}', '${o.status}')"
+                        class="text-blue-600 hover:text-blue-800">Update</button>
+                </td>
+            </tr>`
+            )
+            .join("");
+    } catch (e) {
+        ordersTableBody.innerHTML =
+            `<tr><td colspan="6" class="p-4 text-center text-red-500">${e.message}</td></tr>`;
+    }
+}
 
-            const modal = document.getElementById("order-update-modal");
-            modal.classList.remove("hidden");
-            modal.classList.add("flex");
-        };
+/* ============================================================
+   MODAL CONTROL
+============================================================ */
+window.openModal = function (id, status) {
+    document.getElementById("order-status").value = status;
+    document.getElementById("order-update-form").dataset.orderId = id;
 
-        window.closeModal = function (id) {
-            const modal = document.getElementById(id);
-            modal.classList.add("hidden");
-            modal.classList.remove("flex");
-        };
+    const modal = document.getElementById("order-update-modal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+};
 
-        /* Update Order */
-        document.getElementById("order-update-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
+window.closeModal = function (id) {
+    const modal = document.getElementById(id);
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+};
 
-            const orderId = e.target.dataset.orderId;
-            const status = document.getElementById("order-status").value;
-            const tracking = document.getElementById("tracking-number").value;
+/* ============================================================
+   UPDATE ORDER
+============================================================ */
+document.getElementById("order-update-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-            try {
-                const res = await fetch(`${API_BASE_URL}/seller/orders/${orderId}`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${AUTH_TOKEN}`
-                    },
-                    body: JSON.stringify({ status, trackingNumber: tracking })
-                });
+    const orderId = e.target.dataset.orderId;
+    const status = document.getElementById("order-status").value;
+    const tracking = document.getElementById("tracking-number").value;
 
-                if (!res.ok) throw new Error("Failed to update order");
-
-                closeModal("order-update-modal");
-                showMessage("success", "Order Updated");
-                fetchOrders();
-
-            } catch (e) {
-                showMessage("error", e.message);
-            }
+    try {
+        const res = await fetch(`${API_BASE_URL}/seller/orders/${orderId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${AUTH_TOKEN}`
+            },
+            body: JSON.stringify({ status, trackingNumber: tracking })
         });
 
-        /* Logout */
-        window.handleLogout = () => {
-            localStorage.clear();
-            showMessage("success", "Logging out...");
-            setTimeout(() => (window.location.href = LOGIN_PAGE), 1000);
-        };
+        if (!res.ok) throw new Error("Failed to update order");
 
-        /* Init */
-        document.addEventListener("DOMContentLoaded", () => {
-            if (!AUTH_TOKEN || !SELLER_ID) {
-                window.location.href = LOGIN_PAGE;
-                return;
-            }
+        closeModal("order-update-modal");
+        showMessage("success", "Order updated");
+        fetchOrders();
+    } catch (e) {
+        showMessage("error", e.message);
+    }
+});
 
-            fetchUserDetails();
-            switchTab("orders");
-        });
-    </script>
+/* ============================================================
+   LOGOUT
+============================================================ */
+window.handleLogout = () => {
+    localStorage.clear();
+    showMessage("success", "Logging out...");
+    setTimeout(() => (window.location.href = LOGIN_PAGE), 1000);
+};
+
+/* ============================================================
+   INIT
+============================================================ */
+document.addEventListener("DOMContentLoaded", () => {
+    if (!AUTH_TOKEN || !SELLER_ID) {
+        window.location.href = LOGIN_PAGE;
+        return;
+    }
+
+    loadSellerProfile();
+    switchTab("orders");
+});
+</script>
 </body>
 
 </html>
