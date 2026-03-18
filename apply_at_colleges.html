@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SA Public TVET College Application Hub</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.96);
+            --primary: #1a1a1a;
+            --accent: #ff6600; 
+            --radius: 20px;
+            --blue-heading: #004a99;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            animation: slideshow 42s infinite;
+            padding-top: 90px;
+        }
+
+        @keyframes slideshow {
+            0%, 14.28% { background-image: url('Images/ump 1.jpg'); }
+            14.29%, 28.56% { background-image: url('Images/ump 3.jpg'); }
+            28.57%, 42.84% { background-image: url('Images/ump bld6.jpg'); }
+            42.85%, 57.12% { background-image: url('Images/ump caf 2.jpg'); }
+            57.13%, 71.4% { background-image: url('Images/ump gate.jpg'); }
+            71.41%, 85.68% { background-image: url('Images/university-student-accommodation.jpg'); }
+            85.69%, 100% { background-image: url('Images/cecil.jpg'); }
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: -1;
+        }
+
+        /* --- NAVIGATION --- */
+        nav {
+            position: fixed; top: 0; width: 100%; height: 70px;
+            background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 5%; z-index: 2000;
+        }
+
+        .nav-logo-text { color: white; font-weight: 800; letter-spacing: 1px; }
+
+        .nav-links { display: flex; list-style: none; gap: 20px; }
+        .nav-links li a { color: white; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: 0.3s; }
+        .nav-links li a:hover { color: var(--accent); }
+
+        .close-btn { display: none; position: absolute; top: 20px; right: 20px; font-size: 2rem; color: white; cursor: pointer; }
+        .hamburger { display: none; cursor: pointer; flex-direction: column; gap: 5px; }
+        .hamburger span { width: 25px; height: 3px; background: white; border-radius: 5px; }
+
+        @media (max-width: 850px) {
+            .nav-links {
+                position: fixed; top: 0; right: -100%; width: 75%; height: 100vh;
+                background: var(--primary); flex-direction: column; padding: 100px 40px;
+                transition: 0.4s ease; box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            }
+            .nav-links.active { right: 0; }
+            .hamburger { display: flex; }
+            .close-btn { display: block; }
+        }
+
+        /* --- CONTAINER --- */
+        .container {
+            width: 95%; max-width: 900px; margin: 0 auto 40px;
+            padding: 40px 25px; background: var(--glass);
+            border-radius: var(--radius); box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        h1 { color: var(--blue-heading); text-align: center; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #555; margin-bottom: 30px; }
+
+        /* Province Navigation */
+        .province-nav {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 8px; margin-bottom: 40px; border-bottom: 1px solid #ddd; padding-bottom: 20px;
+        }
+        .province-nav a {
+            padding: 6px 12px; background: #eee; border-radius: 5px;
+            text-decoration: none; color: #333; font-size: 0.85rem; font-weight: 600;
+            transition: 0.2s;
+        }
+        .province-nav a:hover { background: var(--accent); color: white; }
+
+        .province-section { margin-bottom: 40px; }
+        .province-title {
+            font-size: 1.4rem; color: var(--blue-heading);
+            border-left: 5px solid var(--accent); padding-left: 15px; margin-bottom: 15px;
+        }
+
+        .college-list { list-style: none; padding: 0; }
+        .college-list li {
+            background-color: #f8fafd; margin-bottom: 10px;
+            padding: 12px 18px; border-radius: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid #e1e8ed; transition: 0.2s;
+        }
+        .college-list li:hover { background-color: #f0f4f8; }
+
+        .apply-button {
+            background-color: var(--accent); color: white;
+            padding: 8px 14px; text-decoration: none;
+            border-radius: 6px; font-weight: bold; font-size: 0.85rem;
+            transition: 0.3s;
+        }
+        .apply-button:hover { background-color: #cc5200; transform: translateY(-2px); }
+
+        footer { background: rgba(0,0,0,0.9); color: white; text-align: center; padding: 20px; margin-top: auto; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-logo-text">CAMPUS COLLECTIVE</div>
+        <ul class="nav-links" id="navLinks">
+            <span class="close-btn" id="closeBtn">&times;</span>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="czra more about us.html">About Us</a></li>
+            <li><a href="czra contact.html">Contact Us</a></li>
+            <li><a href="version.html">Our-Vision</a></li>
+            <li><a href="choose_application.html">Apply@Institutions</a></li>
+            <li><a href="choose login.html">Login</a></li>
+            <li><a href="campus shop.html">Campus Shop</a></li>
+            <li><a href="Learn More.html">Accommodations</a></li>
+        </ul>
+        <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+    </nav>
+
+    <div class="container">
+        <h1>Public TVET College Hub 🛠️</h1>
+        <p class="subtitle">Quickly find and apply to any public TVET college in South Africa.</p>
+
+        <div class="province-nav">
+            <a href="#ec">Eastern Cape</a> <a href="#fs">Free State</a> <a href="#gp">Gauteng</a>
+            <a href="#kzn">KwaZulu-Natal</a> <a href="#lp">Limpopo</a> <a href="#mp">Mpumalanga</a>
+            <a href="#nw">North West</a> <a href="#nc">Northern Cape</a> <a href="#wc">Western Cape</a>
+        </div>
+
+        <div class="province-section" id="ec">
+            <h2 class="province-title">Eastern Cape</h2>
+            <ul class="college-list">
+                <li><span>Buffalo City TVET College</span><a href="http://www.bccollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Eastcape Midlands TVET College</span><a href="https://emcol.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Ikhala TVET College</span><a href="https://www.ikhala.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Ingwe TVET College</span><a href="https://ingwecollege.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>King Hintsa TVET College</span><a href="https://www.kinghintsacollege.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>King Sabata Dalindyebo TVET College</span><a href="https://ksdtvet.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Lovedale TVET College</span><a href="https://www.lovedalecollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Port Elizabeth TVET College</span><a href="https://www.pecollege.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+            </ul>
+        </div>
+
+        <div class="province-section" id="fs">
+            <h2 class="province-title">Free State</h2>
+            <ul class="college-list">
+                <li><span>Flavius Mareka TVET College</span><a href="http://www.flaviusmareka.net/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Goldfields TVET College</span><a href="https://www.goldfieldstvet.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Maluti TVET College</span><a href="https://www.malutitvet.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Motheo TVET College</span><a href="https://www.motheotvet.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+            </ul>
+        </div>
+
+        <div class="province-section" id="gp">
+            <h2 class="province-title">Gauteng</h2>
+            <ul class="college-list">
+                <li><span>Central Johannesburg TVET College</span><a href="https://cjc.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Ekurhuleni East TVET College</span><a href="https://eec.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Ekurhuleni West TVET College</span><a href="https://www.ewc.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Sedibeng TVET College</span><a href="https://www.sedcol.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>South West Gauteng TVET College</span><a href="https://www.swgc.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Tshwane North TVET College</span><a href="https://www.tnc.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Tshwane South TVET College</span><a href="https://www.tsc.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Western TVET College (Westcol)</span><a href="https://www.westcol.co.za/" class="apply-button" target="_blank">Apply</a></li>
+            </ul>
+        </div>
+
+        <div class="province-section" id="kzn">
+            <h2 class="province-title">KwaZulu-Natal</h2>
+            <ul class="college-list">
+                <li><span>Coastal KZN TVET College</span><a href="https://www.coastalkzn.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Elangeni TVET College</span><a href="https://www.elangeni.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Esayidi TVET College</span><a href="https://www.esayidifet.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Majuba TVET College</span><a href="https://majuba.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Mnambithi TVET College</span><a href="https://www.mnambithicollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Mthashana TVET College</span><a href="https://www.mthashanacollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Thekwini TVET College</span><a href="https://www.thekwinicollege.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Umfolozi TVET College</span><a href="https://www.umfolozicollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Umgungundlovu TVET College</span><a href="https://www.utvet.co.za/" class="apply-button" target="_blank">Apply</a></li>
+            </ul>
+        </div>
+
+        <div class="province-section" id="lp">
+            <h2 class="province-title">Limpopo</h2>
+            <ul class="college-list">
+                <li><span>Capricorn TVET College</span><a href="https://www.capricorncollege.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Lephalale TVET College</span><a href="https://www.leptvetcol.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Letaba TVET College</span><a href="https://www.letabacollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Mopani South East TVET College</span><a href="https://mopanicollege.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Sekhukhune TVET College</span><a href="https://www.sekhukhunecollege.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Vhembe TVET College</span><a href="https://www.vhembecollege.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Waterberg TVET College</span><a href="https://www.waterbergcollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+            </ul>
+        </div>
+
+        <div class="province-section" id="mp">
+            <h2 class="province-title">Mpumalanga</h2>
+            <ul class="college-list">
+                <li><span>Ehlanzeni TVET College</span><a href="https://www.ehlanzenicollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Gert Sibande TVET College</span><a href="https://gscollege.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Nkangala TVET College</span><a href="https://www.ntc.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+            </ul>
+        </div>
+
+        <div class="province-section" id="nw">
+            <h2 class="province-title">North West</h2>
+            <ul class="college-list">
+                <li><span>Orbit TVET College</span><a href="https://www.orbitcollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Taletso TVET College</span><a href="https://www.taletso.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Vuselela TVET College</span><a href="https://www.vuselelatvet.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+            </ul>
+        </div>
+
+        <div class="province-section" id="nc">
+            <h2 class="province-title">Northern Cape</h2>
+            <ul class="college-list">
+                <li><span>Northern Cape Rural TVET College</span><a href="https://www.ncrtc.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Northern Cape Urban TVET College</span><a href="https://www.ncuc.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+            </ul>
+        </div>
+
+        <div class="province-section" id="wc">
+            <h2 class="province-title">Western Cape</h2>
+            <ul class="college-list">
+                <li><span>Boland TVET College</span><a href="https://www.bolandcollege.com/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>College of Cape Town</span><a href="https://www.cct.edu.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>False Bay TVET College</span><a href="https://www.falsebaycollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>Northlink TVET College</span><a href="https://www.northlink.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>South Cape TVET College</span><a href="https://www.sccollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+                <li><span>West Coast TVET College</span><a href="https://www.westcoastcollege.co.za/" class="apply-button" target="_blank">Apply</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>&copy; 2025 Campus Collective. All rights reserved | Developed with 🧡 in SA.</footer>
+
+    <script>
+        const hb = document.getElementById('hamburger'), menu = document.getElementById('navLinks'), cb = document.getElementById('closeBtn');
+        hb.onclick = () => menu.classList.add('active');
+        cb.onclick = () => menu.classList.remove('active');
+    </script>
+</body>
+</html>
