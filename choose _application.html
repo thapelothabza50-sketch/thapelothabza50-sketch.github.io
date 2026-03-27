@@ -212,5 +212,28 @@
 
     <footer>&copy; 2025 Campus Collective. All rights reserved | Developed with 🧡 in SA.</footer>
 
+    <script>
+    const hamburger = document.getElementById('hamburger');
+    const navLinks = document.getElementById('navLinks');
+    const closeBtn = document.getElementById('closeBtn');
+
+    // Open Menu
+    hamburger.addEventListener('click', () => {
+        navLinks.classList.add('active');
+    });
+
+    // Close Menu
+    closeBtn.addEventListener('click', () => {
+        navLinks.classList.remove('active');
+    });
+
+    // Close menu when a link is clicked (Optional but recommended for mobile)
+    document.querySelectorAll('.nav-links li a').forEach(link => {
+        link.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+        });
+    });
+</script>
+
 </body>
 </html>
