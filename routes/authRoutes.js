@@ -1080,4 +1080,14 @@ router.get('/room-check/all', async (req, res) => {
     }
 });
 
+// Add this to authRoutes.js or your main server file
+router.get('/rooms', async (req, res) => {
+    try {
+        // For now, return an empty array or dummy data so the app doesn't crash
+        res.json([]); 
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch rooms" });
+    }
+});
+
 module.exports = router;
