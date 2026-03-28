@@ -1034,60 +1034,61 @@ router.get('/admin/students', async (req, res) => {
 
 });
 
+// 1. MODEL REQUIREMENT (Place this at the top of authRoutes.js)
 const RoomCheck = require('../models/RoomCheck');
 
-// 1. SAVE ROOM CHECK
+// 2. ROOM CHECK ROUTES
+
+/**
+ * @route   POST /api/room-check/submit
+ * @desc    Save a new room inspection to the database
+ */
 router.post('/room-check/submit', async (req, res) => {
     try {
         const newCheck = new RoomCheck(req.body);
         await newCheck.save();
-        res.status(201).json({ message: "Room check saved successfully!" });
+        res.status(201).json({ 
+            success: true, 
+            message: "Inspection saved to database successfully!" 
+        });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("Submission Error:", err);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error saving inspection", 
+            error: err.message 
+        });
     }
 });
 
-// 2. FETCH ALL CHECKS (For your Tracker/Spreadsheet)
+/**
+ * @route   GET /api/room-check/all
+ * @desc    Fetch all inspections for the tracker and spreadsheet
+ */
 router.get('/room-check/all', async (req, res) => {
     try {
-        const checks = await RoomCheck.find().sort({ inspectionDate: -1 });
-        res.json(checks);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-const RoomCheck = require('../models/RoomCheck');
-
-// POST: Save a new room check
-router.post('/room-check/submit', async (req, res) => {
-    try {
-        const newCheck = new RoomCheck(req.body);
-        await newCheck.save();
-        res.status(201).json({ message: "Inspection saved to database!" });
-    } catch (err) {
-        res.status(500).json({ message: "Error saving inspection", error: err });
-    }
-});
-
-// GET: Fetch checks for the tracker/export
-router.get('/room-check/all', async (req, res) => {
-    try {
+        // Sorts by newest date first, then by room number
         const data = await RoomCheck.find().sort({ inspectionDate: -1, roomNumber: 1 });
         res.json(data);
     } catch (err) {
-        res.status(500).json({ message: "Error fetching data" });
+        console.error("Fetch All Error:", err);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error fetching inspections", 
+            error: err.message 
+        });
     }
 });
 
-// Add this to authRoutes.js or your main server file
+/**
+ * @route   GET /api/rooms
+ * @desc    Optional route for room listings (currently returns empty array to prevent crashes)
+ */
 router.get('/rooms', async (req, res) => {
     try {
-        // For now, return an empty array or dummy data so the app doesn't crash
         res.json([]); 
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch rooms" });
     }
 });
-
 module.exports = router;
