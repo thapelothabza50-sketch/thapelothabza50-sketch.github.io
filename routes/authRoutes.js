@@ -1034,4 +1034,50 @@ router.get('/admin/students', async (req, res) => {
 
 });
 
+const RoomCheck = require('../models/RoomCheck');
+
+// 1. SAVE ROOM CHECK
+router.post('/room-check/submit', async (req, res) => {
+    try {
+        const newCheck = new RoomCheck(req.body);
+        await newCheck.save();
+        res.status(201).json({ message: "Room check saved successfully!" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2. FETCH ALL CHECKS (For your Tracker/Spreadsheet)
+router.get('/room-check/all', async (req, res) => {
+    try {
+        const checks = await RoomCheck.find().sort({ inspectionDate: -1 });
+        res.json(checks);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+const RoomCheck = require('../models/RoomCheck');
+
+// POST: Save a new room check
+router.post('/room-check/submit', async (req, res) => {
+    try {
+        const newCheck = new RoomCheck(req.body);
+        await newCheck.save();
+        res.status(201).json({ message: "Inspection saved to database!" });
+    } catch (err) {
+        res.status(500).json({ message: "Error saving inspection", error: err });
+    }
+});
+
+// GET: Fetch checks for the tracker/export
+router.get('/room-check/all', async (req, res) => {
+    try {
+        const data = await RoomCheck.find().sort({ inspectionDate: -1, roomNumber: 1 });
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching data" });
+    }
+});
+
 module.exports = router;

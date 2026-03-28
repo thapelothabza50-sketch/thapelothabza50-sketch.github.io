@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cecil Complex Management</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        :root { --primary: #1a1a1a; --accent: #ff6600; --bg: #f0f2f5; --success: #27ae60; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* Navigation */
+        nav { background: var(--primary); padding: 15px 20px; color: white; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        
+        /* Layout Grid */
+        .dashboard-container { display: grid; grid-template-columns: 1fr 300px; gap: 20px; padding: 20px; max-width: 1400px; margin: auto; width: 100%; }
+
+        /* Cover Page / Room Grid */
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        #coverPage { text-align: center; }
+        .date-picker-box { margin: 20px 0; background: #fff5ed; padding: 15px; border-radius: 10px; display: inline-block; }
+        .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 20px; }
+        .room-btn { padding: 15px; border: 2px solid #ddd; border-radius: 10px; background: white; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .room-btn.done { border-color: var(--success); background: #eafff0; color: var(--success); }
+
+        /* Inspection Form */
+        #formPage, #trackerPage { display: none; }
+        .student-box { background: #f8f9fa; border-left: 4px solid var(--accent); padding: 15px; margin: 10px 0; border-radius: 8px; }
+        textarea, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #ccc; }
+
+        /* Signature Pad */
+        canvas { border: 1px solid #ddd; width: 100%; height: 120px; background: #fafafa; border-radius: 8px; cursor: crosshair; touch-action: none; }
+        .sig-header { display: flex; justify-content: space-between; margin-top: 15px; font-size: 0.8rem; }
+        .clear-link { color: #e74c3c; cursor: pointer; text-decoration: underline; }
+
+        /* Side Tracker */
+        .side-tracker h3 { margin-bottom: 15px; border-bottom: 2px solid var(--accent); display: inline-block; }
+        .tracker-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 0.9rem; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; background: #ddd; }
+        .dot.active { background: var(--success); }
+
+        /* Action Buttons */
+        .btn-main { background: var(--accent); color: white; padding: 15px; border: none; border-radius: 10px; width: 100%; cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 20px; }
+        .btn-outline { background: none; border: 1px solid var(--accent); color: var(--accent); padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+
+        @media (max-width: 850px) { .dashboard-container { grid-template-columns: 1fr; } .side-tracker { display: none; } }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h2>Cecil Complex #1</h2>
+    <button class="btn-outline" style="color:white; border-color:white;" onclick="showTracker()">View Monthly Tracker</button>
+</nav>
+
+<div class="dashboard-container">
+    <main>
+        <div id="coverPage" class="card">
+            <h1>Monthly Room Inspection</h1>
+            <p>Msholozi Accommodation Management</p>
+            
+            <div class="date-picker-box">
+                <label>Set Inspection Date:</label><br>
+                <input type="date" id="globalDate" style="padding:10px; margin-top:10px; border-radius:5px; border:1px solid #ccc;">
+            </div>
+
+            <h3>Select a Room to Inspect:</h3>
+            <div class="room-grid" id="roomGrid"></div>
+        </div>
+
+        <div id="formPage" class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 id="displayRoomTitle">Room Inspection</h2>
+                <button class="btn-outline" onclick="goHome()">Cancel</button>
+            </div>
+            <hr style="margin:15px 0; opacity:0.1;">
+
+            <div class="student-box">
+                <p><strong>Student 1:</strong> <span id="s1Name"></span></p>
+                <p><strong>Student 2:</strong> <span id="s2Name"></span></p>
+            </div>
+
+            <label>Cleanliness Rating</label>
+            <select id="rating">
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Average (Needs minor work)</option>
+                <option value="2">2 - Poor (Action required)</option>
+                <option value="1">1 - Critical Issues</option>
+            </select>
+
+            <label>Detailed Condition Notes</label>
+            <textarea id="notes" rows="4" placeholder="Mention walls, locks, lights, or leaks..."></textarea>
+
+            <label>Room Photos (3 Required)</label>
+            <input type="file" accept="image/*" capture="camera" multiple id="photoInput" style="margin-top:10px;">
+
+            <div class="sig-header">
+                <span id="labelSig1">Student 1 Signature</span>
+                <span class="clear-link" onclick="clearCanvas('canvas1')">Clear</span>
+            </div>
+            <canvas id="canvas1"></canvas>
+
+            <div class="sig-header">
+                <span id="labelSig2">Student 2 Signature</span>
+                <span class="clear-link" onclick="clearCanvas('canvas2')">Clear</span>
+            </div>
+            <canvas id="canvas2"></canvas>
+
+            <button class="btn-main" onclick="saveInspection()">Save & Submit Room</button>
+        </div>
+
+        <div id="trackerPage" class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2>Monthly Summary Report</h2>
+                <button class="btn-outline" onclick="goHome()">Back to Rooms</button>
+            </div>
+            <div style="margin:20px 0; display:flex; gap:10px;">
+                <button class="btn-outline" onclick="exportTable('excel')">Download Excel</button>
+                <button class="btn-outline" onclick="exportTable('pdf')">Download PDF</button>
+            </div>
+            <table id="summaryTable" style="width:100%; border-collapse:collapse; margin-top:20px;">
+                <thead style="background:#f8f9fa; border-bottom:2px solid #ddd;">
+                    <tr><th style="padding:10px;">Room</th><th>Date</th><th>Rating</th><th>Notes</th></tr>
+                </thead>
+                <tbody id="summaryBody"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <aside class="side-tracker card">
+        <h3>Inspection Progress</h3>
+        <div id="trackerList"></div>
+    </aside>
+</div>
+
+<script>
+    const students = [
+        {name: "Phumlani Sipho Nxumalo"}, {name: "Best Rio Ndhlovu"},
+        {name: "Tapelo President Magwaza"}, {name: "Innocent Ngomane"},
+        {name: "Duncan Mthabini"}, {name: "Sandile Mngandi"},
+        {name: "Charity Lushaba"}, {name: "Hlautelo Maria Maluleka"},
+        {name: "Zenande Zulu"}, {name: "Faith Kgofelo"},
+        {name: "Thandeka Princess Ntimane"}, {name: "Aviwe Manyana"},
+        {name: "Aphelele Siwaphiwe Xulu"}, {name: "Nothando Cynthia Mthetwa"},
+        {name: "Badeleni Nomzamo Mlotja"}, {name: "Monica Marule"},
+        {name: "Ruth Thandolwethu Ngomane"}, {name: "Fortune Simelane"},
+        {name: "Zoleka Zondo"}, {name: "Lwandile Mpumelelo Khumalo"},
+        {name: "Sinothando Godi"}, {name: "Nomathemba Jafta"}
+    ];
+
+    let currentRoom = null;
+    let completedRooms = JSON.parse(localStorage.getItem('cecil_completed')) || [];
+
+    // Initialize Room Grid
+    function init() {
+        const grid = document.getElementById('roomGrid');
+        const tracker = document.getElementById('trackerList');
+        grid.innerHTML = ''; tracker.innerHTML = '';
+
+        for(let i=1; i<=11; i++) {
+            const isDone = completedRooms.includes(i);
+            grid.innerHTML += `<button class="room-btn ${isDone?'done':''}" onclick="openForm(${i})">${i}</button>`;
+            tracker.innerHTML += `
+                <div class="tracker-item">
+                    <div class="dot ${isDone?'active':''}"></div>
+                    <span>Room ${i} ${isDone?'✓':''}</span>
+                </div>
+            `;
+        }
+    }
+
+    function openForm(roomNum) {
+        const date = document.getElementById('globalDate').value;
+        if(!date) return alert("Please select a date on the cover page first.");
+        
+        currentRoom = roomNum;
+        document.getElementById('coverPage').style.display = 'none';
+        document.getElementById('trackerPage').style.display = 'none';
+        document.getElementById('formPage').style.display = 'block';
+        document.getElementById('displayRoomTitle').innerText = "Room " + roomNum + " Inspection";
+
+        const idx = (roomNum - 1) * 2;
+        document.getElementById('s1Name').innerText = students[idx].name;
+        document.getElementById('s2Name').innerText = students[idx+1].name;
+        document.getElementById('labelSig1').innerText = students[idx].name + " Signature";
+        document.getElementById('labelSig2').innerText = students[idx+1].name + " Signature";
+        
+        resizeCanvas();
+    }
+
+    async function saveInspection() {
+        const data = {
+            roomNumber: currentRoom,
+            inspectionDate: document.getElementById('globalDate').value,
+            rating: document.getElementById('rating').value,
+            notes: document.getElementById('notes').value,
+            student1: { name: document.getElementById('s1Name').innerText, signature: canvas1.toDataURL() },
+            student2: { name: document.getElementById('s2Name').innerText, signature: canvas2.toDataURL() }
+        };
+
+        // Save to Database via your Route
+        const response = await fetch('/api/room-check/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if(response.ok) {
+            completedRooms.push(currentRoom);
+            localStorage.setItem('cecil_completed', JSON.stringify(completedRooms));
+            alert("Room " + currentRoom + " Submitted!");
+            goHome();
+        }
+    }
+
+    function goHome() {
+        document.getElementById('formPage').style.display = 'none';
+        document.getElementById('trackerPage').style.display = 'none';
+        document.getElementById('coverPage').style.display = 'block';
+        init();
+    }
+
+    async function showTracker() {
+        document.getElementById('coverPage').style.display = 'none';
+        document.getElementById('formPage').style.display = 'none';
+        document.getElementById('trackerPage').style.display = 'block';
+
+        const res = await fetch('/api/room-check/all');
+        const data = await res.json();
+        const body = document.getElementById('summaryBody');
+        body.innerHTML = '';
+        data.forEach(item => {
+            body.innerHTML += `<tr><td>${item.roomNumber}</td><td>${item.inspectionDate}</td><td>${item.rating}</td><td>${item.notes}</td></tr>`;
+        });
+    }
+
+    // Canvas / Signature logic
+    const pads = ['canvas1', 'canvas2'];
+    pads.forEach(id => {
+        const c = document.getElementById(id);
+        const ctx = c.getContext('2d');
+        let draw = false;
+        c.addEventListener('mousedown', () => draw = true);
+        window.addEventListener('mouseup', () => { draw = false; ctx.beginPath(); });
+        c.addEventListener('mousemove', (e) => {
+            if(!draw) return;
+            const rect = c.getBoundingClientRect();
+            ctx.lineWidth = 2; ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.stroke(); ctx.beginPath(); ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        });
+        // Touch support
+        c.addEventListener('touchstart', (e) => { e.preventDefault(); draw = true; });
+        c.addEventListener('touchmove', (e) => {
+            if(!draw) return;
+            const rect = c.getBoundingClientRect();
+            const touch = e.touches[0];
+            ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            ctx.stroke(); ctx.beginPath(); ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+        });
+    });
+
+    function clearCanvas(id) { 
+        const c = document.getElementById(id);
+        c.getContext('2d').clearRect(0,0,c.width,c.height); 
+    }
+
+    function resizeCanvas() {
+        pads.forEach(id => {
+            const c = document.getElementById(id);
+            c.width = c.offsetWidth; c.height = 120;
+        });
+    }
+
+    function exportTable(type) {
+        if(type === 'excel') {
+            const wb = XLSX.utils.table_to_book(document.getElementById('summaryTable'));
+            XLSX.writeFile(wb, 'Cecil_Monthly_Report.xlsx');
+        } else {
+            html2pdf().from(document.getElementById('summaryTable')).save('Cecil_Report.pdf');
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
