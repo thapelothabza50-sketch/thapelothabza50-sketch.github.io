@@ -50,54 +50,26 @@
 <body class="flex">
 
     <!-- ✅ MOBILE SIDEBAR OVERLAY -->
-    <div id="mobileSidebar" class="fixed inset-0 z-40 bg-gray-900/90 lg:hidden">
-        <div class="bg-gray-800 h-full w-64 p-4">
-
-            <h1 class="text-white font-black text-xl mb-6 flex items-center gap-2">
-                <img src="Images/Campus collective logo origin.jpg" class="w-10 h-10 rounded-full">
-                Campus Admin
+    <div id="mobileSidebar" class="fixed inset-0 z-40 bg-black/50 lg:hidden transition-opacity duration-300 shadow-2xl" style="visibility: hidden; opacity: 0;">
+    <div class="bg-white h-full w-72 p-6 shadow-2xl transform -translate-x-full transition-transform duration-300" id="mobileDrawer">
+        <div class="flex justify-between items-center mb-8 border-b pb-4">
+            <h1 class="text-blue-600 font-black text-xl flex items-center gap-2 uppercase tracking-tighter">
+                <img src="Images/Campus collective logo origin.jpg" class="w-10 h-10 rounded-full border-2 border-blue-100">
+                Command Center
             </h1>
-
-            <nav class="mt-4 space-y-2">
-
-                <div onclick="switchTab('agents')"
-                    class="sidebar-item text-white bg-gray-700 rounded-lg">
-                    <i class="ri-user-3-line sidebar-icon"></i>
-                    <span>Internal Agents</span>
-                </div>
-
-                <div onclick="switchTab('profiles')" class="sidebar-item">
-                    <i class="ri-store-2-line sidebar-icon"></i>
-                    <span>Marketplace Sellers</span>
-                </div>
-
-                <div onclick="switchTab('recruits')" class="sidebar-item">
-                    <i class="ri-team-line sidebar-icon"></i>
-                    <span>Student Recruits</span>
-                </div>
-
-                <div onclick="switchTab('escrow')" class="sidebar-item">
-                    <i class="ri-shield-check-line sidebar-icon"></i>
-                    <span>Escrow Tracker</span>
-                </div>
-
-                <div onclick="switchTab('residences')" class="sidebar-item">
-                    <i class="ri-building-2-line sidebar-icon"></i>
-                    <span>Residence Alerts</span>
-                </div>
-
-                <div onclick="window.location.href='room-check.html'" class="sidebar-item">
-                 <i class="ri-layout-grid-line sidebar-icon"></i>
-                 <span>Room Tracker</span>
-                </div>
-
-                <div onclick="logout()" class="sidebar-item text-red-400 hover:text-red-300">
-                    <i class="ri-logout-circle-r-line sidebar-icon"></i>
-                    <span>Logout</span>
-                </div>
-
-            </nav>
+            <button onclick="closeMobileMenu()" class="text-gray-400 text-2xl">&times;</button>
         </div>
+
+        <nav class="space-y-3">
+            <div onclick="switchTab('agents'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+                <i class="ri-user-3-line text-xl text-blue-500"></i> Agents
+            </div>
+            <div onclick="switchTab('recruits'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+                <i class="ri-team-line text-xl text-emerald-500"></i> Student Recruits
+            </div>
+            </nav>
+    </div>
+
     </div>
 
     <!-- ✅ DESKTOP SIDEBAR -->
@@ -612,56 +584,51 @@ function renderAllUsers(users) {
 
 
 // ✅ Recruits
-function renderRecruits(recruits) {
-    const body = document.getElementById('recruit-table-body');
-    if (!body) return;
+function renderRecruits(data) {
+    const tbody = document.getElementById('recruit-table-body');
+    if (!tbody) return;
 
-    body.innerHTML = recruits.map(r => {
-        let agentName = "System/Direct";
-
-        const agentRef = r.agent?._id || r.agent;
-        if (agentRef) {
-            const found = allUsers.find(u => u._id === agentRef);
-            if (found) agentName = found.fullName;
-        }
-
-        return `
-        <tr class="border-b hover:bg-gray-50">
+    tbody.innerHTML = data.map(r => `
+        <tr class="border-b hover:bg-gray-50 transition">
             <td class="p-3">
-                <b>${r.studentName} ${r.studentSurname}</b><br>
-                <small>${r.studentEmail}</small>
+                <div class="font-bold text-gray-800">${r.fullName}</div>
+                <div class="text-[10px] text-gray-400 uppercase font-black">${r.email}</div>
             </td>
-            <td class="p-3 text-xs font-mono">${r.studentPhone || "N/A"}</td>
-            <td class="p-3">${r.accommodation}</td>
-            <td class="p-3 text-blue-600 font-bold">${agentName}</td>
-            <td class="p-3 text-xs">${new Date(r.createdAt).toLocaleDateString()}</td>
-
+            <td class="p-3 text-xs font-mono text-gray-600">${r.phone || 'N/A'}</td>
             <td class="p-3">
-                <span class="px-2 py-1 rounded text-[10px] font-black uppercase
-                ${r.status === 'Approved'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-orange-100 text-orange-700'}">
-                    ${r.status}
+                <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-black uppercase">
+                    ${r.accommodation || 'Not Assigned'}
                 </span>
             </td>
-
             <td class="p-3">
-                <div class="flex items-center gap-2">
-                    <select onchange="updateRecruitStatus('${r._id}', this.value)"
-                        class="text-xs p-1 border rounded bg-white">
-                        <option value="">Update…</option>
-                        <option value="Approved">Approve</option>
-                        <option value="Cancelled">Cancel</option>
-                    </select>
-
-                    <button onclick="deleteRecruit('${r._id}')" class="text-red-500">
-                        🗑️
+                <div class="text-xs font-bold text-gray-700">${r.agentName || 'Direct'}</div>
+                <div class="text-[10px] text-gray-400 italic">${r.agentId || ''}</div>
+            </td>
+            <td class="p-3 text-xs text-gray-500">${new Date(r.createdAt).toLocaleDateString()}</td>
+            <td class="p-3 text-xs font-bold text-orange-600">${r.moveInDate || 'TBD'}</td>
+            <td class="p-3">
+                <span class="px-2 py-1 rounded-full text-[10px] font-black uppercase 
+                    ${r.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">
+                    ${r.status || 'pending'}
+                </span>
+            </td>
+            <td class="p-3">
+                <div class="flex gap-2">
+                    <button onclick="downloadDocuments('${r._id}')" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Download Docs">
+                        <i class="ri-file-download-line"></i>
+                    </button>
+                    ${r.status !== 'approved' ? `
+                        <button onclick="approveRecruit('${r._id}')" class="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100" title="Approve">
+                            <i class="ri-check-double-line"></i>
+                        </button>
+                    ` : ''}
+                    <button onclick="deleteRecruit('${r._id}')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
+                        <i class="ri-delete-bin-line"></i>
                     </button>
                 </div>
             </td>
         </tr>
-        `;
-    }).join('');
+    `).join('');
 }
 
 
@@ -895,7 +862,406 @@ function handleGlobalSearch() {
 // → printPayoutPDF()
 // → printAccommodationStatement()
 
-// (Paste your original PDF code here — unchanged)
+async function downloadDocuments(recruitId) {
+    try {
+        const res = await fetch(`/api/auth/recruit-docs/${recruitId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error("Failed to download documents");
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `documents_${recruitId}.zip`; // It saves as a zip file
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    } catch (err) {
+        console.error(err);
+        alert("Error downloading documents: " + err.message);
+    }
+}
+
+ // 8. PDF EXPORTS
+  function printAllRecruitsPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // Helper function to draw the blue border on every page
+    const drawBorder = (pdfDoc) => {
+        pdfDoc.setDrawColor(37, 99, 235);
+        pdfDoc.setLineWidth(1.5);
+        pdfDoc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+    };
+
+    // 1. Initial Page Setup
+    drawBorder(doc);
+
+    // Header Branding
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(22);
+    doc.text("Campus", 40, 22); 
+    doc.setFontSize(10);
+    doc.text("COLLECTIVE", 40, 27);
+
+    // Business Details
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
+    doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
+    doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
+
+    doc.setDrawColor(37, 99, 235);
+    doc.line(12, 40, pageWidth - 12, 40);
+
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text("MASTER RECRUITMENT REPORT", 12, 50);
+
+    // 2. Prepare Data & Summary Logic
+    const getAgentName = (r) => {
+        if (r.agent && r.agent.fullName) return r.agent.fullName;
+        const found = allUsers.find(u => u._id === (r.agent?._id || r.agent));
+        return found ? found.fullName : "Direct/System";
+    };
+
+    const totalRecruits = allRecruits.length;
+    const agentSummary = {};
+    const accSummary = {};
+    const statusSummary = {
+        "Approved/Moved-in": 0,
+        "Pending": 0,
+        "Cancelled": 0
+    };
+
+    allRecruits.forEach(r => {
+        // Agent Breakdown
+        const agentName = getAgentName(r);
+        agentSummary[agentName] = (agentSummary[agentName] || 0) + 1;
+        
+        // Accommodation Breakdown
+        const acc = r.accommodation || "Not Assigned";
+        accSummary[acc] = (accSummary[acc] || 0) + 1;
+
+        // Status Breakdown
+        if (r.status === 'Approved') statusSummary["Approved/Moved-in"]++;
+        else if (r.status === 'Pending') statusSummary["Pending"]++;
+        else if (r.status === 'Rejected' || r.status === 'Cancelled') statusSummary["Cancelled"]++;
+    });
+
+    const groupedRecruits = [...allRecruits].sort((a, b) => 
+        getAgentName(a).localeCompare(getAgentName(b))
+    );
+
+    const rows = groupedRecruits.map(r => [
+        `${r.studentName} ${r.studentSurname}`,
+        r.studentPhone || 'N/A',
+        r.accommodation,
+        getAgentName(r),
+        r.status,
+        new Date(r.createdAt).toLocaleDateString()
+    ]);
+
+    // 3. Render Main Table
+    doc.autoTable({
+        head: [['Student', 'Phone', 'Accommodation', 'Agent', 'Status', 'Date']],
+        body: rows,
+        startY: 55,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
+        styles: { fontSize: 8, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [242, 247, 255] },
+        margin: { left: 12, right: 12 },
+        didDrawPage: (data) => drawBorder(doc) // Draw border on every page the table spans
+    });
+
+    // 4. SUMMARY BLOCK (at the end of the list)
+    let finalY = doc.lastAutoTable.finalY + 15;
+
+    // Safety check: if near bottom, start summary on new page
+    if (finalY > pageHeight - 60) {
+        doc.addPage();
+        drawBorder(doc);
+        finalY = 20;
+    }
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.text("REPORT SUMMARY", 12, finalY);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.text(`Total Students Recruited: ${totalRecruits}`, 12, finalY + 8);
+
+    // Status Summary Row
+    const statusText = `Approved: ${statusSummary["Approved/Moved-in"]}  |  Pending: ${statusSummary["Pending"]}  |  Cancelled: ${statusSummary["Cancelled"]}`;
+    doc.setFont("helvetica", "normal");
+    doc.text(statusText, 12, finalY + 14);
+
+    // Tables for Agent and Accommodation breakdown
+    const summaryRows = [];
+    const agents = Object.keys(agentSummary);
+    const accs = Object.keys(accSummary);
+    const maxRows = Math.max(agents.length, accs.length);
+
+    for (let i = 0; i < maxRows; i++) {
+        summaryRows.push([
+            agents[i] ? `${agents[i]}: ${agentSummary[agents[i]]}` : "",
+            accs[i] ? `${accs[i]}: ${accSummary[accs[i]]}` : ""
+        ]);
+    }
+
+    doc.autoTable({
+        head: [['Recruits Per Agent', 'Recruits Per Accommodation']],
+        body: summaryRows,
+        startY: finalY + 20,
+        theme: 'plain',
+        styles: { fontSize: 8, cellPadding: 1 },
+        headStyles: { textColor: [37, 99, 235], fontStyle: 'bold' },
+        margin: { left: 12 },
+        didDrawPage: (data) => drawBorder(doc)
+    });
+
+    doc.save('Campus_Collective_Master_Recruits.pdf');
+}
+// --- RESTORED SEARCH LOGIC ---
+document.getElementById('agentSearch')?.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#agent-table-body tr');
+    rows.forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+    });
+});
+
+document.getElementById('recruitSearch')?.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#recruits-table-body tr');
+    rows.forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+    });
+});
+function printAccPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // Get the selected accommodation from your dropdown
+    const selectedAcc = document.getElementById('acc-filter').value;
+    if (!selectedAcc) {
+        alert("Please select an accommodation first!");
+        return;
+    }
+
+    // 1. Blue Border (Matching Master Style)
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(1.5);
+    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+
+    // 2. Header Branding
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(22);
+    doc.text("Campus", 40, 22); 
+    doc.setFontSize(10);
+    doc.text("COLLECTIVE", 40, 27);
+    
+    // Business Details
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
+    doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
+    doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 80, 33);
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    
+
+    doc.setDrawColor(37, 99, 235);
+    doc.line(12, 40, pageWidth - 12, 40);
+
+    // 3. Title for the Specific Residence
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text(`RESIDENCE REPORT: ${selectedAcc.toUpperCase()}`, 12, 50);
+
+    // 4. Filter data for ONLY this residence
+    const filteredData = allRecruits.filter(r => r.accommodation === selectedAcc);
+
+    const rows = filteredData.map(r => [
+        `${r.studentName} ${r.studentSurname}`,
+        r.studentPhone || 'N/A',
+        r.agent?.fullName || "Direct/System",
+        r.status,
+        new Date(r.createdAt).toLocaleDateString()
+    ]);
+
+    // 5. Generate Table (Matching Master Style)
+    doc.autoTable({
+        head: [['Student', 'Phone', 'Assigned Agent', 'Status', 'Date']],
+        body: rows,
+        startY: 55,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
+        styles: { fontSize: 8, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [242, 247, 255] },
+        margin: { left: 12, right: 12 }
+    });
+
+    doc.save(`${selectedAcc.replace(/\s+/g, '_')}_Recruit_Report.pdf`);
+}
+
+function printPayoutPDF(name, id, count, amount, rate) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+
+    // Blue Border & Branding
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(1.5);
+    doc.rect(5, 5, pageWidth - 10, 287);
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(22);
+    doc.text("Campus", 20, 25);
+    doc.setFontSize(10);
+    doc.text("COLLECTIVE", 20, 30);
+
+    doc.setTextColor(0);
+    doc.setFontSize(16);
+    doc.text("OFFICIAL COMMISSION SETTLEMENT", 20, 50);
+
+    // Dynamic Table using the specific rate
+    doc.autoTable({
+        startY: 60,
+        theme: 'grid',
+        head: [['Description', 'Value']],
+        body: [
+            ['Agent Name', name],
+            ['Agent ID', id || 'N/A'],
+            ['Number of Successful Recruits', count.toString()],
+            ['Agreed Commission Rate', `R ${rate.toFixed(2)} / student`],
+            ['TOTAL PAYOUT AMOUNT', `R ${amount.toLocaleString(undefined, {minimumFractionDigits: 2})}`],
+            ['Settlement Date', new Date().toLocaleDateString()]
+        ],
+        headStyles: { fillColor: [37, 99, 235] },
+        columnStyles: { 0: { fontStyle: 'bold', width: 60 } }
+    });
+
+    doc.save(`Payout_Statement_${id}.pdf`);
+}
+
+function printAccommodationStatement() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // 1. Get Inputs
+    const selectedAcc = document.getElementById('acc-filter').value;
+    if (!selectedAcc) return alert("Please select an accommodation first!");
+
+    const priceInput = prompt(`Enter Price Charged Per Student for ${selectedAcc}:`, "1000");
+    const pricePerStudent = parseFloat(priceInput);
+    if (isNaN(pricePerStudent)) return alert("Invalid price entered.");
+
+    const reference = prompt("Enter Reference (e.g., INV-001 or Acc Name):", selectedAcc);
+    
+    // 2. Filter Approved Students for this Acc
+    const approvedRecruits = allRecruits.filter(r => r.accommodation === selectedAcc && r.status === 'Approved');
+    const studentCount = approvedRecruits.length;
+    const totalAmount = studentCount * pricePerStudent;
+
+    // 3. Styling & Header (Matching Master Style)
+    const drawBorder = (pdfDoc) => {
+        pdfDoc.setDrawColor(37, 99, 235);
+        pdfDoc.setLineWidth(1.5);
+        pdfDoc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+    };
+    drawBorder(doc);
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(22);
+    doc.text("Campus", 40, 22); 
+    doc.setFontSize(10);
+    doc.text("COLLECTIVE", 40, 27);
+
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("Website: www.mycampuscollective.me", pageWidth - 80, 18);
+    doc.text("Email: info@mycampuscollective.me", pageWidth - 80, 23);
+    doc.text("Contact: 077 437 7288", pageWidth - 80, 28);
+    doc.text(`Downloaded: ${new Date().toLocaleString()}`, pageWidth - 80, 33);
+
+    doc.setDrawColor(37, 99, 235);
+    doc.line(12, 40, pageWidth - 12, 40);
+
+    // 4. Statement Title
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text("Payout STATEMENT ", 12, 52);
+    
+    // 5. Billing Details Table
+    doc.autoTable({
+        startY: 60,
+        theme: 'plain',
+        body: [
+            ['To:', selectedAcc],
+            ['Date:', new Date().toLocaleDateString()],
+            ['Reference:', reference.toUpperCase()]
+        ],
+        styles: { fontSize: 10, cellPadding: 1 },
+        columnStyles: { 0: { fontStyle: 'bold', width: 30 } }
+    });
+
+    // 6. Main Calculation Table
+    doc.autoTable({
+        startY: 85,
+        head: [['Description', 'Qty (Approved Students)', 'Unit Price', 'Total']],
+        body: [
+            [
+                `Recruitment Services for ${selectedAcc}`,
+                studentCount.toString(),
+                `R ${pricePerStudent.toLocaleString()}`,
+                `R ${totalAmount.toLocaleString()}`
+            ]
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
+        styles: { fontSize: 10, cellPadding: 5 }
+    });
+
+    // 7. Payment Info & Banking (The "Account Number" part)
+    let finalY = doc.lastAutoTable.finalY + 20;
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("BANKING DETAILS FOR SETTLEMENT:", 12, finalY);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Bank Name: ABSA", 12, finalY + 8);
+    doc.text("Account Name: Tapelo President Magwaza", 12, finalY + 14);
+    doc.text("Account Number: 4118 1134 80", 12, finalY + 20); 
+    doc.text("Branch Code: 632005", 12, finalY + 26);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Reference: ${reference.toUpperCase()}`, 12, finalY + 32);
+
+    // 8. Signature Area
+    doc.setFontSize(9);
+    doc.setTextColor(150);
+    doc.text("Authorized by Campus Collective Management", 12, pageHeight - 20);
+
+    doc.save(`${selectedAcc.replace(/\s+/g, '_')}_Statement.pdf`);
+}
 
 
 // ------------------------------------------------------------
