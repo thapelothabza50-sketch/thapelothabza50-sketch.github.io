@@ -6,11 +6,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Campus Collective – Management Dashboard</title>
-
-    <!-- Tailwind CSS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css">
 
     <style>
@@ -144,15 +142,20 @@
 
             <!-- Right side -->
             <div class="flex items-center gap-3">
-                <input id="globalSearch" onkeyup="handleGlobalSearch()" type="text"
-                    class="p-2 border border-gray-300 rounded-lg text-sm w-40 md:w-64"
-                    placeholder="Search...">
+    <input id="globalSearch" onkeyup="handleGlobalSearch()" type="text"
+        class="p-2 border border-gray-300 rounded-lg text-sm w-40 md:w-64"
+        placeholder="Search...">
+        
+    <button onclick="window.location.href='water-management.html'" 
+        class="bg-cyan-100 text-cyan-700 px-4 py-2 rounded-lg font-bold border border-cyan-300 hover:bg-cyan-200 transition">
+        💧 Water Supply
+    </button>
 
-                <button onclick="printAllRecruitsPDF()"
-                    class="hidden md:block bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700">
-                    📃 Print Master Recruit List
-                </button>
-            </div>
+    <button onclick="printAllRecruitsPDF()"
+        class="hidden md:block bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700">
+        📃 Print Master Recruit List
+    </button>
+</div>
         </header>
 
         <!-- ✅ STATS ROW -->
@@ -188,7 +191,7 @@
 
     <div class="flex justify-between items-center">
         <h2 class="text-xl font-black text-gray-700">Internal Agents</h2>
-        <button onclick="addNewAccount()"
+        <button onclick="window.location.href='admin-register-agent.html'" 
             class="bg-black text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-800">
             + Add New Agent
         </button>
