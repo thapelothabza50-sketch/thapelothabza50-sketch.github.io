@@ -735,37 +735,42 @@ async function updateRecruitStatus(recruitId, newStatus) {
     }
 }
 
-async function approveRecruit(id) {
-    // 1. Manually set the Total and Commission via prompts
-    const totalAmount = prompt("Enter Total Contract Amount (e.g. 5000):");
-    if (totalAmount === null) return; // User cancelled
+// ✅ FIX: Added missing approveRecruit function using correct API_AUTH_URL
+async function approveRecruit(recruitId) {
+    const priceInput = prompt("Enter Booking Fee / Price for this student:", "0");
+    const price = parseFloat(priceInput);
+    
+    if (isNaN(price)) {
+        return alert("Invalid price. Approval cancelled.");
+    }
 
-    const commissionAmount = prompt("Enter Agent Commission Amount (e.g. 250):");
-    if (commissionAmount === null) return; // User cancelled
+    const confirmChange = confirm(`Are you sure you want to approve this student with a fee of R ${price}?`);
+    if (!confirmChange) return;
 
     try {
-        const res = await fetch(`${API_URL}/recruits/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            // 2. Send the manually entered values and set status to approved
+        const res = await fetch(`${API_AUTH_URL}/update-status`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({ 
-                status: 'approved',
-                total: parseFloat(totalAmount),
-                commission: parseFloat(commissionAmount),
-                approvedAt: new Date().toISOString()
+                recruitId: recruitId, 
+                status: 'Approved', 
+                price: price 
             })
         });
 
         if (res.ok) {
-            alert('Recruit Approved & Commission Recorded!');
-            await fetchRecruits(); // Refresh the table to show updated status
+            alert("Student successfully approved!");
+            fetchRecruits(); // Refresh the table
         } else {
-            const error = await res.json();
-            alert(`Error: ${error.message || 'Failed to approve'}`);
+            const err = await res.json();
+            alert("Error: " + (err.message || "Could not approve student"));
         }
     } catch (err) {
-        console.error(err);
-        alert('Connection error while approving.');
+        console.error("Approval Error:", err);
+        alert("Connection failed. Please check your network.");
     }
 }
 
