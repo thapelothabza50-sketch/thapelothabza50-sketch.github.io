@@ -63,14 +63,41 @@
             <button onclick="closeMobileMenu()" class="text-gray-400 text-2xl">&times;</button>
         </div>
 
-        <nav class="space-y-3">
-            <div onclick="switchTab('agents'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
-                <i class="ri-user-3-line text-xl text-blue-500"></i> Agents
-            </div>
-            <div onclick="switchTab('recruits'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
-                <i class="ri-team-line text-xl text-emerald-500"></i> Student Recruits
-            </div>
-            </nav>
+       <nav class="space-y-3 overflow-y-auto" style="max-height: 80vh;">
+    <div onclick="switchTab('agents'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-user-3-line text-xl text-blue-500"></i> Agents
+    </div>
+    
+    <div onclick="switchTab('profiles'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-store-2-line text-xl text-orange-500"></i> Marketplace Sellers
+    </div>
+
+    <div onclick="switchTab('recruits'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-team-line text-xl text-emerald-500"></i> Student Recruits
+    </div>
+
+    <div onclick="switchTab('escrow'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-shield-check-line text-xl text-purple-500"></i> Escrow Tracker
+    </div>
+
+    <div onclick="switchTab('residences'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-building-2-line text-xl text-yellow-500"></i> Residence Alerts
+    </div>
+
+    <div onclick="window.location.href='room-check.html'; closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-layout-grid-line text-xl text-indigo-500"></i> Room Tracker
+    </div>
+
+    <div onclick="window.location.href='tracker.html'; closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-file-list-3-line sidebar-icon"></i> Applications
+    </div>
+
+    <hr class="my-2 border-gray-100">
+
+    <div onclick="logout()" class="flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 text-red-600 font-bold transition cursor-pointer">
+        <i class="ri-logout-circle-r-line text-xl"></i> Logout
+    </div>
+</nav>
     </div>
 
     </div>
@@ -116,6 +143,11 @@
             <div onclick="window.location.href='room-check.html'" class="sidebar-item" style="cursor: pointer;">
              <i class="ri-layout-grid-line sidebar-icon"></i>
              <span class="sidebar-text hidden">Room Tracker</span>
+            </div>
+
+            <div onclick="window.location.href='tracker.html'" class="sidebar-item" style="cursor: pointer;">
+             <i class="ri-file-list-3-line sidebar-icon"></i>
+             <span class="sidebar-text hidden">Applications</span>
             </div>
 
             <div onclick="logout()" class="sidebar-item text-red-400 hover:text-red-300">
