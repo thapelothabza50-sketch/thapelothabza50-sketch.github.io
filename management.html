@@ -26,21 +26,26 @@
         }
 
         .sidebar-item {
-            @apply flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer transition;
+         @apply flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition;
+         cursor: pointer !important; /* Forces the hand pointer on the whole row */
         }
 
-        .sidebar-icon {
-            font-size: 1.4rem;
+        .sidebar-item * {
+         cursor: pointer !important; /* Ensures icons and text don't reset the cursor */
         }
 
-        /* Mobile drawer */
+        /* Updated Mobile drawer behavior */
         #mobileSidebar {
-            transform: translateX(-100%);
-            transition: transform 0.25s ease-in-out;
+          transition: opacity 0.25s ease-in-out, visibility 0.25s;
         }
 
         #mobileSidebar.open {
-            transform: translateX(0);
+         visibility: visible !important;
+         opacity: 1 !important;
+        }
+
+        #mobileSidebar.open #mobileDrawer {
+         transform: translateX(0);
         }
     </style>
 </head>
@@ -130,9 +135,8 @@
             <!-- Left side -->
             <div class="flex items-center gap-4">
                 <!-- Mobile menu btn -->
-                <button onclick="document.getElementById('mobileSidebar').classList.add('open')"
-                    class="lg:hidden text-gray-600 text-2xl">
-                    <i class="ri-menu-line"></i>
+                <button onclick="openMobileMenu()" class="lg:hidden text-gray-600 text-2xl">
+                 <i class="ri-menu-line"></i>
                 </button>
 
                 <h1 class="text-xl font-black text-gray-700">
@@ -243,11 +247,8 @@
 
     <h2 class="text-xl font-black text-gray-700">Student Recruits</h2>
 
-    <!-- ACTION BAR -->
     <div class="flex flex-wrap gap-3 bg-blue-50 p-4 border border-blue-100 rounded-xl">
-
         <span class="text-sm font-bold text-blue-800">Accommodation:</span>
-
         <select id="acc-filter" class="p-2 border rounded-lg text-sm bg-white"></select>
 
         <button onclick="printAccPDF()"
@@ -260,9 +261,13 @@
             📄 Generate Statement
         </button>
 
-        <!-- ✅ ROOM CHECK BUTTON (redirect placeholder) -->
-        <button onclick="window.location.href='LINK-HERE.html'"
-            class="bg-indigo-600 text-white px-4="bg-white rounded-xl shadow border overflow-x-auto">
+        <button onclick="window.location.href='room-check.html'"
+            class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg font-bold text-xs hover:bg-indigo-700">
+            Room Check
+        </button>
+    </div>
+
+    <div class="bg-white rounded-xl shadow border overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-gray-100">
                 <tr>
@@ -279,7 +284,6 @@
             <tbody id="recruit-table-body"></tbody>
         </table>
     </div>
-
 </div>
 
 
@@ -1032,6 +1036,15 @@ async function downloadDocuments(recruitId) {
     });
 
     doc.save('Campus_Collective_Master_Recruits.pdf');
+}
+function openMobileMenu() {
+    const sidebar = document.getElementById('mobileSidebar');
+    sidebar.classList.add('open');
+}
+
+function closeMobileMenu() {
+    const sidebar = document.getElementById('mobileSidebar');
+    sidebar.classList.remove('open');
 }
 // --- RESTORED SEARCH LOGIC ---
 document.getElementById('agentSearch')?.addEventListener('input', (e) => {
