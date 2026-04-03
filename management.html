@@ -645,10 +645,22 @@ function renderRecruits(data) {
                     ${r.accommodation || 'Not Assigned'}
                 </span>
             </td>
-            <td class="p-3">
-                <div class="text-xs font-bold text-gray-700">${r.agentName || 'Direct'}</div>
-                <div class="text-[10px] text-gray-400 italic">${r.agentId || ''}</div>
-            </td>
+            // ✅ Corrected Agent Column Logic
+         <td class="p-3">
+             <div class="text-xs font-bold text-gray-700">
+             ${
+              // 1. Check if the object already has the full name
+              r.agent?.fullName || 
+              // 2. If not, try to find the agent in our global allUsers list
+              allUsers.find(u => u._id === (r.agent?._id || r.agent))?.fullName || 
+            // 3. Fallback to 'Direct' if no match is found
+            'Direct'
+             }
+            </div>
+            <div class="text-[10px] text-gray-400 italic">
+             ${r.agentId || (r.agent?.agentId) || ''}
+           </div>
+          </td>
             <td class="p-3 text-xs text-gray-500">
                 ${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'N/A'}
             </td>
@@ -661,7 +673,7 @@ function renderRecruits(data) {
             </td>
             <td class="p-3">
                 <div class="flex gap-2">
-                    <button onclick="downloadDocuments('${r._id}')" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Download Docs">
+                    <button onclick="approveRecruit('${r._id}')" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Download Docs">
                         <i class="ri-file-download-line"></i>
                     </button>
                     ${r.status !== 'approved' ? `
@@ -723,6 +735,39 @@ async function updateRecruitStatus(recruitId, newStatus) {
     }
 }
 
+async function approveRecruit(id) {
+    // 1. Manually set the Total and Commission via prompts
+    const totalAmount = prompt("Enter Total Contract Amount (e.g. 5000):");
+    if (totalAmount === null) return; // User cancelled
+
+    const commissionAmount = prompt("Enter Agent Commission Amount (e.g. 250):");
+    if (commissionAmount === null) return; // User cancelled
+
+    try {
+        const res = await fetch(`${API_URL}/recruits/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            // 2. Send the manually entered values and set status to approved
+            body: JSON.stringify({ 
+                status: 'approved',
+                total: parseFloat(totalAmount),
+                commission: parseFloat(commissionAmount),
+                approvedAt: new Date().toISOString()
+            })
+        });
+
+        if (res.ok) {
+            alert('Recruit Approved & Commission Recorded!');
+            await fetchRecruits(); // Refresh the table to show updated status
+        } else {
+            const error = await res.json();
+            alert(`Error: ${error.message || 'Failed to approve'}`);
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Connection error while approving.');
+    }
+}
 
 // ------------------------------------------------------------
 // 6. DELETE RECRUIT
@@ -895,19 +940,6 @@ function handleGlobalSearch() {
     renderAllUsers(filteredUsers);
 }
 
-
-
-// ------------------------------------------------------------
-// 11. PDF FUNCTIONS (MASTER, ACCOMMODATION, PAYOUT)
-// ------------------------------------------------------------
-
-// ✅ SAME EXACT PDF LOGIC — omitted here for brevity,
-// but you requested NO CHANGES so EVERYTHING stays:
-
-// → printAllRecruitsPDF()
-// → printAccPDF()
-// → printPayoutPDF()
-// → printAccommodationStatement()
 
 async function downloadDocuments(recruitId) {
     try {
