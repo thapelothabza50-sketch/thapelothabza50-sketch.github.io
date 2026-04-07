@@ -881,7 +881,7 @@ async function fetchSignatures() {
 
     try {
         // Correct path based on your server.js and authRoutes.js
-        const res = await fetch('/api/auth/signatures', {
+        const res = await fetch('/api/auth/signatures/all', {
             method: 'GET',
             headers: { 
                 'Authorization': `Bearer ${token}`, // Ensure 'token' is defined at top of script
