@@ -1121,4 +1121,33 @@ router.post('/save-signature', async (req, res) => {
     }
 });
 
+/**
+ * @route   GET /api/auth/signatures/:ownerId
+ * @desc    Fetch all signatures associated with a specific ID
+ */
+router.get('/signatures/:ownerId', async (req, res) => {
+    try {
+        const signatures = await Signature.find({ ownerId: req.params.ownerId })
+            .sort({ createdAt: -1 }); // Newest first
+
+        if (!signatures || signatures.length === 0) {
+            return res.status(404).json({ message: "No signatures found for this user." });
+        }
+
+        res.json(signatures);
+    } catch (err) {
+        console.error("Fetch Signature Error:", err);
+        res.status(500).json({ message: "Server Error fetching signatures" });
+    }
+});
+
+router.get('/signatures/all', auth, async (req, res) => {
+    try {
+        const signatures = await Signature.find().sort({ createdAt: -1 });
+        res.json(signatures);
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching signatures" });
+    }
+});
+
 module.exports = router;
