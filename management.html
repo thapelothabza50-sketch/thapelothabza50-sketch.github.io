@@ -875,36 +875,39 @@ function closePaymentModal() {
 // --- SIGNATURES LOGIC ---
 async function fetchSignatures() {
     const list = document.getElementById('signature-list');
-    list.innerHTML = '<p class="text-gray-500">Loading signatures...</p>';
+    if (!list) return;
+
+    list.innerHTML = '<p class="text-gray-500 text-center col-span-full">Loading signatures...</p>';
 
     try {
-        // Updated to the correct auth path and used the existing 'token' variable
-        const res = await fetch('/api/auth/signatures/all', {
-            headers: { 'Authorization': `Bearer ${token}` }
+        // FIXED URL: Removed "/all" to match authRoutes.js
+        const res = await fetch('/api/auth/signatures', {
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
         });
 
-        // Check if the response is actually JSON before parsing
-        const contentType = res.headers.get("content-type");
-        if (!res.ok || !contentType || !contentType.includes("application/json")) {
-            console.error("Server returned non-JSON or error:", res.status);
-            list.innerHTML = '<p class="text-red-400">Server error: Could not retrieve signatures.</p>';
-            return;
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.message || `Server error: ${res.status}`);
         }
 
         const data = await res.json();
 
-        if (data.length === 0) {
-            list.innerHTML = '<p class="text-gray-400">No signatures found.</p>';
+        if (!data || data.length === 0) {
+            list.innerHTML = '<p class="text-gray-400 text-center col-span-full">No signatures found.</p>';
             return;
         }
 
         list.innerHTML = data.map(sig => `
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                <div class="bg-gray-50 p-2 border rounded-lg mb-3">
-                    <img src="${sig.signatureData}" alt="Signature" class="mx-auto max-h-32">
+                <div class="bg-gray-50 p-2 border rounded-lg mb-3 flex justify-center">
+                    <img src="${sig.signatureData}" alt="Signature" class="max-h-32 object-contain">
                 </div>
                 <div class="text-xs text-gray-600 space-y-1 mb-4">
-                    <p><strong>ID:</strong> ${sig.ownerId}</p>
+                    <p class="truncate"><strong>ID:</strong> ${sig._id}</p>
+                    <p><strong>Owner:</strong> ${sig.ownerName || 'User'}</p>
                     <p><strong>Date:</strong> ${new Date(sig.createdAt).toLocaleDateString()}</p>
                 </div>
                 <button onclick="copySig('${sig.signatureData}')" 
@@ -915,7 +918,7 @@ async function fetchSignatures() {
         `).join('');
     } catch (err) {
         console.error("Signature Fetch Error:", err);
-        list.innerHTML = '<p class="text-red-500 text-sm">Connection failed. Check your network.</p>';
+        list.innerHTML = `<p class="text-red-500 text-sm text-center col-span-full">Error: ${err.message}</p>`;
     }
 }
 
