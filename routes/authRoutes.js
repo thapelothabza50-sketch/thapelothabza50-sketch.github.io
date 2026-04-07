@@ -1121,6 +1121,15 @@ router.post('/save-signature', async (req, res) => {
     }
 });
 
+router.get('/signatures/all', auth, async (req, res) => {
+    try {
+        const signatures = await Signature.find().sort({ createdAt: -1 });
+        res.json(signatures);
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching signatures" });
+    }
+});
+
 /**
  * @route   GET /api/auth/signatures/:ownerId
  * @desc    Fetch all signatures associated with a specific ID
@@ -1138,15 +1147,6 @@ router.get('/signatures/:ownerId', async (req, res) => {
     } catch (err) {
         console.error("Fetch Signature Error:", err);
         res.status(500).json({ message: "Server Error fetching signatures" });
-    }
-});
-
-router.get('/signatures/all', auth, async (req, res) => {
-    try {
-        const signatures = await Signature.find().sort({ createdAt: -1 });
-        res.json(signatures);
-    } catch (err) {
-        res.status(500).json({ message: "Error fetching signatures" });
     }
 });
 
