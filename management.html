@@ -279,12 +279,10 @@
 </div>
 
 <div id="signatures-section" class="section-content hidden p-6">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-gray-800">Captured Signatures</h2>
-        <button onclick="fetchSignatures()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            <i class="ri-refresh-line"></i> Refresh
-        </button>
-    </div>
+    <div class="sidebar-item" onclick="showTab('signatures-section'); fetchSignatures();">
+    <i class="ri-quill-pen-line text-xl"></i>
+    <span class="sidebar-text">Signatures</span>
+</div>
     
     <div id="signature-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         </div>
