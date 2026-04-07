@@ -150,7 +150,7 @@
              <span class="sidebar-text hidden">Applications</span>
             </div>
 
-            <div class="sidebar-item" onclick="showSection('signatures-section'); fetchSignatures();">
+            <div class="sidebar-item" onclick="switchTab('signatures'); fetchSignatures();">
              <i class="ri-quill-pen-line text-xl"></i>
              <span class="sidebar-text">Signatures</span>
             </div>
@@ -449,36 +449,43 @@
        ✅ TAB SWITCHER (SAFE — Logic preserved)
     --------------------------------------------- */
     function switchTab(tab) {
-        const sections = [
-            "agents",
-            "profiles",
-            "recruits",
-            "escrow",
-            "residences"
-        ];
+    const sections = [
+        "agents",
+        "profiles",
+        "recruits",
+        "escrow",
+        "residences",
+        "signatures" // Added to list
+    ];
 
-        sections.forEach(sec => {
-            document.getElementById("section-" + sec)?.classList.add("hidden");
-        });
+    sections.forEach(sec => {
+        // Hides both "section-name" and "name-section" formats
+        document.getElementById("section-" + sec)?.classList.add("hidden");
+        document.getElementById(sec + "-section")?.classList.add("hidden");
+    });
 
-        const activeSection = document.getElementById("section-" + tab);
-        if (activeSection) {
-            activeSection.classList.remove("hidden");
-        }
-
-        // ✅ Trigger data fetches with SAME LOGIC as original
-        if (tab === "agents" || tab === "profiles") {
-            fetchProfiles();
-        }
-
-        if (tab === "recruits") {
-            fetchRecruits();
-        }
-
-        if (tab === "escrow") {
-            loadWaterSummary(); // Not water, but kept logically same
-        }
+    // Finds the active section regardless of naming convention
+    const activeSection = document.getElementById("section-" + tab) || 
+                         document.getElementById(tab + "-section");
+    
+    if (activeSection) {
+        activeSection.classList.remove("hidden");
     }
+
+    // Trigger data fetches
+    if (tab === "agents" || tab === "profiles") {
+        fetchProfiles();
+    }
+    if (tab === "recruits") {
+        fetchRecruits();
+    }
+    if (tab === "escrow") {
+        loadWaterSummary();
+    }
+    if (tab === "signatures") {
+        fetchSignatures();
+    }
+}
 
     /* ----------------------------------------------------
         ✅ TABLES: AUTO-SCROLL ON MOBILE FOR BETTER UX
