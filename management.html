@@ -880,17 +880,20 @@ async function fetchSignatures() {
     list.innerHTML = '<p class="text-gray-500 text-center col-span-full">Loading signatures...</p>';
 
     try {
-        // FIXED URL: Removed "/all" to match authRoutes.js
+        // Correct path based on your server.js and authRoutes.js
         const res = await fetch('/api/auth/signatures', {
+            method: 'GET',
             headers: { 
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${token}`, // Ensure 'token' is defined at top of script
                 'Content-Type': 'application/json'
             }
         });
 
         if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            throw new Error(errorData.message || `Server error: ${res.status}`);
+            // Log the status to see if it's 401 (Auth) or 404 (Path)
+            console.error("Server Status:", res.status);
+            const errorText = await res.text();
+            throw new Error(`Server returned ${res.status}`);
         }
 
         const data = await res.json();
@@ -906,8 +909,7 @@ async function fetchSignatures() {
                     <img src="${sig.signatureData}" alt="Signature" class="max-h-32 object-contain">
                 </div>
                 <div class="text-xs text-gray-600 space-y-1 mb-4">
-                    <p class="truncate"><strong>ID:</strong> ${sig._id}</p>
-                    <p><strong>Owner:</strong> ${sig.ownerName || 'User'}</p>
+                    <p class="truncate"><strong>Owner:</strong> ${sig.ownerName || 'User'}</p>
                     <p><strong>Date:</strong> ${new Date(sig.createdAt).toLocaleDateString()}</p>
                 </div>
                 <button onclick="copySig('${sig.signatureData}')" 
@@ -918,7 +920,7 @@ async function fetchSignatures() {
         `).join('');
     } catch (err) {
         console.error("Signature Fetch Error:", err);
-        list.innerHTML = `<p class="text-red-500 text-sm text-center col-span-full">Error: ${err.message}</p>`;
+        list.innerHTML = `<p class="text-red-500 text-sm text-center col-span-full">${err.message}</p>`;
     }
 }
 
