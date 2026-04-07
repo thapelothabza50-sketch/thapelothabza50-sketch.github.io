@@ -1,24 +1,23 @@
 const mongoose = require('mongoose');
 
 const SignatureSchema = new mongoose.Schema({
-    // The ID of the person signing (Student, Agent, or Landlord)
+    // Changed from ObjectId to String so it accepts any identifier
     ownerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        refPath: 'ownerModel' 
+        type: String, 
+        required: true
     },
-    // Tells Mongoose which collection to look in (Student, Agent, etc.)
+    // We can make this optional or use it as a category (e.g., 'External')
     ownerModel: {
         type: String,
-        required: true,
-        enum: ['Student', 'Agent', 'Landlord']
+        required: false,
+        default: 'External'
     },
     signatureData: {
-        type: String, // Stores the Base64 string
+        type: String, 
         required: true
     },
     purpose: {
-        type: String, // e.g., "Lease Agreement" or "Agent Contract"
+        type: String,
         default: 'General Form'
     },
     createdAt: {
