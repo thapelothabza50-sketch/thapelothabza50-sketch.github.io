@@ -878,15 +878,22 @@ async function fetchSignatures() {
     list.innerHTML = '<p class="text-gray-500">Loading signatures...</p>';
 
     try {
-        // Use /api/admin/ signatures to match your other admin routes
-        // Use the 'token' variable defined at the top of your script
-        const res = await fetch('/api/admin/signatures', {
+        // Updated to the correct auth path and used the existing 'token' variable
+        const res = await fetch('/api/auth/signatures/all', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
+        // Check if the response is actually JSON before parsing
+        const contentType = res.headers.get("content-type");
+        if (!res.ok || !contentType || !contentType.includes("application/json")) {
+            console.error("Server returned non-JSON or error:", res.status);
+            list.innerHTML = '<p class="text-red-400">Server error: Could not retrieve signatures.</p>';
+            return;
+        }
+
         const data = await res.json();
 
-        if (!res.ok || !data || data.length === 0) {
+        if (data.length === 0) {
             list.innerHTML = '<p class="text-gray-400">No signatures found.</p>';
             return;
         }
@@ -897,7 +904,7 @@ async function fetchSignatures() {
                     <img src="${sig.signatureData}" alt="Signature" class="mx-auto max-h-32">
                 </div>
                 <div class="text-xs text-gray-600 space-y-1 mb-4">
-                    <p><strong>Owner:</strong> ${sig.ownerName || sig.ownerId || 'Unknown'}</p>
+                    <p><strong>ID:</strong> ${sig.ownerId}</p>
                     <p><strong>Date:</strong> ${new Date(sig.createdAt).toLocaleDateString()}</p>
                 </div>
                 <button onclick="copySig('${sig.signatureData}')" 
@@ -908,7 +915,7 @@ async function fetchSignatures() {
         `).join('');
     } catch (err) {
         console.error("Signature Fetch Error:", err);
-        list.innerHTML = '<p class="text-red-500 text-sm">Failed to connect to server.</p>';
+        list.innerHTML = '<p class="text-red-500 text-sm">Connection failed. Check your network.</p>';
     }
 }
 
