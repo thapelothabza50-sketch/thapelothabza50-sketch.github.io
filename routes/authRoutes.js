@@ -16,6 +16,7 @@ require('dotenv').config();
 const { auth, hasRole } = require('../middleware/auth'); 
 const multer = require('multer');
 const fs = require('fs');
+const Signature = require('../models/Signature');
 
 
 
@@ -1091,4 +1092,33 @@ router.get('/rooms', async (req, res) => {
         res.status(500).json({ error: "Failed to fetch rooms" });
     }
 });
+
+/**
+ * @route   POST /api/auth/save-signature
+ * @desc    Creates a standalone signature record
+ */
+router.post('/save-signature', async (req, res) => {
+    const { ownerId, ownerType, signatureData, purpose } = req.body;
+
+    try {
+        const newSignature = new Signature({
+            ownerId,
+            ownerModel: ownerType, // e.g., 'Student'
+            signatureData,
+            purpose
+        });
+
+        await newSignature.save();
+
+        res.status(201).json({ 
+            success: true, 
+            message: "Signature recorded successfully!",
+            signatureId: newSignature._id 
+        });
+    } catch (err) {
+        console.error("SIGNATURE MODEL ERROR:", err.message);
+        res.status(500).json({ message: "Server Error saving signature" });
+    }
+});
+
 module.exports = router;

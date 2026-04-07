@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Signature | Campus Collective</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #f4f4f9; }
+        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        canvas { border: 2px dashed #3498db; border-radius: 8px; background: #fff; cursor: crosshair; touch-action: none; width: 100%; height: 250px; margin-bottom: 10px; }
+        .controls { display: flex; gap: 10px; }
+        button { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: opacity 0.2s; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .clear { background: #e74c3c; color: white; }
+        .save { background: #2ecc71; color: white; flex-grow: 1; }
+        .status-msg { margin-top: 15px; font-size: 0.9em; display: none; }
+        h2 { color: #2c3e50; margin-top: 0; }
+        p { font-size: 0.9em; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Secure Signature</h2>
+    <p>Please sign inside the box below using your finger or mouse.</p>
+    
+    <canvas id="sig-canvas"></canvas>
+    
+    <div class="controls">
+        <button class="clear" id="sig-clearBtn">Clear</button>
+        <button class="save" id="sig-submitBtn">Submit Signature</button>
+    </div>
+
+    <div id="status" class="status-msg"></div>
+</div>
+
+<script>
+    const canvas = document.getElementById("sig-canvas");
+    const ctx = canvas.getContext("2d");
+    const statusDiv = document.getElementById("status");
+    const submitBtn = document.getElementById("sig-submitBtn");
+    let drawing = false;
+
+    // Adjust canvas resolution
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.strokeStyle = "#2c3e50";
+    ctx.lineWidth = 2;
+
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    }
+
+    // Drawing Logic
+    const startDrawing = (e) => {
+        drawing = true;
+        const pos = getMousePos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+    };
+
+    const moveDrawing = (e) => {
+        if (!drawing) return;
+        if (e.touches) e.preventDefault();
+        const pos = getMousePos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+    };
+
+    const stopDrawing = () => drawing = false;
+
+    canvas.addEventListener("mousedown", startDrawing);
+    canvas.addEventListener("mousemove", moveDrawing);
+    window.addEventListener("mouseup", stopDrawing);
+    
+    canvas.addEventListener("touchstart", startDrawing);
+    canvas.addEventListener("touchmove", moveDrawing);
+    canvas.addEventListener("touchend", stopDrawing);
+
+    // Clear Canvas
+    document.getElementById("sig-clearBtn").addEventListener("click", () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        statusDiv.style.display = "none";
+    });
+
+    // Submit to Database
+    submitBtn.addEventListener("click", async () => {
+        const dataUrl = canvas.toDataURL("image/png");
+        
+        // 1. Check if canvas is empty (simplified check)
+        const blank = document.createElement('canvas');
+        blank.width = canvas.width;
+        blank.height = canvas.height;
+        if (canvas.toDataURL() === blank.toDataURL()) {
+            alert("Please provide a signature before submitting.");
+            return;
+        }
+
+        // 2. Get data from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const ownerId = urlParams.get('id');
+        const ownerType = urlParams.get('type') || 'Student'; // Default to Student
+
+        if (!ownerId) {
+            alert("Error: Link is missing a valid ID. Please contact support.");
+            return;
+        }
+
+        // 3. UI Feedback
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Saving...";
+        statusDiv.style.display = "block";
+        statusDiv.innerText = "Uploading signature securely...";
+        statusDiv.style.color = "#3498db";
+
+        try {
+            const response = await fetch('/api/auth/save-signature', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ownerId,
+                    ownerType,
+                    signatureData: dataUrl,
+                    purpose: "Campus Collective Form Completion"
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                statusDiv.innerText = "✓ Signature saved successfully! You may close this tab.";
+                statusDiv.style.color = "#2ecc71";
+                submitBtn.innerText = "Submitted";
+            } else {
+                throw new Error(result.message || "Failed to save");
+            }
+
+        } catch (error) {
+            console.error("Submission Error:", error);
+            statusDiv.innerText = "Error: Could not save signature. Please try again.";
+            statusDiv.style.color = "#e74c3c";
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Retry Submission";
+        }
+    });
+</script>
+
+</body>
+</html>
