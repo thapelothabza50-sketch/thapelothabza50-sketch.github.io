@@ -150,7 +150,7 @@
              <span class="sidebar-text hidden">Applications</span>
             </div>
 
-            <div class="sidebar-item" onclick="showSection('signatures-section'); fetchSignatures();">
+            <div class="sidebar-item" onclick="toggleSection('signatures-section'); fetchSignatures();">
              <i class="ri-quill-pen-line text-xl"></i>
              <span class="sidebar-text">Signatures</span>
             </div>
@@ -937,6 +937,42 @@ async function fetchSignatures() {
 }
 
 // Function to copy the signature to clipboard
+// --- Signature Handling ---
+async function fetchSignatures() {
+    const list = document.getElementById('signature-list');
+    list.innerHTML = '<p class="text-gray-500 italic">Connecting to vault...</p>';
+
+    try {
+        const res = await fetch('/api/auth/signatures/all', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (!res.ok || data.length === 0) {
+            list.innerHTML = '<p class="text-gray-400">No signatures found in the database.</p>';
+            return;
+        }
+
+        list.innerHTML = data.map(sig => `
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div class="bg-gray-50 p-2 border rounded mb-3">
+                    <img src="${sig.signatureData}" alt="Signature" class="mx-auto max-h-32">
+                </div>
+                <div class="text-xs text-gray-500 space-y-1">
+                    <p><strong>ID:</strong> ${sig.ownerId}</p>
+                    <p><strong>Date:</strong> ${new Date(sig.createdAt).toLocaleString()}</p>
+                </div>
+                <button onclick="copySig('${sig.signatureData}')" 
+                        class="w-full mt-3 bg-blue-50 text-blue-600 py-2 rounded text-sm font-semibold hover:bg-blue-100 transition">
+                    Copy to Clipboard
+                </button>
+            </div>
+        `).join('');
+    } catch (err) {
+        list.innerHTML = '<p class="text-red-500 text-sm">Failed to load signatures. Check server connection.</p>';
+    }
+}
+
 async function copySig(base64Data) {
     try {
         const response = await fetch(base64Data);
@@ -944,9 +980,9 @@ async function copySig(base64Data) {
         await navigator.clipboard.write([
             new ClipboardItem({ 'image/png': blob })
         ]);
-        alert("Signature copied to clipboard! You can now paste it into your form.");
+        alert("Signature copied! You can now paste (Ctrl+V) it into your form.");
     } catch (err) {
-        alert("Failed to copy. Try right-clicking the image and selecting 'Copy Image'.");
+        alert("Could not auto-copy. Please right-click the signature image and select 'Copy Image'.");
     }
 }
 
