@@ -289,6 +289,10 @@
     <div id="signature-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         </div>
 </div>
+    
+    <div id="signature-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </div>
+</div>
 
 
 <!-- ✅ STUDENT RECRUITS SECTION -->
@@ -901,6 +905,34 @@ async function fetchSignatures() {
         `).join('');
     } catch (err) {
         list.innerHTML = '<p class="text-red-500">Error connecting to server.</p>';
+    }
+}
+
+async function fetchSignatures() {
+    const list = document.getElementById('signature-list');
+    list.innerHTML = '<p class="text-gray-500">Loading...</p>';
+
+    try {
+        const res = await fetch('/api/auth/signatures/all', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await res.json();
+
+        if (data.length === 0) {
+            list.innerHTML = '<p>No signatures found.</p>';
+            return;
+        }
+
+        list.innerHTML = data.map(sig => `
+            <div class="bg-white p-4 rounded shadow border border-gray-100">
+                <img src="${sig.signatureData}" class="w-full border mb-2" alt="Signature">
+                <p class="text-xs text-gray-500">Owner: ${sig.ownerId}</p>
+                <p class="text-xs text-gray-500">Date: ${new Date(sig.createdAt).toLocaleDateString()}</p>
+                <button onclick="copyToClipboard('${sig.signatureData}')" class="mt-2 text-blue-500 text-xs underline">Copy Image</button>
+            </div>
+        `).join('');
+    } catch (err) {
+        list.innerHTML = '<p class="text-red-500">Error loading signatures.</p>';
     }
 }
 
