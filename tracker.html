@@ -6,43 +6,84 @@
     <title>Application Tracker | Campus Collective</title>
     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for a cleaner UI */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #004a99; border-radius: 10px; }
+        
+        /* Mobile Table Fix */
+        @media (max-width: 768px) {
+            .mobile-stack { display: block; width: 100%; }
+            thead { display: none; }
+            tr { display: block; margin-bottom: 1rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; background: white; padding: 10px; }
+            td { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem !important; border: none !important; }
+            td::before { content: attr(data-label); font-weight: 700; color: #475569; font-size: 0.8rem; text-transform: uppercase; }
+        }
+    </style>
 </head>
-<body class="bg-slate-50 p-6">
-    <div class="max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-extrabold text-slate-800 border-l-4 border-blue-600 pl-4">Application Tracker</h1>
-            <a href="management.html" class="text-slate-500 hover:text-blue-600 font-medium">← Back to Dashboard</a>
+<body class="bg-slate-50 min-h-screen">
+    <div class="max-w-7xl mx-auto p-4 md:p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-slate-800 border-l-4 border-blue-600 pl-4">Application Management</h1>
+                <p class="text-slate-500 pl-4 mt-1">Track and manage all portal requests</p>
+            </div>
+            <a href="management.html" class="flex items-center text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg font-medium transition">
+                <span>← Back to Dashboard</span>
+            </a>
         </div>
 
-        <div class="flex border-b border-gray-200 mb-6">
-            <button onclick="switchTab('student')" id="tab-student" class="px-6 py-3 font-bold border-b-2 border-blue-600 text-blue-600">Student Applications</button>
-            <button onclick="switchTab('landlord')" id="tab-landlord" class="px-6 py-3 font-bold text-gray-500 border-b-2 border-transparent">Landlord Listings</button>
+        <div class="flex border-b border-gray-200 mb-6 overflow-x-auto whitespace-nowrap scrollbar-hide">
+            <button onclick="switchTab('student')" id="tab-student" class="px-6 py-4 font-bold border-b-2 border-blue-600 text-blue-600 transition-all">
+                🏠 Accommodation
+            </button>
+            <button onclick="switchTab('assistance')" id="tab-assistance" class="px-6 py-4 font-bold text-gray-400 border-b-2 border-transparent hover:text-slate-600 transition-all">
+                🎓 Assisted Apps
+            </button>
+            <button onclick="switchTab('landlord')" id="tab-landlord" class="px-6 py-4 font-bold text-gray-400 border-b-2 border-transparent hover:text-slate-600 transition-all">
+                🏢 Landlord Listings
+            </button>
         </div>
 
-        <div id="student-section" class="bg-white rounded-xl shadow-sm overflow-hidden">
-            <table class="w-full text-left">
+        <div id="student-section" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <table class="w-full text-left mobile-stack">
                 <thead class="bg-slate-800 text-white">
                     <tr>
                         <th class="p-4">Student Name</th>
                         <th class="p-4">Residence</th>
                         <th class="p-4">Funding</th>
-                        <th class="p-4">Status</th>
-                        <th class="p-4">Action</th>
+                        <th class="p-4 text-center">Status</th>
+                        <th class="p-4 text-right">Action</th>
                     </tr>
                 </thead>
                 <tbody id="studentBody"></tbody>
             </table>
         </div>
 
-        <div id="landlord-section" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
-            <table class="w-full text-left">
+        <div id="assistance-section" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hidden">
+            <table class="w-full text-left mobile-stack">
+                <thead class="bg-blue-900 text-white">
+                    <tr>
+                        <th class="p-4">Applicant</th>
+                        <th class="p-4">Institutions</th>
+                        <th class="p-4">Choice 1</th>
+                        <th class="p-4 text-center">Package</th>
+                        <th class="p-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="assistanceBody"></tbody>
+            </table>
+        </div>
+
+        <div id="landlord-section" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hidden">
+            <table class="w-full text-left mobile-stack">
                 <thead class="bg-slate-800 text-white">
                     <tr>
                         <th class="p-4">Property Name</th>
-                        <th class="p-4">Owner</th>
-                        <th class="p-4">NSFAS?</th>
-                        <th class="p-4">Status</th>
-                        <th class="p-4">Photos</th>
+                        <th class="p-4">Availability Management</th>
+                        <th class="p-4 text-center">Status</th>
+                        <th class="p-4 text-right">Action</th>
                     </tr>
                 </thead>
                 <tbody id="landlordBody"></tbody>
@@ -53,85 +94,116 @@
     <script>
         // Tab Switching Logic
         function switchTab(type) {
-            const sSec = document.getElementById('student-section');
-            const lSec = document.getElementById('landlord-section');
-            const sTab = document.getElementById('tab-student');
-            const lTab = document.getElementById('tab-landlord');
+            const sections = {
+                student: document.getElementById('student-section'),
+                landlord: document.getElementById('landlord-section'),
+                assistance: document.getElementById('assistance-section')
+            };
+            const tabs = {
+                student: document.getElementById('tab-student'),
+                landlord: document.getElementById('tab-landlord'),
+                assistance: document.getElementById('tab-assistance')
+            };
 
-            if(type === 'student') {
-                sSec.classList.remove('hidden'); lSec.classList.add('hidden');
-                sTab.className = "px-6 py-3 font-bold border-b-2 border-blue-600 text-blue-600";
-                lTab.className = "px-6 py-3 font-bold text-gray-500 border-b-2 border-transparent";
-            } else {
-                lSec.classList.remove('hidden'); sSec.classList.add('hidden');
-                lTab.className = "px-6 py-3 font-bold border-b-2 border-blue-600 text-blue-600";
-                sTab.className = "px-6 py-3 font-bold text-gray-500 border-b-2 border-transparent";
-            }
+            // Reset all
+            Object.values(sections).forEach(s => s.classList.add('hidden'));
+            Object.values(tabs).forEach(t => {
+                t.classList.remove('border-blue-600', 'text-blue-600');
+                t.classList.add('text-gray-400', 'border-transparent');
+            });
+
+            // Activate current
+            sections[type].classList.remove('hidden');
+            tabs[type].classList.remove('text-gray-400', 'border-transparent');
+            tabs[type].classList.add('border-blue-600', 'text-blue-600');
         }
 
         // Fetch Data from Server
         async function loadData() {
             try {
-                // Fetch Landlords
+                // 1. Fetch Landlords
                 const lRes = await fetch('/api/auth/admin/landlords');
                 const landlords = await lRes.json();
                 document.getElementById('landlordBody').innerHTML = landlords.map(l => `
-                    <tr class="border-b hover:bg-slate-50">
-                        <td class="p-4 font-semibold">${l.accommodationName}</td>
-                        <td class="p-4">${l.fullName}</td>
-                        <td class="p-4">${l.nsfasAccredited}</td>
-                        <td class="p-4"><span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">${l.status}</span></td>
-                        <td class="p-4"><button class="text-blue-600 underline">Download Files</button></td>
+                    <tr class="border-b hover:bg-slate-50 transition">
+                        <td class="p-4 font-semibold text-slate-700" data-label="Property">${l.accommodationName}</td>
+                        <td class="p-4" data-label="Rooms">
+                            <div class="flex gap-2">
+                                <button onclick="toggleRoom('${l._id}', 'single', ${!l.isSingleRoomFull})" 
+                                    class="px-3 py-1 text-xs font-bold rounded-full transition ${l.isSingleRoomFull ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-green-100 text-green-600 border border-green-200'}">
+                                    Single: ${l.isSingleRoomFull ? 'FULL' : 'OPEN'}
+                                </button>
+                                <button onclick="toggleRoom('${l._id}', 'shared', ${!l.isSharedRoomFull})" 
+                                    class="px-3 py-1 text-xs font-bold rounded-full transition ${l.isSharedRoomFull ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-green-100 text-green-600 border border-green-200'}">
+                                    Shared: ${l.isSharedRoomFull ? 'FULL' : 'OPEN'}
+                                </button>
+                            </div>
+                        </td>
+                        <td class="p-4 text-center" data-label="Status">
+                            <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded font-bold uppercase">${l.status}</span>
+                        </td>
+                        <td class="p-4 text-right" data-label="Files">
+                            <button class="text-blue-600 hover:underline text-sm font-medium">Download Docs</button>
+                        </td>
                     </tr>
                 `).join('');
 
-                // Fetch Students
+                // 2. Fetch Students (Accommodation Apps)
                 const sRes = await fetch('/api/auth/admin/students');
                 const students = await sRes.json();
                 document.getElementById('studentBody').innerHTML = students.map(s => `
-                    <tr class="border-b hover:bg-slate-50">
-                        <td class="p-4 font-semibold">${s.fullName}</td>
-                        <td class="p-4 text-blue-600">${s.accommodation}</td>
-                        <td class="p-4">${s.funding}</td>
-                        <td class="p-4"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${s.status}</span></td>
-                        <td class="p-4"><button class="text-slate-600 border px-3 py-1 rounded">Update</button></td>
+                    <tr class="border-b hover:bg-slate-50 transition">
+                        <td class="p-4 font-semibold text-slate-700" data-label="Name">${s.fullName}</td>
+                        <td class="p-4 text-blue-600 font-medium" data-label="Residence">${s.accommodation}</td>
+                        <td class="p-4 text-slate-500" data-label="Funding">${s.funding}</td>
+                        <td class="p-4 text-center" data-label="Status">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-bold uppercase">${s.status}</span>
+                        </td>
+                        <td class="p-4 text-right" data-label="Action">
+                            <button class="text-slate-600 border border-slate-200 hover:bg-slate-100 px-3 py-1 rounded transition text-sm">Update</button>
+                        </td>
                     </tr>
                 `).join('');
+
+                // 3. NEW: Fetch Assisted Applications (Institution Apps)
+                const aRes = await fetch('/api/auth/admin/assistance'); // Ensure this endpoint exists on your server
+                const assistants = await aRes.json();
+                document.getElementById('assistanceBody').innerHTML = assistants.map(a => `
+                    <tr class="border-b hover:bg-blue-50/50 transition">
+                        <td class="p-4" data-label="Applicant">
+                            <div class="font-bold text-slate-700">${a.First_Names || a.Full_Names}</div>
+                            <div class="text-xs text-slate-400">${a.ID_Number}</div>
+                        </td>
+                        <td class="p-4 text-sm text-slate-600" data-label="Targets">
+                            ${a.Uni_All ? 'All Universities' : 'Selected Institutions'}
+                        </td>
+                        <td class="p-4 text-sm font-medium text-slate-600" data-label="Choice 1">${a.Qual_1}</td>
+                        <td class="p-4 text-center" data-label="Package">
+                            <span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded-full font-black">
+                                ${a.Uni_All && a.Col_All ? 'COMBO R250' : 'SINGLE R150'}
+                            </span>
+                        </td>
+                        <td class="p-4 text-right" data-label="Action">
+                            <button class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">Process</button>
+                        </td>
+                    </tr>
+                `).join('');
+
             } catch (err) {
                 console.error("Tracker Error:", err);
             }
-            // Inside your tracker.html loadData() function, update the landlord mapping:
-document.getElementById('landlordBody').innerHTML = landlords.map(l => `
-    <tr class="border-b hover:bg-slate-50">
-        <td class="p-4 font-semibold">${l.accommodationName}</td>
-        <td class="p-4">
-            <div class="flex flex-col gap-2">
-                <button onclick="toggleRoom('${l._id}', 'single', ${!l.isSingleRoomFull})" 
-                    class="px-2 py-1 text-xs rounded ${l.isSingleRoomFull ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}">
-                    Single: ${l.isSingleRoomFull ? 'FULL' : 'AVAILABLE'}
-                </button>
-                <button onclick="toggleRoom('${l._id}', 'shared', ${!l.isSharedRoomFull})" 
-                    class="px-2 py-1 text-xs rounded ${l.isSharedRoomFull ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}">
-                    Shared: ${l.isSharedRoomFull ? 'FULL' : 'AVAILABLE'}
-                </button>
-            </div>
-        </td>
-        <td class="p-4">${l.status}</td>
-    </tr>
-`).join('');
         }
 
         async function toggleRoom(id, roomType, status) {
-    await fetch(`/api/auth/admin/toggle-room/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomType, status })
-    });
-    loadData(); // Refresh the table
-}
+            await fetch(`/api/auth/admin/toggle-room/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomType, status })
+            });
+            loadData();
+        }
 
         window.onload = loadData;
-
     </script>
 </body>
 </html>
