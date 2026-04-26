@@ -30,6 +30,10 @@
             border-radius: 6px; font-size: 0.95rem; background: #fff;
         }
         
+        /* Hidden fields for "Other" options */
+        .extra-field { display: none; margin-top: 10px; animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
         .selection-box { 
             max-height: 250px; overflow-y: auto; border: 1px solid #ddd; 
             padding: 15px; border-radius: 6px; background: #fdfdfd; margin-bottom: 10px;
@@ -43,7 +47,6 @@
             padding: 12px; border: 1px solid #eee; margin-bottom: 10px; border-radius: 6px;
         }
 
-        /* Pricing Display Styling */
         .price-summary-box {
             position: sticky; bottom: 20px; background: var(--blue);
             color: white; padding: 20px; border-radius: 12px;
@@ -75,15 +78,77 @@
         <form action="mailto:info@mycampuscollective.me" method="post" enctype="multipart/form-data">
             
             <h3>1. Personal Identity</h3>
-            <div class="input-group"><label>Full Names (As per ID)</label><input type="text" name="Full_Names" required></div>
+            <div class="section-grid">
+                <div class="input-group">
+                    <label>Title</label>
+                    <select name="Title" required>
+                        <option value="">--Select--</option>
+                        <option value="Mr">Mr</option>
+                        <option value="Ms">Ms</option>
+                        <option value="Mrs">Mrs</option>
+                        <option value="Dr">Dr</option>
+                        <option value="Professor">Professor</option>
+                        <option value="Advocate">Advocate</option>
+                    </select>
+                </div>
+                <div class="input-group"><label>First Names (As per ID)</label><input type="text" name="First_Names" required></div>
+                <div class="input-group"><label>Surname</label><input type="text" name="Surname" required></div>
+            </div>
+
             <div class="section-grid">
                 <div class="input-group"><label>ID Number</label><input type="text" name="ID_Number" required></div>
+                <div class="input-group">
+                    <label>Gender</label>
+                    <select name="Gender" required>
+                        <option value="">--Select--</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Marital Status</label>
+                    <select name="Marital_Status" required>
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-grid">
                 <div class="input-group">
                     <label>Race</label>
                     <select name="Race" required>
                         <option value="African">African</option><option value="Coloured">Coloured</option><option value="Indian">Indian</option><option value="White">White</option>
                     </select>
                 </div>
+                <div class="input-group">
+                    <label>Disability</label>
+                    <select name="Disability" id="disabilitySelect" onchange="toggleOtherDisability()" required>
+                        <option value="None">None</option>
+                        <option value="Visual">Visual</option>
+                        <option value="Hearing">Hearing</option>
+                        <option value="Physical">Physical</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <div id="otherDisabilityBox" class="extra-field">
+                        <input type="text" name="Other_Disability_Detail" placeholder="Please specify disability">
+                    </div>
+                </div>
+               <div class="input-group">
+                    <label>First-time applicant?</label>
+                    <select name="First_Time_Applicant" id="firstTimeSelect" onchange="togglePrevStudent()" required>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No (Returning Student)</option>
+                    </select>
+                    <div id="prevStudentBox" class="extra-field">
+                        <textarea name="Returning_Student_Details" placeholder="List all previous institutions, student numbers, and specific application details here..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-grid">
                 <div class="input-group"><label>Phone Number</label><input type="tel" name="Phone" required></div>
                 <div class="input-group"><label>Email Address</label><input type="email" name="Email" required></div>
             </div>
@@ -104,9 +169,50 @@
                 <div class="input-group"><label>Postal Code</label><input type="text" name="Res_Code" required></div>
             </div>
 
+            <h3>2.2 Next of Kin Details</h3>
+            <div class="section-grid">
+                <div class="input-group">
+                    <label>Next of Kin Name</label>
+                    <input type="text" name="NOK_First_Names" required>
+                </div>
+                <div class="input-group">
+                    <label>Next of Kin Surname</label>
+                    <input type="text" name="NOK_Surname" required>
+                </div>
+                <div class="input-group">
+                    <label>Relationship</label>
+                    <select name="NOK_Relationship" required>
+                        <option value="">--Select--</option>
+                        <option value="Parent">Parent</option>
+                        <option value="Guardian">Guardian</option>
+                        <option value="Sibling">Sibling</option>
+                        <option value="Spouse">Spouse</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="section-grid">
+                <div class="input-group">
+                    <label>Contact Number</label>
+                    <input type="tel" name="NOK_Phone" required>
+                </div>
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" name="NOK_Email" placeholder="optional@example.com">
+                </div>
+            </div>
+
             <h3>3. Academic & Qualification Choices</h3>
             <div class="section-grid">
                 <div class="input-group"><label>High School Name</label><input type="text" name="High_School" required></div>
+                <div class="input-group">
+                    <label>Highest Grade Passed</label>
+                    <select name="Highest_Grade" required>
+                        <option value="Grade 11">Grade 11</option>
+                        <option value="Grade 12">Grade 12 (Matric)</option>
+                        <option value="NCV Level 4">NCV Level 4</option>
+                    </select>
+                </div>
                 <div class="input-group">
                     <label>Currently in Matric?</label>
                     <select name="In_Matric" id="matricStatus" onchange="toggleDocs()">
@@ -115,16 +221,16 @@
                 </div>
             </div>
             <div class="section-grid" style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
-                <div class="input-group"><label>1st Qual. Choice</label><input type="text" name="Qual_1" required></div>
+                <div class="input-group"><label>1st Qual. Choice</label><input type="text" name="Qual_1" placeholder="e.g. Bcom Accounting" required></div>
                 <div class="input-group"><label>2nd Qual. Choice</label><input type="text" name="Qual_2"></div>
                 <div class="input-group"><label>3rd Qual. Choice</label><input type="text" name="Qual_3"></div>
                 <div class="input-group"><label>4th Qual. Choice</label><input type="text" name="Qual_4"></div>
             </div>
 
             <h3>4. Select Institutions</h3>
-            <p style="font-size: 0.8rem; color: #b75300; font-weight: 600;">Pricing: R150 per Category | R250 for Both (Full Package)</p>
+            <p style="font-size: 0.8rem; color: #b75300; font-weight: 600;">Pricing: R150 per Category | R250 for Both</p>
             
-            <label>Universities (Public):</label>
+            <label>Universities:</label>
             <div class="selection-box uni-check-container">
                 <div class="checkbox-item"><input type="checkbox" name="Uni_All" class="uni-check" onclick="calculatePrice()"><strong>APPLY TO ALL UNIVERSITIES</strong></div>
 <div class="checkbox-item"><input type="checkbox" name="Uni_UCT" class="uni-check" onclick="calculatePrice()"> University of Cape Town (UCT)</div>
@@ -205,7 +311,7 @@
 <div class="checkbox-item"><input type="checkbox" name="Col_WestCoast" class="col-check" onclick="calculatePrice()"> West Coast TVET College</div>
 <div class="checkbox-item"><input type="checkbox" name="Col_NorthernCapeRural" class="col-check" onclick="calculatePrice()"> Northern Cape Rural TVET College</div>
 <div class="checkbox-item"><input type="checkbox" name="Col_NorthernCapeUrban" class="col-check" onclick="calculatePrice()"> Northern Cape Urban TVET College</div>
-                </div>
+            </div>
 
             <h3>5. Documents</h3>
             <div class="doc-row">
@@ -220,40 +326,44 @@
             </div>
 
             <div class="warning-banner">
-                ⚠️ IMPORTANT: Fee is payable after document verification. Documents must be submitted within 7 days if not uploaded now.
+                ⚠️ IMPORTANT: Fee is payable after document verification. If documents are not uploaded, they must be emailed to info@mycampuscollective.me within 7 days.
             </div>
 
             <div class="price-summary-box">
                 <div>
                     <strong>Total Service Fee:</strong><br>
-                    <span style="font-size: 0.8rem; opacity: 0.9;">Calculated based on selections</span>
+                    <span style="font-size: 0.8rem; opacity: 0.9;">Calculated based on categories</span>
                 </div>
                 <div class="price-amount" id="totalDisplay">R0.00</div>
             </div>
 
-            <button type="submit" class="submit-btn">Submit Request</button>
+            <button type="submit" class="submit-btn">Submit Application Request</button>
         </form>
     </div>
 
     <script>
+        function toggleOtherDisability() {
+            const select = document.getElementById('disabilitySelect');
+            const otherBox = document.getElementById('otherDisabilityBox');
+            otherBox.style.display = (select.value === 'Other') ? 'block' : 'none';
+        }
+
+        function togglePrevStudent() {
+            const select = document.getElementById('firstTimeSelect');
+            const prevBox = document.getElementById('prevStudentBox');
+            prevBox.style.display = (select.value === 'No') ? 'block' : 'none';
+        }
+
         function calculatePrice() {
             const uniChecks = document.querySelectorAll('.uni-check');
             const colChecks = document.querySelectorAll('.col-check');
             const display = document.getElementById('totalDisplay');
-            
-            let hasUni = false;
-            let hasCol = false;
-
+            let hasUni = false; let hasCol = false;
             uniChecks.forEach(box => { if(box.checked) hasUni = true; });
             colChecks.forEach(box => { if(box.checked) hasCol = true; });
-
             let total = 0;
-            if (hasUni && hasCol) {
-                total = 250; // Combo Package
-            } else if (hasUni || hasCol) {
-                total = 150; // Single Category Package
-            }
-
+            if (hasUni && hasCol) total = 250;
+            else if (hasUni || hasCol) total = 150;
             display.innerText = "R" + total + ".00";
         }
 
