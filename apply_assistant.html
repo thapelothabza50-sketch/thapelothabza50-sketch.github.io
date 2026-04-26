@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Application Service - Campus Collective</title>
+    <style>
+        :root { --accent: #ff6600; --primary: #1a1a1a; --blue: #004a99; --glass: rgba(255, 255, 255, 0.98); }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('Images/ump 1.jpg');
+            background-size: cover; background-attachment: fixed;
+            color: white; padding: 20px; display: flex; justify-content: center;
+        }
+        .form-container {
+            background: var(--glass); color: var(--primary);
+            padding: 40px; border-radius: 15px; width: 100%;
+            max-width: 900px; box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+        }
+        h2 { color: var(--blue); border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 5px; }
+        .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 20px; }
+        h3 { font-size: 1.1rem; color: var(--blue); margin: 25px 0 10px 0; background: #f0f7ff; padding: 8px; border-radius: 4px; border-left: 4px solid var(--accent); }
+        
+        .section-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.85rem; color: #444; }
+        input, select, textarea {
+            width: 100%; padding: 12px; border: 1px solid #ccc;
+            border-radius: 6px; font-size: 0.95rem; background: #fff;
+        }
+        
+        .selection-box { 
+            max-height: 250px; overflow-y: auto; border: 1px solid #ddd; 
+            padding: 15px; border-radius: 6px; background: #fdfdfd; margin-bottom: 10px;
+        }
+        .checkbox-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; font-size: 0.85rem; }
+        .checkbox-item input { width: auto; margin-top: 3px; cursor: pointer; }
+
+        .doc-row { 
+            display: grid; grid-template-columns: 1.2fr 1.5fr 1fr; 
+            align-items: center; gap: 15px; background: #fff; 
+            padding: 12px; border: 1px solid #eee; margin-bottom: 10px; border-radius: 6px;
+        }
+
+        /* Pricing Display Styling */
+        .price-summary-box {
+            position: sticky; bottom: 20px; background: var(--blue);
+            color: white; padding: 20px; border-radius: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.3); margin-top: 30px;
+        }
+        .price-amount { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+
+        .warning-banner { background: #fff3e0; color: #b75300; padding: 15px; border-radius: 8px; border-left: 5px solid var(--accent); margin: 20px 0; font-size: 0.85rem; font-weight: 600; }
+
+        .submit-btn {
+            background: var(--accent); color: white; width: 100%;
+            padding: 20px; border: none; border-radius: 8px;
+            font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+
+        @media (max-width: 600px) { 
+            .section-grid { grid-template-columns: 1fr; } 
+            .doc-row { grid-template-columns: 1fr; gap: 5px; }
+            .price-summary-box { flex-direction: column; text-align: center; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Assisted Application Portal</h2>
+        <p class="subtitle">Complete the details below. Our team will handle the full process for you.</p>
+        
+        <form action="mailto:info@mycampuscollective.me" method="post" enctype="multipart/form-data">
+            
+            <h3>1. Personal Identity</h3>
+            <div class="input-group"><label>Full Names (As per ID)</label><input type="text" name="Full_Names" required></div>
+            <div class="section-grid">
+                <div class="input-group"><label>ID Number</label><input type="text" name="ID_Number" required></div>
+                <div class="input-group">
+                    <label>Race</label>
+                    <select name="Race" required>
+                        <option value="African">African</option><option value="Coloured">Coloured</option><option value="Indian">Indian</option><option value="White">White</option>
+                    </select>
+                </div>
+                <div class="input-group"><label>Phone Number</label><input type="tel" name="Phone" required></div>
+                <div class="input-group"><label>Email Address</label><input type="email" name="Email" required></div>
+            </div>
+
+            <h3>2. Address Details</h3>
+            <div class="input-group"><label>Street Name & House Number</label><input type="text" name="Res_Street" required></div>
+            <div class="section-grid">
+                <div class="input-group"><label>Suburb/Township</label><input type="text" name="Res_Suburb" required></div>
+                <div class="input-group"><label>City</label><input type="text" name="Res_City" required></div>
+                <div class="input-group">
+                    <label>Province</label>
+                    <select name="Res_Province" required>
+                        <option value="Mpumalanga">Mpumalanga</option><option value="Gauteng">Gauteng</option><option value="Limpopo">Limpopo</option>
+                        <option value="North West">North West</option><option value="KZN">KZN</option><option value="Eastern Cape">Eastern Cape</option>
+                        <option value="Western Cape">Western Cape</option><option value="Free State">Free State</option><option value="Northern Cape">Northern Cape</option>
+                    </select>
+                </div>
+                <div class="input-group"><label>Postal Code</label><input type="text" name="Res_Code" required></div>
+            </div>
+
+            <h3>3. Academic & Qualification Choices</h3>
+            <div class="section-grid">
+                <div class="input-group"><label>High School Name</label><input type="text" name="High_School" required></div>
+                <div class="input-group">
+                    <label>Currently in Matric?</label>
+                    <select name="In_Matric" id="matricStatus" onchange="toggleDocs()">
+                        <option value="Yes">Yes</option><option value="No">No</option>
+                    </select>
+                </div>
+            </div>
+            <div class="section-grid" style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
+                <div class="input-group"><label>1st Qual. Choice</label><input type="text" name="Qual_1" required></div>
+                <div class="input-group"><label>2nd Qual. Choice</label><input type="text" name="Qual_2"></div>
+                <div class="input-group"><label>3rd Qual. Choice</label><input type="text" name="Qual_3"></div>
+                <div class="input-group"><label>4th Qual. Choice</label><input type="text" name="Qual_4"></div>
+            </div>
+
+            <h3>4. Select Institutions</h3>
+            <p style="font-size: 0.8rem; color: #b75300; font-weight: 600;">Pricing: R150 per Category | R250 for Both (Full Package)</p>
+            
+            <label>Universities (Public):</label>
+            <div class="selection-box uni-check-container">
+                <div class="checkbox-item"><input type="checkbox" name="Uni_All" class="uni-check" onclick="calculatePrice()"><strong>APPLY TO ALL UNIVERSITIES</strong></div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_UCT" class="uni-check" onclick="calculatePrice()"> University of Cape Town (UCT)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_Wits" class="uni-check" onclick="calculatePrice()"> University of the Witwatersrand (Wits)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_SU" class="uni-check" onclick="calculatePrice()"> Stellenbosch University (SU)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_UP" class="uni-check" onclick="calculatePrice()"> University of Pretoria (UP)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_UJ" class="uni-check" onclick="calculatePrice()"> University of Johannesburg (UJ)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_CAO" class="uni-check" onclick="calculatePrice()"> Central Application Office (CAO)(All KZN)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_UWC" class="uni-check" onclick="calculatePrice()"> University of the Western Cape (UWC)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_NWU" class="uni-check" onclick="calculatePrice()"> North-West University (NWU)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_UFS" class="uni-check" onclick="calculatePrice()"> University of the Free State (UFS)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_Rhodes" class="uni-check" onclick="calculatePrice()"> Rhodes University</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_NMU" class="uni-check" onclick="calculatePrice()"> Nelson Mandela University (NMU)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_UFH" class="uni-check" onclick="calculatePrice()"> University of Fort Hare (UFH)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_WSU" class="uni-check" onclick="calculatePrice()"> Walter Sisulu University (WSU)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_UL" class="uni-check" onclick="calculatePrice()"> University of Limpopo (UL)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_UNIVEN" class="uni-check" onclick="calculatePrice()"> University of Venda (UNIVEN)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_UMP" class="uni-check" onclick="calculatePrice()"> University of Mpumalanga (UMP)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_SPU" class="uni-check" onclick="calculatePrice()"> Sol Plaatje University (SPU)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_UNISA" class="uni-check" onclick="calculatePrice()"> University of South Africa (UNISA)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_TUT" class="uni-check" onclick="calculatePrice()"> Tshwane University of Technology (TUT)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_CPUT" class="uni-check" onclick="calculatePrice()"> Cape Peninsula University of Technology (CPUT)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_VUT" class="uni-check" onclick="calculatePrice()"> Vaal University of Technology (VUT)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_CUT" class="uni-check" onclick="calculatePrice()"> Central University of Technology (CUT)</div>
+<div class="checkbox-item"><input type="checkbox" name="Uni_SMU" class="uni-check" onclick="calculatePrice()"> Sefako Makgatho Health Sciences University (SMU)</div>
+            </div>
+
+            <label>Public TVET Colleges:</label>
+            <div class="selection-box col-check-container">
+                <div class="checkbox-item"><input type="checkbox" name="Col_All" class="col-check" onclick="calculatePrice()"><strong>APPLY TO ALL COLLEGES</strong></div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Ehlanzeni" class="col-check" onclick="calculatePrice()"> Ehlanzeni TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_GertSibande" class="col-check" onclick="calculatePrice()"> Gert Sibande TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Nkangala" class="col-check" onclick="calculatePrice()"> Nkangala TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_CentralJhb" class="col-check" onclick="calculatePrice()"> Central Johannesburg TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_EkurhuleniEast" class="col-check" onclick="calculatePrice()"> Ekurhuleni East TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_EkurhuleniWest" class="col-check" onclick="calculatePrice()"> Ekurhuleni West TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Sedibeng" class="col-check" onclick="calculatePrice()"> Sedibeng TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_SouthWestGauteng" class="col-check" onclick="calculatePrice()"> South West Gauteng TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_TshwaneNorth" class="col-check" onclick="calculatePrice()"> Tshwane North TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_TshwaneSouth" class="col-check" onclick="calculatePrice()"> Tshwane South TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Western" class="col-check" onclick="calculatePrice()"> Western TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Capricorn" class="col-check" onclick="calculatePrice()"> Capricorn TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Lephalale" class="col-check" onclick="calculatePrice()"> Lephalale TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Letaba" class="col-check" onclick="calculatePrice()"> Letaba TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Mopani" class="col-check" onclick="calculatePrice()"> Mopani South East TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Sekhukhune" class="col-check" onclick="calculatePrice()"> Sekhukhune TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Vhembe" class="col-check" onclick="calculatePrice()"> Vhembe TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Waterberg" class="col-check" onclick="calculatePrice()"> Waterberg TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Orbit" class="col-check" onclick="calculatePrice()"> Orbit TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Taletso" class="col-check" onclick="calculatePrice()"> Taletso TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Vuselela" class="col-check" onclick="calculatePrice()"> Vuselela TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Flavius" class="col-check" onclick="calculatePrice()"> Flavius Mareka TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Goldfields" class="col-check" onclick="calculatePrice()"> Goldfields TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Maluti" class="col-check" onclick="calculatePrice()"> Maluti TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Motheo" class="col-check" onclick="calculatePrice()"> Motheo TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Coastal" class="col-check" onclick="calculatePrice()"> Coastal KZN TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Elangeni" class="col-check" onclick="calculatePrice()"> Elangeni TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Esayidi" class="col-check" onclick="calculatePrice()"> Esayidi TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Majuba" class="col-check" onclick="calculatePrice()"> Majuba TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Mnambithi" class="col-check" onclick="calculatePrice()"> Mnambithi TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Mthashana" class="col-check" onclick="calculatePrice()"> Mthashana TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Thekwini" class="col-check" onclick="calculatePrice()"> Thekwini TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Umfolozi" class="col-check" onclick="calculatePrice()"> Umfolozi TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Umgungundlovu" class="col-check" onclick="calculatePrice()"> Umgungundlovu TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Buffalo" class="col-check" onclick="calculatePrice()"> Buffalo City TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Eastcape" class="col-check" onclick="calculatePrice()"> Eastcape Midlands TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Ikhala" class="col-check" onclick="calculatePrice()"> Ikhala TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Ingwe" class="col-check" onclick="calculatePrice()"> Ingwe TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_KingHintsa" class="col-check" onclick="calculatePrice()"> King Hintsa TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_KingSabata" class="col-check" onclick="calculatePrice()"> King Sabata Dalindyebo TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Lovedale" class="col-check" onclick="calculatePrice()"> Lovedale TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_PortElizabeth" class="col-check" onclick="calculatePrice()"> Port Elizabeth TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Boland" class="col-check" onclick="calculatePrice()"> Boland TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_CollegeCapeTown" class="col-check" onclick="calculatePrice()"> College of Cape Town</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_FalseBay" class="col-check" onclick="calculatePrice()"> False Bay TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_Northlink" class="col-check" onclick="calculatePrice()"> Northlink TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_SouthCape" class="col-check" onclick="calculatePrice()"> South Cape TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_WestCoast" class="col-check" onclick="calculatePrice()"> West Coast TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_NorthernCapeRural" class="col-check" onclick="calculatePrice()"> Northern Cape Rural TVET College</div>
+<div class="checkbox-item"><input type="checkbox" name="Col_NorthernCapeUrban" class="col-check" onclick="calculatePrice()"> Northern Cape Urban TVET College</div>
+                </div>
+
+            <h3>5. Documents</h3>
+            <div class="doc-row">
+                <label>Certified ID</label>
+                <input type="file" name="File_ID">
+                <div class="checkbox-item"><input type="checkbox" name="Promise_ID"> Provide in 7 days</div>
+            </div>
+            <div class="doc-row">
+                <label id="reportLabel">Grade 11 Report</label>
+                <input type="file" name="File_Academic">
+                <div class="checkbox-item"><input type="checkbox" name="Promise_Academic"> Provide in 7 days</div>
+            </div>
+
+            <div class="warning-banner">
+                ⚠️ IMPORTANT: Fee is payable after document verification. Documents must be submitted within 7 days if not uploaded now.
+            </div>
+
+            <div class="price-summary-box">
+                <div>
+                    <strong>Total Service Fee:</strong><br>
+                    <span style="font-size: 0.8rem; opacity: 0.9;">Calculated based on selections</span>
+                </div>
+                <div class="price-amount" id="totalDisplay">R0.00</div>
+            </div>
+
+            <button type="submit" class="submit-btn">Submit Request</button>
+        </form>
+    </div>
+
+    <script>
+        function calculatePrice() {
+            const uniChecks = document.querySelectorAll('.uni-check');
+            const colChecks = document.querySelectorAll('.col-check');
+            const display = document.getElementById('totalDisplay');
+            
+            let hasUni = false;
+            let hasCol = false;
+
+            uniChecks.forEach(box => { if(box.checked) hasUni = true; });
+            colChecks.forEach(box => { if(box.checked) hasCol = true; });
+
+            let total = 0;
+            if (hasUni && hasCol) {
+                total = 250; // Combo Package
+            } else if (hasUni || hasCol) {
+                total = 150; // Single Category Package
+            }
+
+            display.innerText = "R" + total + ".00";
+        }
+
+        function toggleDocs() {
+            var status = document.getElementById("matricStatus").value;
+            var label = document.getElementById("reportLabel");
+            label.innerText = (status === "Yes") ? "Grade 11 Report" : "Matric Certificate";
+        }
+    </script>
+</body>
+</html>
