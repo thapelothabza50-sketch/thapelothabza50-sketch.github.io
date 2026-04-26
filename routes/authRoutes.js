@@ -1150,4 +1150,51 @@ router.get('/signatures/:ownerId', async (req, res) => {
     }
 });
 
+const Assistance = require('../models/Assistance');
+
+router.post('/submit-assistance', async (req, res) => {
+    try {
+        // 1. Save to Database
+        const newApp = new Assistance(req.body);
+        await newApp.save();
+
+        // 2. Setup Email Transporter (Use your SMTP details)
+        const transporter = nodemailer.createTransport({
+            service: 'gmail', // or your host
+            auth: {
+                user: 'your-system-email@gmail.com',
+                pass: 'your-app-password'
+            }
+        });
+
+        // 3. Create Tabulated Email Content
+        const emailContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; border: 1px solid #eee;">
+                <h2 style="background: #004a99; color: white; padding: 20px; margin: 0;">New Assisted Application</h2>
+                <div style="padding: 20px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="background: #f8f8f8;"><td style="padding: 10px; border: 1px solid #ddd;"><b>Applicant</b></td><td style="padding: 10px; border: 1px solid #ddd;">${req.body.firstNames} ${req.body.surname}</td></tr>
+                        <tr><td style="padding: 10px; border: 1px solid #ddd;"><b>ID Number</b></td><td style="padding: 10px; border: 1px solid #ddd;">${req.body.idNumber}</td></tr>
+                        <tr style="background: #f8f8f8;"><td style="padding: 10px; border: 1px solid #ddd;"><b>Returning Student</b></td><td style="padding: 10px; border: 1px solid #ddd;">${req.body.returningStudentDetails || 'N/A'}</td></tr>
+                        <tr><td style="padding: 10px; border: 1px solid #ddd;"><b>Disability</b></td><td style="padding: 10px; border: 1px solid #ddd;">${req.body.disabilityDetails || 'None'}</td></tr>
+                        <tr style="background: #f8f8f8;"><td style="padding: 10px; border: 1px solid #ddd;"><b>Next of Kin</b></td><td style="padding: 10px; border: 1px solid #ddd;">${req.body.nokName} (${req.body.nokPhone})</td></tr>
+                    </table>
+                    <p style="margin-top: 20px; font-size: 12px; color: #666;">This application has been saved to your Admin Tracker.</p>
+                </div>
+            </div>
+        `;
+
+        await transporter.sendMail({
+            from: '"Campus Collective Portal" <system@mycampuscollective.me>',
+            to: 'info@mycampuscollective.me',
+            subject: `New Application: ${req.body.firstNames} ${req.body.surname}`,
+            html: emailContent
+        });
+
+        res.status(200).json({ message: "Application submitted successfully!" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;
