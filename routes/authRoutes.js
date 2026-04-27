@@ -869,7 +869,7 @@ router.post('/landlord/register', async (req, res) => {
         // Send Automated Email
         // Updated Mail Options with Logo and Formal Styling
 const mailOptions = {
-    from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+    from: '"Campus Collective Applications" <no-reply@mycampuscollective.me>',
     to: email,
     subject: "Application Received: Property Registration",
     html: `

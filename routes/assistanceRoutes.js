@@ -57,7 +57,7 @@ router.post('/submit-assistance', async (req, res) => {
 
         // 4. Send Email to ADMIN (info@mycampuscollective.me)
         await transporter.sendMail({
-            from: `"Campus Collective System" <${process.env.EMAIL_USER}>`,
+            from: '"Campus Collective Support" <no-reply@mycampuscollective.me>',
             to: 'info@mycampuscollective.me',
             subject: `NEW ASSISTED APP: ${mappedData.firstNames} ${mappedData.surname}`,
             html: `<h3>A new assistance request has been logged.</h3>${detailsTable}`
@@ -66,7 +66,7 @@ router.post('/submit-assistance', async (req, res) => {
         // 5. Send Confirmation to STUDENT
         if (mappedData.email) {
             await transporter.sendMail({
-                from: `"Campus Collective" <${process.env.EMAIL_USER}>`,
+                from: '"Campus Collective Support" <no-reply@mycampuscollective.me>',
                 to: mappedData.email,
                 subject: `Request Received - ${mappedData.firstNames}`,
                 html: `
