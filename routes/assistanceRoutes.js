@@ -3,74 +3,88 @@ const router = express.Router();
 const Assistance = require('../models/Assistance');
 const nodemailer = require('nodemailer');
 
-// Handle the form submission
 router.post('/submit-assistance', async (req, res) => {
     try {
-        // 1. Save to Database so it shows up in your Tracker
-        const newApplication = new Assistance(req.body);
-        const savedApp = await newApplication.save();
+        // Fix: Mapping HTML field names to Mongoose Model names
+        const mappedData = {
+            title: req.body.Title,
+            firstNames: req.body.First_Names,
+            surname: req.body.Surname,
+            idNumber: req.body.ID_Number,
+            gender: req.body.Gender,
+            maritalStatus: req.body.Marital_Status,
+            race: req.body.Race,
+            disability: req.body.Disability,
+            disabilityDetails: req.body.Other_Disability_Detail,
+            isFirstTimeApplicant: req.body.First_Time_Applicant,
+            returningStudentDetails: req.body.Returning_Student_Details,
+            phone: req.body.Phone,
+            email: req.body.Email,
+            nokName: req.body.NOK_First_Names,
+            nokSurname: req.body.NOK_Surname,
+            nokRelationship: req.body.NOK_Relationship,
+            nokPhone: req.body.NOK_Phone,
+            nokEmail: req.body.NOK_Email
+        };
 
-        // 2. Setup the Email Transporter
-        // Use the same credentials you used in your authRoutes.js
+        // 1. Save to Database
+        const newApp = new Assistance(mappedData);
+        await newApp.save();
+
+        // 2. Transporter Setup (Using your existing environment variables)
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: process.env.EMAIL_HOST,
+            port: Number(process.env.EMAIL_PORT),
+            secure: true,
             auth: {
-                user: process.env.EMAIL_USER, 
-                pass: process.env.EMAIL_PASS
-            }
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+            tls: { rejectUnauthorized: false }
         });
 
-        // 3. Create the Tabulated HTML Email
-        const emailContent = `
-            <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 700px; margin: auto; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;">
-                <div style="background-color: #004a99; color: white; padding: 25px; text-align: center;">
-                    <h1 style="margin: 0; font-size: 24px;">New Assisted Application</h1>
-                    <p style="margin: 5px 0 0 0; opacity: 0.8;">Campus Collective Portal</p>
-                </div>
-                
-                <div style="padding: 30px; background-color: #ffffff;">
-                    <h3 style="color: #004a99; border-bottom: 2px solid #ff6600; padding-bottom: 5px;">Applicant Details</h3>
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                        <tr><td style="padding: 10px; border-bottom: 1px solid #eee; width: 40%;"><b>Full Name:</b></td><td style="padding: 10px; border-bottom: 1px solid #eee;">${req.body.First_Names} ${req.body.Surname}</td></tr>
-                        <tr><td style="padding: 10px; border-bottom: 1px solid #eee;"><b>ID Number:</b></td><td style="padding: 10px; border-bottom: 1px solid #eee;">${req.body.ID_Number}</td></tr>
-                        <tr><td style="padding: 10px; border-bottom: 1px solid #eee;"><b>Phone:</b></td><td style="padding: 10px; border-bottom: 1px solid #eee;">${req.body.Phone}</td></tr>
-                        <tr><td style="padding: 10px; border-bottom: 1px solid #eee;"><b>First Time Applicant:</b></td><td style="padding: 10px; border-bottom: 1px solid #eee;">${req.body.First_Time_Applicant}</td></tr>
-                        ${req.body.Returning_Student_Details ? `<tr><td style="padding: 10px; border-bottom: 1px solid #eee; color: #b75300;"><b>Returning Details:</b></td><td style="padding: 10px; border-bottom: 1px solid #eee;">${req.body.Returning_Student_Details}</td></tr>` : ''}
-                    </table>
-
-                    <h3 style="color: #004a99; border-bottom: 2px solid #ff6600; padding-bottom: 5px;">Next of Kin</h3>
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                        <tr><td style="padding: 10px; border-bottom: 1px solid #eee; width: 40%;"><b>NOK Name:</b></td><td style="padding: 10px; border-bottom: 1px solid #eee;">${req.body.NOK_First_Names} ${req.body.NOK_Surname}</td></tr>
-                        <tr><td style="padding: 10px; border-bottom: 1px solid #eee;"><b>Relationship:</b></td><td style="padding: 10px; border-bottom: 1px solid #eee;">${req.body.NOK_Relationship}</td></tr>
-                        <tr><td style="padding: 10px; border-bottom: 1px solid #eee;"><b>NOK Phone:</b></td><td style="padding: 10px; border-bottom: 1px solid #eee;">${req.body.NOK_Phone}</td></tr>
-                        <tr><td style="padding: 10px; border-bottom: 1px solid #eee;"><b>NOK Email:</b></td><td style="padding: 10px; border-bottom: 1px solid #eee;">${req.body.NOK_Email || 'N/A'}</td></tr>
-                    </table>
-
-                    <h3 style="color: #004a99; border-bottom: 2px solid #ff6600; padding-bottom: 5px;">Choices</h3>
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr><td style="padding: 10px; border-bottom: 1px solid #eee;"><b>Qual Choice 1:</b></td><td style="padding: 10px; border-bottom: 1px solid #eee;">${req.body.Qual_1}</td></tr>
-                    </table>
-                </div>
-
-                <div style="background-color: #f9f9f9; padding: 20px; text-align: center; color: #666; font-size: 12px;">
-                    This is an automated notification from the Campus Collective Admin System.
-                </div>
-            </div>
+        // 3. The Tabulated Content (Shared for both emails)
+        const detailsTable = `
+            <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; border: 1px solid #ddd;">
+                <tr style="background: #004a99; color: white;"><th colspan="2" style="padding: 12px;">Application Summary</th></tr>
+                <tr><td style="padding: 10px; border: 1px solid #ddd;"><b>Name</b></td><td style="padding: 10px; border: 1px solid #ddd;">${mappedData.firstNames} ${mappedData.surname}</td></tr>
+                <tr style="background: #f9f9f9;"><td style="padding: 10px; border: 1px solid #ddd;"><b>ID Number</b></td><td style="padding: 10px; border: 1px solid #ddd;">${mappedData.idNumber}</td></tr>
+                <tr><td style="padding: 10px; border: 1px solid #ddd;"><b>Contact</b></td><td style="padding: 10px; border: 1px solid #ddd;">${mappedData.phone}</td></tr>
+                <tr style="background: #f9f9f9;"><td style="padding: 10px; border: 1px solid #ddd;"><b>Next of Kin</b></td><td style="padding: 10px; border: 1px solid #ddd;">${mappedData.nokName} (${mappedData.nokPhone})</td></tr>
+                ${mappedData.returningStudentDetails ? `<tr><td style="padding: 10px; border: 1px solid #ddd; color: #ff6600;"><b>Prev. Details</b></td><td style="padding: 10px; border: 1px solid #ddd;">${mappedData.returningStudentDetails}</td></tr>` : ''}
+            </table>
         `;
 
-        // 4. Send the Email
+        // 4. Send Email to ADMIN (info@mycampuscollective.me)
         await transporter.sendMail({
-            from: `"Portal Assistant" <${process.env.EMAIL_USER}>`,
+            from: `"Campus Collective System" <${process.env.EMAIL_USER}>`,
             to: 'info@mycampuscollective.me',
-            subject: `New Application: ${req.body.First_Names} ${req.body.Surname}`,
-            html: emailContent
+            subject: `NEW ASSISTED APP: ${mappedData.firstNames} ${mappedData.surname}`,
+            html: `<h3>A new assistance request has been logged.</h3>${detailsTable}`
         });
 
-        res.status(201).json({ success: true, message: "Application processed and email sent!" });
+        // 5. Send Confirmation to STUDENT
+        if (mappedData.email) {
+            await transporter.sendMail({
+                from: `"Campus Collective" <${process.env.EMAIL_USER}>`,
+                to: mappedData.email,
+                subject: `Request Received - ${mappedData.firstNames}`,
+                html: `
+                    <div style="font-family: sans-serif; color: #333; max-width: 600px;">
+                        <h2 style="color: #004a99;">Hello ${mappedData.firstNames},</h2>
+                        <p>Your assisted application request has been received! Our consultants will process your application shortly.</p>
+                        <p><b>Here is a copy of your submitted details:</b></p>
+                        ${detailsTable}
+                        <p style="margin-top: 20px;">Best Regards,<br><b>Campus Collective Team</b></p>
+                    </div>
+                `
+            });
+        }
 
+        res.status(201).json({ success: true, message: "Request received please check your emails" });
     } catch (error) {
-        console.error("Assistance Route Error:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+        console.error("BACKEND ERROR:", error);
+        res.status(500).json({ success: false, message: "Error sending Assistance request" });
     }
 });
 

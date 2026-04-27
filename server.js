@@ -11,6 +11,7 @@ const sellerRoutes = require('./routes/sellerRoutes.js');
 const sellerOrderRoutes = require('./routes/sellerOrderRoutes.js'); 
 const shopRoutes = require('./routes/shopRoutes.js'); 
 const orderRoutes = require('./routes/orderRoutes.js'); 
+const assistanceRoutes = require('./routes/assistanceRoutes');
 
 const app = express(); 
 const PORT = process.env.PORT || 8080;
@@ -28,7 +29,8 @@ app.use('/api/admin', adminRoutes); // 🏆 ADDED THIS: Matches management.html 
 app.use('/api/seller', sellerRoutes);     
 app.use('/api/seller/orders', sellerOrderRoutes); 
 app.use('/api/shop', shopRoutes);         
-app.use('/api/orders', orderRoutes);      
+app.use('/api/orders', orderRoutes);   
+app.use('/api/assistance', assistanceRoutes);   
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
