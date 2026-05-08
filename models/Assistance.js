@@ -22,6 +22,11 @@ const AssistanceSchema = new mongoose.Schema({
     nokRelationship: String,
     nokPhone: String,
     nokEmail: String,
+    
+    // Add these for documents
+    fileIdPath: String,
+    fileAcademicPath: String,
+
 
     // Status for Tracker
     status: { type: String, default: 'Pending' },
