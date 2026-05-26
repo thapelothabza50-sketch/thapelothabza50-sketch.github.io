@@ -149,8 +149,9 @@
                 `).join('');
 
                 // 2. Fetch Students (Accommodation Apps)
-                const sRes = await fetch('/api/auth/admin/students');
+                        const sRes = await fetch('/api/auth/admin/students');
                 const students = await sRes.json();
+                window.studentsList = students;
                 document.getElementById('studentBody').innerHTML = students.map(s => `
                     <tr class="border-b hover:bg-slate-50 transition">
                         <td class="p-4 font-semibold text-slate-700" data-label="Name">${s.fullName}</td>
@@ -160,6 +161,7 @@
                             <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-bold uppercase">${s.status}</span>
                         </td>
                         <td class="p-4 text-right" data-label="Action">
+                            <button onclick="showStudentDetails('${s._id}')" class="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm transition mr-2">Details</button>
                             <button class="text-slate-600 border border-slate-200 hover:bg-slate-100 px-3 py-1 rounded transition text-sm">Update</button>
                         </td>
                     </tr>
@@ -203,7 +205,54 @@
             loadData();
         }
 
+        function showStudentDetails(studentId) {
+            const student = (window.studentsList || []).find(s => s._id === studentId);
+            if (!student) return;
+            const modal = document.getElementById('student-detail-modal');
+            const modalBody = document.getElementById('student-detail-body');
+            if (!modal || !modalBody) return;
+
+            modalBody.innerHTML = `
+                <div class="space-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div><span class="font-bold text-slate-600">Full Name</span><p class="text-slate-800">${student.fullName || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Gender</span><p class="text-slate-800">${student.gender || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Email</span><p class="text-slate-800">${student.email || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Phone</span><p class="text-slate-800">${student.phone || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Student Number</span><p class="text-slate-800">${student.studentNumber || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Institution</span><p class="text-slate-800">${student.institution || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Accommodation</span><p class="text-slate-800">${student.accommodation || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Funding</span><p class="text-slate-800">${student.funding || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Bursary Name</span><p class="text-slate-800">${student.bursaryName || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Status</span><p class="text-slate-800">${student.status || 'N/A'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Submitted</span><p class="text-slate-800">${new Date(student.createdAt).toLocaleString()}</p></div>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        function closeStudentDetails() {
+            document.getElementById('student-detail-modal')?.classList.add('hidden');
+        }
+
         window.onload = loadData;
     </script>
+
+    <div id="student-detail-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-slate-200">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Applicant Details</h2>
+                    <p class="text-sm text-slate-500">Full application information submitted by the student.</p>
+                </div>
+                <button onclick="closeStudentDetails()" class="text-slate-500 hover:text-slate-900 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="student-detail-body" class="p-6 text-slate-700"></div>
+            <div class="flex justify-end gap-3 p-6 border-t border-slate-200">
+                <button onclick="closeStudentDetails()" class="px-5 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200">Close</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

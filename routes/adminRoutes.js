@@ -272,7 +272,7 @@ router.put('/seasons/:id/archive', auth, hasRole(['Admin']), async (req, res) =>
     try {
         const season = await Season.findByIdAndUpdate(
             req.params.id,
-            { status: 'archived' },
+            { status: 'archived', isActive: false },
             { new: true }
         );
         if (!season) return res.status(404).json({ message: 'Season not found' });

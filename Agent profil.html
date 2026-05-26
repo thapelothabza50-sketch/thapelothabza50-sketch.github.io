@@ -78,9 +78,15 @@
     </div>
 
     <div class="card overflow-hidden">
-        <div class="p-5 border-b flex justify-between items-center bg-gray-50/50">
+        <div class="p-5 border-b flex flex-wrap justify-between gap-4 items-center bg-gray-50/50">
             <h3 class="font-bold text-gray-700">Recruit List</h3>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2 items-center">
+                <label class="text-xs font-bold text-gray-500 uppercase">Season</label>
+                <select id="agent-season-filter" onchange="handleAgentSeasonChange(event)" class="p-2 border rounded-lg bg-white text-sm">
+                    <option value="">Current Season</option>
+                    <option value="_all">All Seasons</option>
+                </select>
+                <span id="agent-current-season-label" class="text-xs text-gray-500">Loading season…</span>
                 <button onclick="downloadPDF()" class="bg-red-50 text-red-600 px-3 py-2 rounded font-bold text-[10px] border border-red-100">EXPORT PDF</button>
                 <button onclick="openAddForm()" class="hidden md:block bg-blue-600 text-white px-4 py-2 rounded font-bold text-[10px]">+ ADD NEW</button>
             </div>
@@ -201,7 +207,7 @@
 </div>
 
 <script>
-    const API_URL = '/api/admin'; 
+    const API_URL = '/api/agent'; 
     const loader = document.getElementById('loader-overlay');
     let currentEditId = null; 
     let allRecruits = []; 
@@ -223,17 +229,71 @@
     }
 
     // --- DATA HANDLING ---
-    async function fetchAgentData() {
+    async function fetchAgentData(showAll = false, seasonId = '') {
         try {
-            const response = await fetch(`${API_URL}/recruits`, {
+            const endpoint = showAll
+                ? `${API_URL}/my-recruits/all`
+                : `${API_URL}/my-recruits${seasonId ? `?seasonId=${seasonId}` : ''}`;
+            const response = await fetch(endpoint, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
             const data = await response.json();
-            allRecruits = data; 
-            renderUI(data);
-            updateStats(data);
-        } catch (err) { console.error(err); }
-        finally { hideLoader(); }
+            if (!response.ok) {
+                console.error('Agent recruit fetch failed:', data);
+                return;
+            }
+
+            allRecruits = showAll ? (data.allRecruits || []) : (data.recruits || []);
+            renderUI(allRecruits);
+            updateStats(allRecruits);
+            updateSeasonLabel(showAll ? null : data.currentSeason, showAll);
+        } catch (err) {
+            console.error(err);
+        } finally { hideLoader(); }
+    }
+
+    function updateSeasonLabel(season, showAll = false) {
+        const label = document.getElementById('agent-current-season-label');
+        if (!label) return;
+        if (showAll) {
+            label.innerText = 'Showing recruits from all seasons';
+        } else if (season && season.name) {
+            label.innerText = `Season: ${season.name} (${season.status || 'active'})`;
+        } else {
+            label.innerText = 'Season: current active season';
+        }
+    }
+
+    async function fetchAgentSeasons() {
+        try {
+            const response = await fetch(`${API_URL}/all-seasons`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            const seasons = await response.json();
+            if (!response.ok) return;
+
+            const seasonFilter = document.getElementById('agent-season-filter');
+            if (seasonFilter) {
+                seasonFilter.innerHTML = `
+                    <option value="">Current Season</option>
+                    <option value="_all">All Seasons</option>
+                    ${seasons.map(season => `
+                        <option value="${season._id}">${season.name} (${season.status || 'unknown'})</option>
+                    `).join('')}
+                `;
+            }
+        } catch (err) {
+            console.error('Season list fetch failed:', err);
+        }
+    }
+
+    function handleAgentSeasonChange(event) {
+        const seasonId = event.target.value;
+        if (seasonId === '_all') {
+            fetchAgentData(true);
+        } else {
+            fetchAgentData(false, seasonId);
+        }
     }
 
     function renderUI(recruits) {
@@ -309,7 +369,7 @@
         const formData = new FormData(e.target);
         const payload = Object.fromEntries(formData.entries());
         if (payload.accommodation === 'not listed') payload.accommodation = document.getElementById('manual-acc').value;
-        const url = currentEditId ? `/api/auth/recruit/${currentEditId}` : `/api/auth/submit-recruit`;
+        const url = currentEditId ? `/api/auth/recruit/${currentEditId}` : `/api/agent/submit-recruit`;
         const method = currentEditId ? 'PUT' : 'POST';
         try {
             const res = await fetch(url, {
@@ -489,6 +549,7 @@ window.onclick = resetTimer;
     window.onload = () => { 
         if(!getToken()) return logout();
         setupPhoneMask();
+        await fetchAgentSeasons();
         fetchAgentData();
         syncSidebarData(); 
         resetTimer();

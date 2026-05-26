@@ -297,6 +297,20 @@
     <h2 class="text-xl font-black text-gray-700">Student Recruits</h2>
 
     <div class="flex flex-wrap gap-3 bg-blue-50 p-4 border border-blue-100 rounded-xl">
+        <span class="text-sm font-bold text-blue-800">Season:</span>
+        <select id="season-filter" class="p-2 border rounded-lg text-sm bg-white" onchange="handleSeasonChange(event)"></select>
+        <button onclick="archiveSelectedSeason()"
+            class="bg-red-600 text-white px-4 py-1.5 rounded-lg font-bold text-xs hover:bg-red-700">
+            Archive Season
+        </button>
+        <button onclick="resetSeasonFilter()"
+            class="bg-white border border-blue-200 text-blue-700 px-4 py-1.5 rounded-lg font-bold text-xs hover:bg-blue-50">
+            Show Active
+        </button>
+        <span id="season-info" class="text-sm text-gray-600 self-center">Loading current season…</span>
+    </div>
+
+    <div class="flex flex-wrap gap-3 bg-blue-50 p-4 border border-blue-100 rounded-xl">
         <span class="text-sm font-bold text-blue-800">Accommodation:</span>
         <select id="acc-filter" class="p-2 border rounded-lg text-sm bg-white"></select>
 
@@ -557,29 +571,106 @@ async function fetchProfiles() {
 
 
 // ✅ Fetch student recruits
-async function fetchRecruits() {
-    try {
-        const res = await fetch(`${API_AUTH_URL}/all-recruits`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+async function fetchSeasons() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/seasons`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const seasons = await res.json();
+            if (!res.ok) return;
 
-        const data = await res.json();
-
-        if (res.ok) {
-            allRecruits = data;
-
-            const accFilter = document.getElementById('acc-filter');
-            if (accFilter) {
-                const uniqueAccs = [...new Set(data.map(r => r.accommodation))];
-                accFilter.innerHTML =
-                    `<option value="">Select Accommodation...</option>` +
-                    uniqueAccs.map(acc => `<option value="${acc}">${acc}</option>`).join('');
+            const seasonFilter = document.getElementById('season-filter');
+            if (seasonFilter) {
+                seasonFilter.innerHTML = `
+                    <option value="">Active Season</option>
+                    ${seasons.map(season => `
+                        <option value="${season._id}">${season.name} (${season.status || 'unknown'})</option>
+                    `).join('')}
+                `;
             }
 
-            renderRecruits(data);
+            updateSeasonLabel(seasons.find(s => s.isActive));
+        } catch (err) {
+            console.error("Season Error:", err);
         }
-    } catch (err) { console.error("Recruit Error:", err); }
-}
+    }
+
+    async function fetchRecruits(seasonId = '') {
+        try {
+            const query = seasonId ? `?seasonId=${seasonId}` : '';
+            const res = await fetch(`${API_BASE_URL}/dashboard/recruits${query}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                allRecruits = data.recruits || [];
+
+                const accFilter = document.getElementById('acc-filter');
+                if (accFilter) {
+                    const uniqueAccs = [...new Set(allRecruits.map(r => r.accommodation))];
+                    accFilter.innerHTML =
+                        `<option value="">Select Accommodation...</option>` +
+                        uniqueAccs.map(acc => `<option value="${acc}">${acc}</option>`).join('');
+                }
+
+                updateSeasonLabel(data.currentSeason);
+                renderRecruits(allRecruits);
+            } else {
+                console.error('Recruit fetch failed:', data);
+            }
+        } catch (err) {
+            console.error("Recruit Error:", err);
+        }
+    }
+
+    function updateSeasonLabel(season) {
+        const label = document.getElementById('season-info');
+        if (!label) return;
+        if (season && season.name) {
+            label.innerText = `Showing recruits for: ${season.name} (${season.status || 'active'})`;
+        } else {
+            label.innerText = 'Showing recruits for the active season.';
+        }
+    }
+
+    function handleSeasonChange(event) {
+        const seasonId = event.target.value;
+        fetchRecruits(seasonId);
+    }
+
+    async function archiveSelectedSeason() {
+        const seasonId = document.getElementById('season-filter')?.value;
+        if (!seasonId) return alert('Please select a season to archive.');
+        if (!confirm('Archive this season? This will preserve its recruits but stop it from being active.')) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/seasons/${seasonId}/archive`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (res.ok) {
+                alert('Season archived successfully');
+                await fetchSeasons();
+                await fetchRecruits();
+            } else {
+                const data = await res.json();
+                alert(data.message || 'Could not archive season');
+            }
+        } catch (err) {
+            console.error('Archive Error:', err);
+            alert('Failed to archive season.');
+        }
+    }
+
+    function resetSeasonFilter() {
+        const seasonFilter = document.getElementById('season-filter');
+        if (seasonFilter) seasonFilter.value = '';
+        fetchRecruits();
 
 
 // ------------------------------------------------------------
@@ -1502,6 +1593,7 @@ window.onload = async () => {
     } else {
         await Promise.all([
             fetchProfiles(),
+            fetchSeasons(),
             fetchRecruits(),
             loadWaterSummary()
         ]);

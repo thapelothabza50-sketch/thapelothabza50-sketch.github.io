@@ -87,8 +87,11 @@ router.get('/my-recruits', auth, hasRole(['Agent']), async (req, res) => {
         const { seasonId } = req.query;
 
         const filter = { agent: req.user.id };
+        let seasonToReturn = activeSeason;
+
         if (seasonId) {
             filter.season = seasonId;
+            seasonToReturn = await Season.findById(seasonId);
         } else if (activeSeason) {
             filter.season = activeSeason._id;
         }
@@ -98,7 +101,7 @@ router.get('/my-recruits', auth, hasRole(['Agent']), async (req, res) => {
             .sort({ createdAt: -1 });
 
         res.json({
-            currentSeason: activeSeason,
+            currentSeason: seasonToReturn,
             recruits,
             count: recruits.length,
             filter: seasonId ? `Season ID: ${seasonId}` : 'Current Season Only'
