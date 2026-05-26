@@ -12,6 +12,7 @@ const sellerOrderRoutes = require('./routes/sellerOrderRoutes.js');
 const shopRoutes = require('./routes/shopRoutes.js'); 
 const orderRoutes = require('./routes/orderRoutes.js'); 
 const assistanceRoutes = require('./routes/assistanceRoutes');
+const agentRoutes = require('./routes/agentRoutes.js'); // 🏆 SEASONAL RECRUITS
 
 const app = express(); 
 const PORT = process.env.PORT || 8080;
@@ -31,6 +32,7 @@ app.use('/api/seller/orders', sellerOrderRoutes);
 app.use('/api/shop', shopRoutes);         
 app.use('/api/orders', orderRoutes);   
 app.use('/api/assistance', assistanceRoutes);   
+app.use('/api/agent', agentRoutes); // 🏆 SEASONAL RECRUITS
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));

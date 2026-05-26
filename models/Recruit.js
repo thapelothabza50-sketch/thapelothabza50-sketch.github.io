@@ -6,6 +6,16 @@ const RecruitSchema = new mongoose.Schema({
         ref: 'Agent',
         required: true
     },
+    // 🏆 SEASON TRACKING: Links recruit to recruitment season
+    season: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Season',
+        required: true
+    },
+    seasonName: {
+        type: String,
+        // Denormalized for quick filtering (e.g., "First Semester 2026")
+    },
     // 🏆 ADDED: This connects the recruit to the Agent's Student Number/Login ID
     agentId: {
         type: String,
