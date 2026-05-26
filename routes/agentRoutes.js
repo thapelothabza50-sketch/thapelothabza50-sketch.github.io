@@ -1,9 +1,4 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-
-const AgentSchema = new mongoose.Schema({
-// routes/agentRoutes.js
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const { auth, hasRole } = require('../middleware/auth');
 const Agent = require('../models/Agent');
@@ -41,13 +36,11 @@ router.post('/submit-recruit', auth, hasRole(['Agent']), async (req, res) => {
     try {
         const { studentName, studentSurname, studentEmail, accommodation, moveInDate } = req.body;
 
-        // Get current active season
         const activeSeason = await Season.findOne({ isActive: true });
         if (!activeSeason) {
             return res.status(400).json({ message: 'No active recruitment season. Contact admin.' });
         }
 
-        // Validate required fields
         if (!studentName || !studentSurname || !studentEmail || !accommodation || !moveInDate) {
             return res.status(400).json({ message: 'All fields are required' });
         }
@@ -59,7 +52,7 @@ router.post('/submit-recruit', auth, hasRole(['Agent']), async (req, res) => {
             accommodation,
             moveInDate,
             agent: req.user.id,
-            agentId: req.user.agentId || '', // Add agent ID for reference
+            agentId: req.user.agentId || '',
             season: activeSeason._id,
             seasonName: activeSeason.name,
             status: 'Pending',
@@ -68,13 +61,12 @@ router.post('/submit-recruit', auth, hasRole(['Agent']), async (req, res) => {
 
         await newRecruit.save();
 
-        // Update season statistics
         await Season.findByIdAndUpdate(activeSeason._id, {
             $inc: { totalRecruits: 1, pendingRecruits: 1 }
         });
 
         res.status(201).json({
-            message: 'Recruit added successfully to ' + activeSeason.name,
+            message: `Recruit added successfully to ${activeSeason.name}`,
             recruit: newRecruit,
             season: activeSeason
         });
@@ -86,22 +78,18 @@ router.post('/submit-recruit', auth, hasRole(['Agent']), async (req, res) => {
 
 /**
  * @route   GET /api/agent/my-recruits
- * @desc    Get all recruits added by this agent (all seasons)
+ * @desc    Get recruits for this agent and season
  * @access  Private (Agents)
  */
 router.get('/my-recruits', auth, hasRole(['Agent']), async (req, res) => {
     try {
-        // Get current season for default view
         const activeSeason = await Season.findOne({ isActive: true });
         const { seasonId } = req.query;
 
-        let filter = { agent: req.user.id };
-
-        // If specific season requested, filter by it
+        const filter = { agent: req.user.id };
         if (seasonId) {
             filter.season = seasonId;
         } else if (activeSeason) {
-            // Default: show current season recruits
             filter.season = activeSeason._id;
         }
 
@@ -123,7 +111,7 @@ router.get('/my-recruits', auth, hasRole(['Agent']), async (req, res) => {
 
 /**
  * @route   GET /api/agent/my-recruits/all
- * @desc    Get ALL recruits added by this agent (including past seasons)
+ * @desc    Get all recruits for this agent across seasons
  * @access  Private (Agents)
  */
 router.get('/my-recruits/all', auth, hasRole(['Agent']), async (req, res) => {
@@ -132,15 +120,11 @@ router.get('/my-recruits/all', auth, hasRole(['Agent']), async (req, res) => {
             .populate('season', 'name semester year status isActive')
             .sort({ createdAt: -1 });
 
-        // Group by season for better display
         const grouped = {};
         recruits.forEach(recruit => {
             const seasonName = recruit.season?.name || 'Unknown Season';
             if (!grouped[seasonName]) {
-                grouped[seasonName] = {
-                    season: recruit.season,
-                    recruits: []
-                };
+                grouped[seasonName] = { season: recruit.season, recruits: [] };
             }
             grouped[seasonName].recruits.push(recruit);
         });
@@ -158,7 +142,7 @@ router.get('/my-recruits/all', auth, hasRole(['Agent']), async (req, res) => {
 
 /**
  * @route   GET /api/agent/recruit-stats
- * @desc    Get recruitment statistics for agent
+ * @desc    Get recruitment statistics for this agent
  * @access  Private (Agents)
  */
 router.get('/recruit-stats', auth, hasRole(['Agent']), async (req, res) => {
@@ -167,7 +151,6 @@ router.get('/recruit-stats', auth, hasRole(['Agent']), async (req, res) => {
             .populate('season', 'name isActive');
 
         const currentSeasonRecruits = allRecruits.filter(r => r.season?.isActive);
-
         const stats = {
             totalAllTime: allRecruits.length,
             currentSeason: currentSeasonRecruits.length,
@@ -187,25 +170,17 @@ router.get('/recruit-stats', auth, hasRole(['Agent']), async (req, res) => {
 
 /**
  * @route   GET /api/agent/all-seasons
- * @desc    Get all seasons (agent can see which ones they recruited in)
+ * @desc    Get all seasons with this agent's counts
  * @access  Private (Agents)
  */
 router.get('/all-seasons', auth, hasRole(['Agent']), async (req, res) => {
     try {
         const seasons = await Season.find().sort({ year: -1, semester: -1 });
-
-        // For each season, count how many recruits this agent added
         const seasonsWithCounts = [];
+
         for (const season of seasons) {
-            const recruitCount = await Recruit.countDocuments({
-                agent: req.user.id,
-                season: season._id
-            });
-            
-            seasonsWithCounts.push({
-                ...season.toObject(),
-                myRecruitCount: recruitCount
-            });
+            const recruitCount = await Recruit.countDocuments({ agent: req.user.id, season: season._id });
+            seasonsWithCounts.push({ ...season.toObject(), myRecruitCount: recruitCount });
         }
 
         res.json(seasonsWithCounts);
@@ -238,15 +213,8 @@ router.get('/profile', auth, hasRole(['Agent']), async (req, res) => {
 router.put('/update-banking', auth, hasRole(['Agent']), async (req, res) => {
     try {
         const { banking } = req.body;
-
-        const agent = await Agent.findByIdAndUpdate(
-            req.user.id,
-            { $set: { banking: banking } },
-            { new: true }
-        ).select('-password');
-
+        const agent = await Agent.findByIdAndUpdate(req.user.id, { $set: { banking } }, { new: true }).select('-password');
         if (!agent) return res.status(404).json({ message: 'Agent not found' });
-
         res.json({ message: 'Banking details updated successfully', agent });
     } catch (err) {
         console.error('Banking Update Error:', err.message);
