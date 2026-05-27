@@ -558,6 +558,13 @@ async function fetchProfiles() {
         const res = await fetch(`${API_BASE_URL}/profiles`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        if (!res.ok) {
+            const error = await res.text();
+            console.error(`Profile fetch error (${res.status}):`, error);
+            return;
+        }
+
         const data = await res.json();
         allUsers = data;
 
@@ -576,8 +583,14 @@ async function fetchSeasons() {
             const res = await fetch(`${API_BASE_URL}/seasons`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+
+            if (!res.ok) {
+                const error = await res.text();
+                console.error(`Season fetch error (${res.status}):`, error);
+                return;
+            }
+
             const seasons = await res.json();
-            if (!res.ok) return;
 
             const seasonFilter = document.getElementById('season-filter');
             if (seasonFilter) {
@@ -602,9 +615,15 @@ async function fetchSeasons() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
+            if (!res.ok) {
+                const error = await res.text();
+                console.error(`Recruit fetch error (${res.status}):`, error);
+                return;
+            }
+
             const data = await res.json();
 
-            if (res.ok) {
+            if (data) {
                 allRecruits = data.recruits || [];
 
                 const accFilter = document.getElementById('acc-filter');

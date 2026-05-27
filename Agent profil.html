@@ -237,11 +237,14 @@
             const response = await fetch(endpoint, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
-            const data = await response.json();
+
             if (!response.ok) {
-                console.error('Agent recruit fetch failed:', data);
+                const error = await response.text();
+                console.error(`Agent recruit fetch error (${response.status}):`, error);
                 return;
             }
+
+            const data = await response.json();
 
             allRecruits = showAll ? (data.allRecruits || []) : (data.recruits || []);
             renderUI(allRecruits);
@@ -269,8 +272,14 @@
             const response = await fetch(`${API_URL}/all-seasons`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
+
+            if (!response.ok) {
+                const error = await response.text();
+                console.error(`Agent seasons fetch error (${response.status}):`, error);
+                return;
+            }
+
             const seasons = await response.json();
-            if (!response.ok) return;
 
             const seasonFilter = document.getElementById('agent-season-filter');
             if (seasonFilter) {
