@@ -1197,4 +1197,195 @@ router.post('/submit-assistance', async (req, res) => {
     }
 });
 
+// ========================================================================
+// 🏆 NEW: ACCOMMODATION APPLICATION → RECRUIT CONVERSION
+// ========================================================================
+/**
+ * @route   POST /api/auth/apply-for-accommodation
+ * @desc    Student submits accommodation application - links to agent by reference
+ * @access  Public
+ */
+router.post('/apply-for-accommodation', async (req, res) => {
+    try {
+        const {
+            studentName,
+            studentSurname,
+            studentEmail,
+            studentPhone,
+            accommodation,
+            moveInDate,
+            referencedBy
+        } = req.body;
+
+        // Validate required fields
+        if (!studentName || !studentSurname || !studentEmail || !studentPhone || !accommodation || !moveInDate) {
+            return res.status(400).json({
+                message: 'All student details are required (name, surname, email, phone, accommodation, move-in date)'
+            });
+        }
+
+        // Get the current active season - REQUIRED
+        const Season = require('../models/Season');
+        const activeSeason = await Season.findOne({ isActive: true });
+
+        if (!activeSeason) {
+            return res.status(400).json({
+                message: 'No active recruitment season at this time. Please contact admin.'
+            });
+        }
+
+        let linkedAgent = null;
+        let referencedByAgentId = null;
+
+        // If agent reference provided, try to find matching agent
+        if (referencedBy && referencedBy.trim()) {
+            const agent = await Agent.findOne({
+                fullName: new RegExp(referencedBy.trim(), 'i')
+            });
+
+            if (agent) {
+                linkedAgent = agent._id;
+                referencedByAgentId = agent._id;
+            }
+            // If agent not found, still create recruit but log the reference name
+        }
+
+        // Create the recruit record
+        const newRecruit = new Recruit({
+            studentName: studentName.trim(),
+            studentSurname: studentSurname.trim(),
+            studentEmail: studentEmail.toLowerCase(),
+            studentPhone: studentPhone.trim(),
+            accommodation: accommodation.trim(),
+            moveInDate: new Date(moveInDate),
+            agent: linkedAgent,
+            agentId: linkedAgent ? (await Agent.findById(linkedAgent)).agentId : '',
+            season: activeSeason._id,
+            seasonName: activeSeason.name,
+            referencedByName: referencedBy ? referencedBy.trim() : '',
+            referencedByAgentId: referencedByAgentId,
+            status: 'Pending',
+            commissionEarned: 0,
+            commissionRate: 150
+        });
+
+        await newRecruit.save();
+
+        // Update season statistics
+        await Season.findByIdAndUpdate(activeSeason._id, {
+            $inc: { totalRecruits: 1, pendingRecruits: 1 }
+        });
+
+        // Send confirmation email to student
+        const confirmationEmail = `
+            <div style="max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+                <div style="background-color: #2563eb; padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">Application Confirmed!</h1>
+                </div>
+                <div style="padding: 30px; color: #334155; line-height: 1.6;">
+                    <p>Hello <strong>${studentName} ${studentSurname}</strong>,</p>
+                    <p>Thank you for your accommodation application with Campus Collective. We have successfully received and recorded your application.</p>
+
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-family: Arial, sans-serif;">
+                        <tr style="background-color: #2563eb; color: white;">
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Field</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Details</th>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Accommodation</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">${accommodation}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Move-in Date</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">${new Date(moveInDate).toLocaleDateString()}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Recruitment Season</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">${activeSeason.name}</td>
+                        </tr>
+                        ${linkedAgent ? `<tr>
+                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Referred By Agent</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">${referencedBy}</td>
+                        </tr>` : ''}
+                    </table>
+
+                    <p style="margin-top: 20px;">Your application is being reviewed and you will be contacted within 24-48 hours with updates.</p>
+                    <p style="color: #666; font-size: 12px; margin-top: 20px;">Campus Collective Management System</p>
+                </div>
+            </div>
+        `;
+
+        try {
+            await transporter.sendMail({
+                from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+                to: studentEmail,
+                subject: 'Application Received - Campus Collective Accommodation',
+                html: confirmationEmail
+            });
+        } catch (emailErr) {
+            console.error('Email send error:', emailErr);
+            // Don't fail the request if email fails
+        }
+
+        // If agent was linked, send them a notification
+        if (linkedAgent) {
+            try {
+                const agent = await Agent.findById(linkedAgent);
+                const agentEmail = `
+                    <div style="max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+                        <div style="background-color: #2563eb; padding: 20px; text-align: center;">
+                            <h1 style="color: white; margin: 0;">New Recruit Referral</h1>
+                        </div>
+                        <div style="padding: 30px; color: #334155; line-height: 1.6;">
+                            <p>Hello <strong>${agent.fullName}</strong>,</p>
+                            <p>A student has applied using your name as a reference! Here are the details:</p>
+
+                            <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-family: Arial, sans-serif;">
+                                <tr style="background-color: #2563eb; color: white;">
+                                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Field</th>
+                                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Details</th>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Student Name</td>
+                                    <td style="padding: 10px; border: 1px solid #ddd;">${studentName} ${studentSurname}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Accommodation</td>
+                                    <td style="padding: 10px; border: 1px solid #ddd;">${accommodation}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Status</td>
+                                    <td style="padding: 10px; border: 1px solid #ddd;">Pending Review</td>
+                                </tr>
+                            </table>
+
+                            <p style="margin-top: 20px;">Check your agent dashboard for more details.</p>
+                        </div>
+                    </div>
+                `;
+
+                await transporter.sendMail({
+                    from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+                    to: agent.email,
+                    subject: 'New Recruit Referral - Check Your Dashboard',
+                    html: agentEmail
+                });
+            } catch (agentEmailErr) {
+                console.error('Agent email error:', agentEmailErr);
+            }
+        }
+
+        res.status(201).json({
+            message: 'Application submitted successfully!',
+            recruit: newRecruit,
+            season: activeSeason,
+            agentLinked: !!linkedAgent
+        });
+
+    } catch (err) {
+        console.error('Apply for Accommodation Error:', err.message);
+        res.status(500).json({ message: 'Server error: ' + err.message });
+    }
+});
+
 module.exports = router;

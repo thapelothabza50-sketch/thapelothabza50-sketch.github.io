@@ -94,6 +94,14 @@
                 <label class="label-text">Email Address</label>
                 <input type="email" name="email" required placeholder="name@example.com" class="input-field">
             </div>
+
+            <p class="section-title">Agent Reference (Optional)</p>
+            <div>
+                <label class="label-text">Referenced by Agent (Optional)</label>
+                <input type="text" name="referencedBy" placeholder="Enter your agent's full name (e.g., John Smith)" class="input-field">
+                <p style="font-size: 11px; color: #64748b; margin-top: 4px;">If an agent referred you, ask them for their first and last name to enter here. This helps track their referral and notifies them of your application.</p>
+            </div>
+
             <div>
     <label class="label-text">Room Type Preference</label>
     <select name="roomType" id="room-type-select" required class="input-field">
@@ -173,22 +181,19 @@
     const formData = new FormData(e.target);
     const rawData = Object.fromEntries(formData.entries());
 
-    // 2. Map the data to match your Mongoose Schema (Student.js)
+    // 2. Prepare the data for the new endpoint
     const processedData = {
-        fullName: `${rawData.studentName} ${rawData.studentSurname}`.trim(),
-        email: rawData.email,
-        phone: rawData.phone,            
-        gender: rawData.gender,          
-        studentNumber: rawData.studentNumber,
-        institution: rawData.institution,
-        funding: rawData.funding,        
-        bursaryName: rawData.bursaryName || "",
-        roomType: rawData.roomType,     
-        accommodation: document.getElementById('display-acc').value 
+        studentName: rawData.studentName,
+        studentSurname: rawData.studentSurname,
+        studentEmail: rawData.email,
+        studentPhone: rawData.phone,
+        accommodation: document.getElementById('display-acc').value,
+        moveInDate: rawData.moveInDate,
+        referencedBy: rawData.referencedBy || ''
     };
 
     try {
-        const response = await fetch('https://www.mycampuscollective.me/api/auth/student-apply', {
+        const response = await fetch('/api/auth/apply-for-accommodation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(processedData)
@@ -197,7 +202,7 @@
         const result = await response.json();
 
         if (response.ok) {
-            alert('Application submitted successfully! Check your email.');
+            alert('Application submitted successfully! Check your email for confirmation.');
             window.location.reload();
         } else {
             alert('Submission Failed: ' + (result.message || 'Check server logs'));

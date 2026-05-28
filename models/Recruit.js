@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const RecruitSchema = new mongoose.Schema({
     agent: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Agent',
-        required: true
+        ref: 'Agent'
     },
     // 🏆 SEASON TRACKING: Links recruit to recruitment season
     season: {
@@ -20,6 +19,16 @@ const RecruitSchema = new mongoose.Schema({
     agentId: {
         type: String,
         trim: true
+    },
+    // 🏆 REFERRAL TRACKING: Who referred this recruit
+    referencedByName: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    referencedByAgentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Agent'
     },
     studentName: {
         type: String,

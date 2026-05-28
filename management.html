@@ -84,6 +84,10 @@
         <i class="ri-building-2-line text-xl text-yellow-500"></i> Residence Alerts
     </div>
 
+    <div onclick="switchTab('seasons'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-calendar-line text-xl text-pink-500"></i> Recruitment Seasons
+    </div>
+
     <div onclick="window.location.href='room-check.html'; closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
         <i class="ri-layout-grid-line text-xl text-indigo-500"></i> Room Tracker
     </div>
@@ -138,6 +142,11 @@
             <div onclick="switchTab('residences')" class="sidebar-item">
                 <i class="ri-building-2-line sidebar-icon"></i>
                 <span class="sidebar-text hidden">Residence Alerts</span>
+            </div>
+
+            <div onclick="switchTab('seasons')" class="sidebar-item">
+                <i class="ri-calendar-line sidebar-icon"></i>
+                <span class="sidebar-text hidden">Seasons</span>
             </div>
 
             <div onclick="window.location.href='room-check.html'" class="sidebar-item" style="cursor: pointer;">
@@ -338,6 +347,7 @@
                     <th class="p-3">Phone</th>
                     <th class="p-3">Accommodation</th>
                     <th class="p-3">Agent</th>
+                    <th class="p-3">Referenced By</th>
                     <th class="p-3">Date Applied</th>
                     <th class="p-3">Move‑in Date</th>
                     <th class="p-3">Status</th>
@@ -374,8 +384,70 @@
 </div>
 
 
-<!-- ✅ RESIDENCE ALERTS SECTION -->
-<div id="section-residences" class="hidden space-y-4">
+<!-- ✅ SEASON MANAGEMENT SECTION -->
+<div id="section-seasons" class="hidden space-y-4">
+
+    <h2 class="text-xl font-black text-gray-700">Recruitment Seasons</h2>
+
+    <div class="bg-white rounded-xl shadow border p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Create New Season</h3>
+        <form id="seasonForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <div>
+                <label class="label-text">Season Name</label>
+                <input type="text" id="season-name" name="name" placeholder="e.g., First Semester 2026" required class="input-field">
+            </div>
+
+            <div>
+                <label class="label-text">Semester</label>
+                <select id="season-semester" name="semester" required class="input-field">
+                    <option value="">-- Select Semester --</option>
+                    <option value="First">First Semester</option>
+                    <option value="Second">Second Semester</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="label-text">Year</label>
+                <input type="number" id="season-year" name="year" placeholder="e.g., 2026" required class="input-field">
+            </div>
+
+            <div>
+                <label class="label-text">Start Date</label>
+                <input type="date" id="season-start" name="startDate" required class="input-field">
+            </div>
+
+            <div>
+                <label class="label-text">End Date</label>
+                <input type="date" id="season-end" name="endDate" required class="input-field">
+            </div>
+
+            <div class="flex items-end">
+                <button type="button" onclick="createSeason()" class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-blue-700 transition">
+                    ✅ Create Season
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-xl shadow border overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="p-3 text-left">Season Name</th>
+                    <th class="p-3">Dates</th>
+                    <th class="p-3">Status</th>
+                    <th class="p-3">Recruits</th>
+                    <th class="p-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="season-table-body"></tbody>
+        </table>
+    </div>
+
+</div>
+
+
 
     <h2 class="text-xl font-black text-gray-700">Residence Alerts</h2>
 
@@ -469,6 +541,7 @@
         "recruits",
         "escrow",
         "residences",
+        "seasons",
         "signatures" // Added to list
     ];
 
@@ -495,6 +568,9 @@
     }
     if (tab === "escrow") {
         loadWaterSummary();
+    }
+    if (tab === "seasons") {
+        loadSeasons();
     }
     if (tab === "signatures") {
         fetchSignatures();
@@ -779,21 +855,24 @@ function renderRecruits(data) {
                     ${r.accommodation || 'Not Assigned'}
                 </span>
             </td>
-            
+
          <td class="p-3">
              <div class="text-xs font-bold text-gray-700">
              ${
-              // 1. Check if the object already has the full name
-              r.agent?.fullName || 
-              // 2. If not, try to find the agent in our global allUsers list
-              allUsers.find(u => u._id === (r.agent?._id || r.agent))?.fullName || 
-            // 3. Fallback to 'Direct' if no match is found
+              r.agent?.fullName ||
+              allUsers.find(u => u._id === (r.agent?._id || r.agent))?.fullName ||
             'Direct'
              }
             </div>
             <div class="text-[10px] text-gray-400 italic">
              ${r.agentId || (r.agent?.agentId) || ''}
            </div>
+          </td>
+
+          <td class="p-3">
+             <div class="text-xs font-bold text-gray-600">
+             ${r.referencedByName || '-'}
+            </div>
           </td>
             <td class="p-3 text-xs text-gray-500">
                 ${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'N/A'}
@@ -1593,7 +1672,176 @@ async function handleResidence(mode) {
     alert("Residence handler unchanged — logic preserved.");
 }
 
+// ========================================================================
+// 13B. SEASON MANAGEMENT
+// ========================================================================
 
+async function createSeason() {
+    const name = document.getElementById('season-name').value;
+    const semester = document.getElementById('season-semester').value;
+    const year = document.getElementById('season-year').value;
+    const startDate = document.getElementById('season-start').value;
+    const endDate = document.getElementById('season-end').value;
+
+    if (!name || !semester || !year || !startDate || !endDate) {
+        return alert('Please fill in all season details');
+    }
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/seasons`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                name,
+                semester,
+                year: parseInt(year),
+                startDate,
+                endDate,
+                isActive: false
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            alert('✅ Season created successfully! You can now activate it to start accepting recruits.');
+            document.getElementById('seasonForm').reset();
+            await loadSeasons();
+        } else {
+            alert('Error: ' + (data.message || 'Could not create season'));
+        }
+    } catch (err) {
+        console.error('Create Season Error:', err);
+        alert('Failed to create season: ' + err.message);
+    }
+}
+
+async function activateSeason(seasonId) {
+    if (!confirm('Activate this season? This will deactivate all other seasons and redirect new recruits here.')) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/seasons/${seasonId}/set-active`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (res.ok) {
+            alert('✅ Season activated! New recruits will be assigned to this season.');
+            await loadSeasons();
+            await fetchRecruits(); // Refresh recruits to show new active season
+        } else {
+            const data = await res.json();
+            alert('Error: ' + (data.message || 'Could not activate season'));
+        }
+    } catch (err) {
+        console.error('Activate Season Error:', err);
+        alert('Failed to activate season: ' + err.message);
+    }
+}
+
+async function archiveSeason(seasonId) {
+    if (!confirm('Archive this season? Its recruits will still be visible in the filter.')) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/seasons/${seasonId}/archive`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (res.ok) {
+            alert('✅ Season archived successfully');
+            await loadSeasons();
+        } else {
+            const data = await res.json();
+            alert('Error: ' + (data.message || 'Could not archive season'));
+        }
+    } catch (err) {
+        console.error('Archive Season Error:', err);
+        alert('Failed to archive season: ' + err.message);
+    }
+}
+
+async function loadSeasons() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/seasons`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+            console.error('Season fetch error:', res.status);
+            return;
+        }
+
+        const seasons = await res.json();
+        renderSeasons(seasons);
+
+        // Also update the filter dropdown in recruits section
+        if (document.getElementById('season-filter')) {
+            document.getElementById('season-filter').innerHTML = `
+                <option value="">Active Season</option>
+                ${seasons.map(season => `
+                    <option value="${season._id}">${season.name} (${season.status})</option>
+                `).join('')}
+            `;
+        }
+    } catch (err) {
+        console.error('Load Seasons Error:', err);
+    }
+}
+
+function renderSeasons(seasons) {
+    const tbody = document.getElementById('season-table-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = seasons.map(season => `
+        <tr class="border-b hover:bg-gray-50 transition">
+            <td class="p-3">
+                <div class="font-bold text-gray-800">${season.name}</div>
+                <div class="text-xs text-gray-500">${season.semester} Semester ${season.year}</div>
+            </td>
+            <td class="p-3 text-sm text-gray-600">
+                ${new Date(season.startDate).toLocaleDateString()} — ${new Date(season.endDate).toLocaleDateString()}
+            </td>
+            <td class="p-3">
+                ${season.isActive ? `
+                    <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">🟢 ACTIVE</span>
+                ` : `
+                    <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-bold">${season.status.toUpperCase()}</span>
+                `}
+            </td>
+            <td class="p-3 text-center">
+                <div class="font-bold text-blue-600">${season.totalRecruits || 0}</div>
+                <div class="text-xs text-gray-500">${season.approvedRecruits || 0} approved</div>
+            </td>
+            <td class="p-3">
+                <div class="flex gap-2">
+                    ${!season.isActive ? `
+                        <button onclick="activateSeason('${season._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-700">
+                            ✓ Activate
+                        </button>
+                    ` : ''}
+                    ${season.status !== 'archived' ? `
+                        <button onclick="archiveSeason('${season._id}')" class="bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-orange-700">
+                            📦 Archive
+                        </button>
+                    ` : ''}
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// ========================================================================
+// 14. LOGOUT
 // ------------------------------------------------------------
 // 14. LOGOUT
 // ------------------------------------------------------------
