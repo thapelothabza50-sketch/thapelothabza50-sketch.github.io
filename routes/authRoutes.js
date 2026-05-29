@@ -200,11 +200,16 @@ router.post('/admin-agent/login', async (req, res) => {
 
         res.json({
             token,
-            user: { 
-                id: agent._id, 
-                fullName: agent.fullName, 
+            user: {
+                id: agent._id,
+                fullName: agent.fullName,
+                email: agent.email,
+                phone: agent.phone,
                 role: agent.role,
-                agentId: agent.agentId 
+                agentId: agent.agentId,
+                bankName: agent.banking?.bankName || '',
+                accHolder: agent.banking?.accHolder || '',
+                accNumber: agent.banking?.accNumber || ''
             }
         });
 
@@ -709,7 +714,19 @@ router.put('/update-profile', auth, async (req, res) => {
         agent.phone = phone || agent.phone;
 
         await agent.save();
-        res.json({ message: 'Profile updated successfully', user: agent });
+
+        // Return flattened user object for frontend compatibility
+        const userResponse = {
+            id: agent._id,
+            fullName: agent.fullName,
+            email: agent.email,
+            phone: agent.phone,
+            agentId: agent.agentId,
+            bankName: agent.banking?.bankName || '',
+            accHolder: agent.banking?.accHolder || '',
+            accNumber: agent.banking?.accNumber || ''
+        };
+        res.json({ message: 'Profile updated successfully', user: userResponse });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error updating profile');
@@ -727,16 +744,28 @@ router.put('/update-banking', auth, async (req, res) => {
         const agent = await Agent.findById(req.user.id);
         if (!agent) return res.status(404).json({ message: 'Agent not found' });
 
-        // Assign the new values
-        agent.bankName = bankName;
-        agent.accHolder = accHolder;
-        agent.accNumber = accNumber;
+        // Update nested banking object
+        agent.banking = {
+            bankName: bankName,
+            accHolder: accHolder,
+            accNumber: accNumber,
+            bankPhone: agent.banking?.bankPhone || ''
+        };
 
-        // CRITICAL FIX: Save the changes to the database
-        await agent.save(); 
+        await agent.save();
 
-        // Send back the UPDATED agent object so the frontend can update localStorage
-        res.json({ message: 'Banking details saved', user: agent });
+        // Return flattened user object for frontend compatibility
+        const userResponse = {
+            id: agent._id,
+            fullName: agent.fullName,
+            email: agent.email,
+            phone: agent.phone,
+            agentId: agent.agentId,
+            bankName: agent.banking.bankName,
+            accHolder: agent.banking.accHolder,
+            accNumber: agent.banking.accNumber
+        };
+        res.json({ message: 'Banking details saved', user: userResponse });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error updating banking');
