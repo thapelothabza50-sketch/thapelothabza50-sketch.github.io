@@ -34,14 +34,14 @@ router.get('/current-season', auth, hasRole(['Agent']), async (req, res) => {
  */
 router.post('/submit-recruit', auth, hasRole(['Agent']), async (req, res) => {
     try {
-        const { studentName, studentSurname, studentEmail, accommodation, moveInDate } = req.body;
+        const { studentName, studentSurname, studentEmail, studentPhone, accommodation, moveInDate } = req.body;
 
         const activeSeason = await Season.findOne({ isActive: true });
         if (!activeSeason) {
             return res.status(400).json({ message: 'No active recruitment season. Contact admin.' });
         }
 
-        if (!studentName || !studentSurname || !studentEmail || !accommodation || !moveInDate) {
+        if (!studentName || !studentSurname || !studentEmail || !studentPhone || !accommodation || !moveInDate) {
             return res.status(400).json({ message: 'All fields are required' });
         }
 
@@ -49,6 +49,7 @@ router.post('/submit-recruit', auth, hasRole(['Agent']), async (req, res) => {
             studentName,
             studentSurname,
             studentEmail,
+            studentPhone,
             accommodation,
             moveInDate,
             agent: req.user.id,
