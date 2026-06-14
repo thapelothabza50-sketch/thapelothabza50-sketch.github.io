@@ -180,30 +180,39 @@
 
             // SUCCESS logic loader
             localStorage.setItem('jwtToken', data.token);
-            if (data.user) {
-                localStorage.setItem('userData', JSON.stringify(data.user));
-            }
+if (data.user) {
+    // Gracefully handle legacy agents without institution data assigned
+    const modifiedUser = { ...data.user };
+    if (!modifiedUser.institution || modifiedUser.institution.trim() === "" || modifiedUser.institution.toLowerCase() === "other") {
+        modifiedUser.institution = "UMP";
+    }
+    localStorage.setItem('userData', JSON.stringify(modifiedUser));
+}
             loaderText.textContent = "Accessing Dashboard...";
 
             setTimeout(() => {
-                const userRole = data.role || (data.user && data.user.role);
+    const userObj = data.user || data;
+    const userRole = data.role || (userObj && userObj.role) || '';
+    const isRestricted = userObj && (userObj.isRestrictedAdmin || userObj.isRestricted);
 
-                if (!userRole) {
-                    console.error("Role missing in server response:", data);
-                    alert("Login successful, but user role is missing. Contact support.");
-                    return;
-                }
+    if (!userRole) {
+        console.error("Role missing in server response:", data);
+        alert("Login successful, but user role is missing. Contact support.");
+        return;
+    }
 
-                const role = userRole.toLowerCase();
+    const role = userRole.toLowerCase();
 
-                if (role === 'admin' || role === 'restrictedadmin') {
-                    window.location.href = 'management.html';
-                } else if (role === 'agent') {
-                    window.location.href = 'Agent profil.html';
-                } else {
-                    window.location.href = 'management.html';
-                }
-            }, 1500);
+    if (role === 'restrictedadmin' || isRestricted) {
+        window.location.href = 'restricted-admin-dashboard.html';
+    } else if (role === 'admin') {
+        window.location.href = 'management.html';
+    } else if (role === 'agent') {
+        window.location.href = 'Agent profil.html';
+    } else {
+        window.location.href = 'management.html';
+    }
+}, 1500);
 
         } catch (error) {
             console.error("Login Error:", error);

@@ -130,12 +130,19 @@
                 throw new Error(data.message || 'Login Failed');
             }
 
+           
             // Normal login success
-            localStorage.setItem('jwtToken', data.token);
-            
-            // FIX: If your backend returns 'data.user', use that. 
-            // If it returns 'data' directly, use data.
-            localStorage.setItem('userData', JSON.stringify(data.user || data));
+localStorage.setItem('jwtToken', data.token);
+
+// Extract and check for missing institution payload on legacy agents
+let userObj = data.user || data;
+let modifiedUser = { ...userObj };
+
+if (!modifiedUser.institution || modifiedUser.institution.trim() === "" || modifiedUser.institution.toLowerCase() === "other") {
+    modifiedUser.institution = "UMP";
+}
+
+localStorage.setItem('userData', JSON.stringify(modifiedUser));
             
             showLoader("ACCESS GRANTED...");
             
