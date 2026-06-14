@@ -246,6 +246,12 @@
 
     <h1 style="text-align: center; color: white; margin: 30px 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Available Accommodations</h1>
 
+    <div style="width: 90%; max-width: 1200px; margin: 0 auto 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+        <button onclick="filterByInstitution('UMP')" class="institution-tab active" data-institution="UMP" style="padding: 12px 30px; border: none; background: #ff6600; color: white; border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s;">UMP</button>
+        <button onclick="filterByInstitution('TUT')" class="institution-tab" data-institution="TUT" style="padding: 12px 30px; border: none; background: rgba(255,255,255,0.3); color: white; border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s;">TUT</button>
+        <button onclick="filterByInstitution('VUT')" class="institution-tab" data-institution="VUT" style="padding: 12px 30px; border: none; background: rgba(255,255,255,0.3); color: white; border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s;">VUT</button>
+    </div>
+
     <div class="search-container">
         <select id="search-filter">
             <option value="all">All</option>
@@ -258,225 +264,7 @@
     </div>
 
     <main>
-    <div class="accommodation-grid" id="accommGrid">
-        
-        <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/Mbizeni pool tff.jpg" class="active">
-                <img src="Images/mattafin computer.jpg">
-                <img src="Images/mattafin mbizeni.jpg">
-                <img src="Images/mattafin TV.jpg">
-            </div>
-            <div class="details">
-                <h2>Embizeni Student Accommodation</h2>
-                <p>📍 Location: Mattafin, Likazi, Entokozweni</p>
-                <p>🛏️ Rooms: Single and sharing Rooms</p>
-                <p>💰 Price: R 3,500.00</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★☆</div>
-                <a href="embizeni.html"><button class="more-details">View Full Profile</button></a>
-            </div>
-        </div>
-
-        <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/Boniville cover.jpg" class="active">
-                <img src="Images/Boniville2.jpg">
-                <img src="Images/Boniville3.jpg">
-            </div>
-            <div class="details">
-                <h2>Boniville Residence</h2>
-                <p>📍 Location: Msholozi</p>
-                <p>🛏️ Rooms: Sharing Rooms</p>
-                <p>💰 Price: R 2,800.00</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★★</div>
-                <a href="boniville.html"><button class="more-details">View Full Profile</button></a>
-            </div>
-        </div>
-
-        <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/Mash frnt.jpg" class="active">
-                <img src="Images/mashimula cover .jpg">
-                <img src="Images/mash bulk.jpg">
-            </div>
-            <div class="details">
-                <h2>Mashimula Student Accommodation</h2>
-                <p>📍 Location: Entokozweni and Likazi</p>
-                <p>🛏️ Rooms: Sharing</p>
-                <p>💰 Price: R 3,500.00</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★★</div>
-                <a href="Mashimula.html"><button class="more-details">View Full Profile</button></a>
-            </div>
-        </div>
-
-        <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/cecil ng.jpg" class="active">
-                <img src="Images/cecil cn.jpg">
-                <img src="Images/cecil pool ng.jpg">
-            </div>
-            <div class="details">
-                <h2>Cecil Complex</h2>
-                <p>📍 Location: Ngodini, Msholozi</p>
-                <p>🛏️ Rooms: Singles and sharings</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★★★</div>
-                <a href="cecil.html"><button class="more-details">View Full Profile</button></a>
-            </div>
-        </div>
-
-        <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/vuyani cover.jpg" class="active">
-                <img src="Images/vuyani kitch.jpg">
-                <img src="Images/vuyani bed.jpg">
-            </div>
-            <div class="details">
-                <h2>Vuyani Student Accommodation</h2>
-                <p>📍 Location: Thekwane North</p>
-                <p>🛏️ Rooms: Singles and sharings</p>
-                <p>💰 Price: R 3,800.00</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★☆</div>
-                <a href="vuyani.html"><button class="more-details">View Full Profile</button></a>
-            </div>
-        </div>
-
-        <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/EGP holding main.jpeg" class="active">
-                <img src="Images/EGP holding front.jpeg">
-                <img src="Images/EGP Holdings kitch.jpeg">
-                <img src="Images/EGP holdings bathroom.jpeg">
-            </div>
-            <div class="details">
-                <h2>Eagle Push Holdings</h2>
-                <p>📍 Location: Stonehenge</p>
-                <p>🛏️ Rooms: Singles and sharings</p>
-                <p>💰 Price: R 3,800.00</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★☆</div>
-                <a href="EGP-holding.html"><button class="more-details">View Full Profile</button></a>
-            </div>
-        </div>
-
-        <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/view inn cover.jpeg" class="active">
-                <img src="Images/view inn ext2.jpeg" >
-                <img src="Images/view inn ext 3.jpeg" >
-                <img src="Images/view in sharing.jpg" >
-                <img src="Images/view in single.jpg">
-                <img src="Images/view in kitchen.jpg">
-            </div>
-            <div class="details">
-                <h2>View In</h2>
-                <p>📍 Location: Entokozweni</p>
-                <p>🛏️ Rooms: Singles and sharings</p>
-                <p>💰 Price: R 3,800.00</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★★★</div>
-                <a href="view__in.html"><button class="more-details">View Full Profile</button></a>
-            </div>
-        </div>
-        <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/mbh ext.jpeg" class="active">
-                <img src="Images/mbh ext3.jpeg">
-                <img src="Images/mbh single 1.jpeg">
-                <img src="Images/mbh single bed.jpeg">
-                <img src="Images/mbh room3.jpeg">
-            </div>
-            <div class="details">
-                <h2>MBH Student Accommodation</h2>
-                <p>📍 Location: Entokozweni</p>
-                <p>🛏️ Rooms: Singles and sharings</p>
-                <p>💰 Price: R 3,600.00</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★★★</div>
-                <a href="Mbh.html"><button class="more-details">View Full Profile</button></a>
-            </div>
-        </div>
-         <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/zulu's cover.jpeg" class="active">
-                <img src="Images/zulu's living area.jpeg">
-                <img src="Images/zulu's bed room 1.jpeg">
-                <img src="Images/zulu's back door.jpeg">
-                <img src="Images/zulu's pool.jpeg">
-            </div>
-            <div class="details">
-                <h2>Zulu Town Eagle</h2>
-                <p>📍 Location: Stonehenge</p>
-                <p>🛏️ Rooms: Shared</p>
-                <p>💰 Price: R 3,800.00</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★★★</div>
-                <a href="zulu's res.html"><button class="more-details">View Full Profile</button></a>
-            </div> 
-        </div>
-
-         <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/Nathis ext3.jpeg" class="active">
-                <img src="Images/nathis res cover.jpeg">
-                <img src="Images/nathis kitchen unit.jpeg">
-                <img src="Images/nathis tv.jpeg">
-                <img src="Images/nathis res fridge.jpeg">
-            </div>
-            <div class="details">
-                <h2>Nathis Resident</h2>
-                <p>📍 Location: Stonehenge</p>
-                <p>🛏️ Rooms: Single and Shared rooms</p>
-                <p>💰 Price: R 3,800.00</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★★★</div>
-                <a href="nathis res.htm"><button class="more-details">View Full Profile</button></a>
-            </div> 
-        </div>
-
-         <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/zamkho frnt.jpeg" class="active">
-                <img src="Images/zamkho side.jpeg">
-                <img src="Images/zamkho kitch.jpeg">
-                <img src="Images/zamkho sinle.jpeg">
-                <img src="Images/zamkho main bed.jpeg">
-            </div>
-            <div class="details">
-                <h2>ZAMKHO STUDENT ACCOMMODATION</h2>
-                <p>📍 Location: Westacres</p>
-                <p>🛏️ Rooms: Single and Shared</p>
-                <p>💰 Price: R 3,800.00</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★★★</div>
-                <a href="zamkho res.html"><button class="more-details">View Full Profile</button></a>
-            </div> 
-        </div>
-
-         <div class="accommodation">
-            <div class="slideshow-container">
-                <img src="Images/cheftoto2.jpeg" class="active">
-                <img src="Images/cheiftot kitch().jpeg">
-                <img src="Images/cheiftoto bathroom.jpeg">
-                <img src="Images/cheiftoto bathroom 2.jpeg">
-                <img src="Images/cheiftoto single.jpeg">
-            </div>
-            <div class="details">
-                <h2>chief toto</h2>
-                <p>📍 Location: Stonehenge</p>
-                <p>🛏️ Rooms: Singles</p>
-                <p>💰 Price: R -</p>
-                <p>✔️Accreditation: NSFAS Accredited</p>
-                <div class="rating-stars">★★★★★★</div>
-                <a href="chief-toto.html"><button class="more-details">View Full Profile</button></a>
-            </div> 
-        </div>
-
-    </div>
+    <div class="accommodation-grid" id="accommGrid"></div>
 </main>
 
     <footer>
@@ -484,6 +272,9 @@
     </footer>
 
     <script>
+        let currentInstitution = 'UMP';
+        let allAccommodations = [];
+
         // 🏆 HAMBURGER LOGIC (FROM INDEX.HTML)
         const hamburger = document.getElementById('hamburger');
         const closeBtn = document.getElementById('closeBtn');
@@ -497,6 +288,107 @@
                 navLinks.classList.remove('active');
             }
         });
+
+        // Institution filter function
+        async function filterByInstitution(institution) {
+            currentInstitution = institution;
+            
+            // Update active tab
+            document.querySelectorAll('.institution-tab').forEach(btn => {
+                if (btn.dataset.institution === institution) {
+                    btn.style.background = '#ff6600';
+                    btn.style.color = 'white';
+                } else {
+                    btn.style.background = 'rgba(255,255,255,0.3)';
+                    btn.style.color = 'white';
+                }
+            });
+
+            // Fetch accommodations from API
+            await fetchAccommodationsByInstitution(institution);
+        }
+
+        async function fetchAccommodationsByInstitution(institution) {
+            try {
+                const response = await fetch(`/api/accommodations-public?institution=${encodeURIComponent(institution)}`);
+                if (!response.ok) throw new Error('Failed to fetch');
+                
+                const accommodations = await response.json();
+                allAccommodations = accommodations;
+                renderAccommodations(accommodations);
+            } catch (err) {
+                console.error('Fetch error:', err);
+                renderEmptyState();
+            }
+        }
+
+        function renderAccommodations(accommodations) {
+            const grid = document.getElementById('accommGrid');
+            
+            if (accommodations.length === 0) {
+                renderEmptyState();
+                return;
+            }
+
+            grid.innerHTML = accommodations.map(acc => `
+                <div class="accommodation">
+                    <div class="slideshow-container">
+                        ${acc.images && acc.images.length > 0 ? 
+                            acc.images.map((img, idx) => `<img src="${img}" class="${idx === 0 ? 'active' : ''}">`).join('') 
+                            : '<img src="Images/campus collective logo origin.jpg" class="active">'
+                        }
+                    </div>
+                    <div class="details">
+                        <h2>${acc.name}</h2>
+                        <p>📍 Location: ${acc.location || 'Not specified'}</p>
+                        ${acc.description ? `<p>${acc.description}</p>` : ''}
+                        <p>✔️ Accreditation: ${acc.nsfasAccredited ? 'NSFAS Accredited' : 'Not NSFAS Accredited'}</p>
+                        <div class="rating-stars">★★★★★</div>
+                        <button class="more-details" onclick="viewAccommodation('${acc.slug}')">View Full Profile</button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Initialize slideshows
+            initializeSlideshows();
+        }
+
+        function renderEmptyState() {
+            const grid = document.getElementById('accommGrid');
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.1); border-radius: 20px; backdrop-filter: blur(10px);">
+                    <h2 style="color: white; font-size: 1.8rem; margin-bottom: 15px;">🏢 Coming Soon!</h2>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-bottom: 10px;">Accommodations for <strong>${currentInstitution}</strong> are being added.</p>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.95rem;">Check back soon for available properties or explore other institutions above.</p>
+                    <div style="margin-top: 20px; font-size: 3rem;">⏳</div>
+                </div>
+            `;
+        }
+
+        function initializeSlideshows() {
+            document.querySelectorAll('.slideshow-container').forEach(container => {
+                let currentIndex = 0;
+                const images = container.querySelectorAll('img');
+                if (images.length <= 1) return;
+
+                setInterval(() => {
+                    images[currentIndex].classList.remove('active');
+                    currentIndex = (currentIndex + 1) % images.length;
+                    images[currentIndex].classList.add('active');
+                }, 5000);
+            });
+        }
+
+        function viewAccommodation(slug) {
+            // Navigate to accommodation detail page or modal
+            window.location.href = `accommodation-template.html?slug=${slug}`;
+        }
+
+        // Load accommodations on page load
+        window.addEventListener('load', () => {
+            fetchAccommodationsByInstitution('UMP');
+        });
+    </script>
 
         // Slideshow Logic
         document.querySelectorAll('.slideshow-container').forEach(container => {
