@@ -51,6 +51,7 @@ router.post('/submit-recruit', auth, hasRole(['Agent']), async (req, res) => {
             studentEmail,
             studentPhone,
             accommodation,
+            institution: req.user.institution || 'Other',
             moveInDate,
             agent: req.user.id,
             agentId: req.user.agentId || '',
@@ -87,7 +88,7 @@ router.get('/my-recruits', auth, hasRole(['Agent']), async (req, res) => {
         const activeSeason = await Season.findOne({ isActive: true });
         const { seasonId } = req.query;
 
-        const filter = { agent: req.user.id };
+        const filter = { $or: [ { agent: req.user.id }, { referencedByAgentId: req.user.id } ] };
         let seasonToReturn = activeSeason;
 
         if (seasonId) {
@@ -120,7 +121,7 @@ router.get('/my-recruits', auth, hasRole(['Agent']), async (req, res) => {
  */
 router.get('/my-recruits/all', auth, hasRole(['Agent']), async (req, res) => {
     try {
-        const recruits = await Recruit.find({ agent: req.user.id })
+        const recruits = await Recruit.find({ $or: [ { agent: req.user.id }, { referencedByAgentId: req.user.id } ] })
             .populate('season', 'name semester year status isActive')
             .sort({ createdAt: -1 });
 
@@ -151,7 +152,7 @@ router.get('/my-recruits/all', auth, hasRole(['Agent']), async (req, res) => {
  */
 router.get('/recruit-stats', auth, hasRole(['Agent']), async (req, res) => {
     try {
-        const allRecruits = await Recruit.find({ agent: req.user.id })
+        const allRecruits = await Recruit.find({ $or: [ { agent: req.user.id }, { referencedByAgentId: req.user.id } ] })
             .populate('season', 'name isActive');
 
         const currentSeasonRecruits = allRecruits.filter(r => r.season?.isActive);

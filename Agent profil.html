@@ -128,23 +128,7 @@
         <input type="tel" id="studentPhone" name="studentPhone" placeholder="Phone (e.g. 012 345 6789)" required class="w-full p-4 border rounded-2xl bg-gray-50">
         
         <select name="accommodation" id="acc-select" required class="w-full p-4 border rounded-2xl bg-gray-50" onchange="checkOther(this)">
-            <option value="" disabled selected>Select from listed properties...</option>
-                <option value="Vuyani Student Accomodation">Vuyani Student Accomodation</option>
-                <option value="Embizeni Student Accomodation (Matt)">Embizeni Student Accomodation (Matt)</option>
-                <option value="Embizeni Student Accomodation (likazi 1)">Embizeni Student Accomodation (likazi 1)</option>
-                <option value="Embizeni Student Accomodation (likaz 2)">Embizeni Student Accomodation (likaz 2)</option>
-                <option value="Embizeni Student Accomodation (Entokozweni)">Embizeni Student Accomodation (Entokozweni)</option>
-                <option value="View Inn Student accommodation">View Inn Student accommodation</option>
-                <option value="Mashimula Student Accommodation (Likazi)">Mashimula Student Accommodation (Likazi)</option>
-                <option value="Mashimula Student Accommodation (Entokozweni)">Mashimula Student Accommodation (Entokozweni)</option>
-                <option value="Cecil Complex">Cecil Complex</option>
-                <option value="Boniville Student Acc">Boniville Student Acc</option>
-                <option value="Paballo Student Acc">Paballo Student Acc</option>
-                <option value="EGP-holdings">EGP-holdings</option>
-                <option value="Zulu's res">Zulu's res</option>
-                <option value="Nathis Res">Nathis Res</option>
-                <option value="MBH">MBH</option>
-                <option value="not listed">Other (Not Listed Above)</option>
+            <option value="" disabled selected>Loading properties...</option>
         </select>
         <input type="text" id="manual-acc" name="manualAccommodation" placeholder="Enter Name" class="w-full p-4 border border-blue-400 rounded-2xl hidden mt-2">
 
@@ -157,7 +141,7 @@
 
 <div id="sidebar">
     <div class="flex justify-between items-center mb-10">
-        <h2 class="text-xl font-black text-blue-600">AGENT HUB</h2>
+        <h2 id="agent-hub-title" class="text-xl font-black text-blue-600">AGENT HUB</h2>
         <button onclick="toggleSidebar()" class="text-3xl">&times;</button>
     </div>
 
@@ -166,6 +150,7 @@
             <div id="side-initials" class="w-10 h-10 bg-blue-600 text-white flex items-center justify-center rounded-full font-bold text-sm">..</div>
             <div>
                 <p id="side-name" class="font-bold text-gray-800 leading-tight">Loading...</p>
+                <p id="side-institution" class="text-[10px] text-gray-500 uppercase tracking-[0.15em]">Institution: ---</p>
                 <p id="side-id" class="text-[10px] text-blue-600 font-mono">ID: ---</p>
             </div>
         </div>
@@ -293,6 +278,32 @@
             }
         } catch (err) {
             console.error('Season list fetch failed:', err);
+        }
+    }
+
+    async function fetchAccommodationOptions() {
+        const user = JSON.parse(localStorage.getItem('userData') || '{}');
+        const institution = user.institution || '';
+        const query = institution ? `?institution=${encodeURIComponent(institution)}` : '';
+
+        try {
+            const response = await fetch(`/api/accommodations-public${query}`);
+            if (!response.ok) {
+                console.error('Accommodation fetch failed:', await response.text());
+                return;
+            }
+            const accommodations = await response.json();
+            const accSelect = document.getElementById('acc-select');
+            if (!accSelect) return;
+
+            const options = [`
+                <option value="" disabled selected>Select from listed properties...</option>
+                ${accommodations.map(acc => `<option value="${acc.name}">${acc.name} (${acc.institution || 'Other'})</option>`).join('')}
+                <option value="not listed">Other (Not Listed Above)</option>
+            `];
+            accSelect.innerHTML = options.join('');
+        } catch (err) {
+            console.error('Fetch accommodation options error:', err);
         }
     }
 
@@ -528,9 +539,11 @@ function toggleSection(sectionId) {
         // Update Profile Displays
         document.getElementById('side-name').innerText = user.fullName || "Agent";
         document.getElementById('side-id').innerText = "ID: " + (user.agentId || "---");
+        document.getElementById('side-institution').innerText = `Institution: ${user.institution || 'N/A'}`;
         const initials = (user.fullName || "A").split(' ').map(n=>n[0]).join('').toUpperCase();
         document.getElementById('side-initials').innerText = initials.substring(0,2);
         document.getElementById('agent-initials').innerText = initials.substring(0,2);
+        document.getElementById('agent-hub-title').innerText = user.institution === 'VUT' ? 'VUT Agent Portal' : 'AGENT HUB';
 
         // Pre-fill Profile Form
         document.getElementById('edit-fullname').value = user.fullName || "";
@@ -559,6 +572,7 @@ window.onclick = resetTimer;
         if(!getToken()) return logout();
         setupPhoneMask();
         await fetchAgentSeasons();
+        await fetchAccommodationOptions();
         fetchAgentData();
         syncSidebarData(); 
         resetTimer();

@@ -1,10 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { auth, hasRole } = require('../middleware/auth'); 
+const { auth, hasRole } = require('../middleware/auth');
 const Seller = require('../models/Seller');
-const Agent = require('../models/Agent'); 
+const Agent = require('../models/Agent');
 const Recruit = require('../models/Recruit');
 const Season = require('../models/Season');
+const Accommodation = require('../models/Accommodation');
+const Upload = require('../models/Upload');
+const Landlord = require('../models/Landlord');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
 // --- GET ALL PROFILES ---
 // This allows admin to see the new banking details in the management dashboard
@@ -52,6 +58,7 @@ router.post('/submit-recruit', auth, async (req, res) => {
             studentSurname,
             studentEmail,
             accommodation,
+            institution: req.user.institution || 'Other',
             moveInDate,
             agent: req.user.id,
             status: 'Pending',
@@ -70,7 +77,7 @@ router.post('/submit-recruit', auth, async (req, res) => {
 router.get('/recruits', auth, async (req, res) => {
     try {
         let filter = {};
-        if (req.user.role !== 'Admin') {
+        if (req.user.role.toLowerCase() !== 'admin') {
             filter = { agent: req.user.id };
         }
         const recruits = await Recruit.find(filter).sort({ createdAt: -1 });
@@ -340,7 +347,7 @@ router.get('/recruits/all-with-seasons', auth, hasRole(['Admin']), async (req, r
  * @desc    Smart dashboard - active season recruits + filter for past
  * @access  Private (Admin Only)
  */
-router.get('/dashboard/recruits', auth, hasRole(['Admin']), async (req, res) => {
+router.get('/dashboard/recruits', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
     try {
         const { seasonId, status } = req.query;
         
@@ -355,6 +362,11 @@ router.get('/dashboard/recruits', auth, hasRole(['Admin']), async (req, res) => 
             if (activeSeason) {
                 filter.season = activeSeason._id;
             }
+        }
+        
+        // Restricted admins only see their own recruits
+        if (req.user.role.toLowerCase() !== 'admin') {
+            filter.agent = req.user.id;
         }
         
         // Filter by status if provided
@@ -378,6 +390,419 @@ router.get('/dashboard/recruits', auth, hasRole(['Admin']), async (req, res) => 
     } catch (err) {
         console.error('Dashboard Error:', err.message);
         res.status(500).json({ message: 'Error fetching dashboard data' });
+    }
+});
+
+// ========================================================================
+// 🏢 ACCOMMODATION MANAGEMENT ROUTES
+// ========================================================================
+
+// Multer configuration for accommodation image uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+
+const upload = multer({ storage: storage });
+
+const contractStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../uploads/admin-files');
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const sanitized = file.originalname.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, '');
+        cb(null, `${Date.now()}-${sanitized}`);
+    }
+});
+const fileUpload = multer({ storage: contractStorage });
+
+// Helper function to generate slug from name
+function generateSlug(name) {
+    return name
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+}
+
+// Helper function to generate HTML file from template
+function generateAccommodationHTML(accommodation) {
+    try {
+        let template = fs.readFileSync(path.join(__dirname, '../accommodation-template.html'), 'utf8');
+
+        // Generate gallery images HTML
+        const galleryImages = accommodation.images.map(img =>
+            `<img src="${img}" alt="${accommodation.name}" class="gallery-img">`
+        ).join('');
+
+        // Generate room types HTML
+        const roomTypesHtml = accommodation.roomTypes.map(room => `
+            <div class="card p-6 room-card">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">${room.type} Room</h3>
+                <p class="text-2xl font-black text-blue-600 mb-2">R ${room.pricePerMonth}/month</p>
+                <p class="text-gray-600 text-sm mb-4">Available: ${room.availability} room(s)</p>
+                ${room.amenities && room.amenities.length > 0 ? `
+                    <div class="text-xs space-y-1">
+                        ${room.amenities.map(amenity => `<p>✓ ${amenity}</p>`).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+
+        // Generate amenities HTML
+        const amenitiesHtml = accommodation.amenities.map(amenity =>
+            `<div class="p-3 bg-blue-50 rounded-lg text-center font-bold text-gray-700">✓ ${amenity}</div>`
+        ).join('');
+
+        // NSFAS badge
+        const nsfasAccreditedBadge = accommodation.nsfasAccredited
+            ? '<div class="inline-block bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-bold mb-4">✓ NSFAS Accredited</div>'
+            : '';
+
+        // Replace placeholders
+        let html = template
+            .replace(/{{name}}/g, accommodation.name)
+            .replace(/{{nameEncoded}}/g, encodeURIComponent(accommodation.name))
+            .replace(/{{description}}/g, accommodation.description)
+            .replace(/{{location}}/g, accommodation.location)
+            .replace(/{{contactPhone}}/g, accommodation.contactPhone)
+            .replace(/{{contactEmail}}/g, accommodation.contactEmail)
+            .replace(/{{mainImage}}/g, accommodation.images[0] || 'Images/placeholder.jpg')
+            .replace(/{{galleryImages}}/g, galleryImages)
+            .replace(/{{roomTypesHtml}}/g, roomTypesHtml)
+            .replace(/{{amenitiesHtml}}/g, amenitiesHtml)
+            .replace(/{{nsfasAccreditedBadge}}/g, nsfasAccreditedBadge);
+
+        return html;
+    } catch (err) {
+        console.error('HTML Generation Error:', err.message);
+        return null;
+    }
+}
+
+/**
+ * @route   POST /api/admin/accommodations
+ * @desc    Create new accommodation with images
+ * @access  Private (Admin Only)
+ */
+router.post('/accommodations', auth, hasRole(['Admin', 'RestrictedAdmin']), upload.array('images'), async (req, res) => {
+    try {
+        const { name, location, description, roomTypes, amenities, nsfasAccredited, contactPhone, contactEmail, landlordId, institution } = req.body;
+
+        // Validate required fields
+        if (!name || !location) {
+            return res.status(400).json({ message: 'Name and location are required' });
+        }
+
+        // Validate landlord exists if provided
+        if (landlordId) {
+            const landlord = await Landlord.findById(landlordId);
+            if (!landlord) {
+                return res.status(400).json({ message: 'Selected landlord not found' });
+            }
+        }
+
+        // Generate slug and check if accommodation already exists
+        const slug = generateSlug(name);
+        const existingAccommodation = await Accommodation.findOne({ slug });
+        if (existingAccommodation) {
+            return res.status(400).json({ message: 'An accommodation with this name already exists' });
+        }
+
+        // Get image URLs from uploaded files
+        const imageUrls = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+
+        // Parse room types and amenities (they come as JSON strings from form)
+        let parsedRoomTypes = [];
+        let parsedAmenities = [];
+
+        if (roomTypes) {
+            parsedRoomTypes = typeof roomTypes === 'string' ? JSON.parse(roomTypes) : roomTypes;
+        }
+        if (amenities) {
+            parsedAmenities = typeof amenities === 'string' ? JSON.parse(amenities) : amenities;
+        }
+
+        // Create accommodation
+        const newAccommodation = new Accommodation({
+            name,
+            slug,
+            location,
+            institution: institution || 'Other',
+            description: description || '',
+            images: imageUrls,
+            roomTypes: parsedRoomTypes,
+            amenities: parsedAmenities,
+            nsfasAccredited: nsfasAccredited === 'true' || nsfasAccredited === true,
+            contactPhone: contactPhone || '',
+            contactEmail: contactEmail || '',
+            landlordId: landlordId || null
+        });
+
+        await newAccommodation.save();
+
+        // Generate HTML file
+        const html = generateAccommodationHTML(newAccommodation);
+        if (html) {
+            const filePath = path.join(__dirname, `../${slug}.html`);
+            fs.writeFileSync(filePath, html, 'utf8');
+            newAccommodation.htmlPageGenerated = true;
+            await newAccommodation.save();
+        }
+
+        res.status(201).json({
+            message: 'Accommodation created successfully',
+            accommodation: newAccommodation,
+            pageUrl: `/${slug}.html`
+        });
+    } catch (err) {
+        console.error('Accommodation Creation Error:', err.message);
+        res.status(500).json({ message: 'Server error: ' + err.message });
+    }
+});
+
+/**
+ * @route   GET /api/admin/accommodations
+ * @desc    Get all accommodations (for admin dashboard)
+ * @access  Private (Admin Only)
+ */
+router.get('/accommodations', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
+    try {
+        const filter = {};
+        if (req.query.institution) {
+            filter.institution = req.query.institution;
+        }
+        if (req.user.role.toLowerCase() !== 'admin') {
+            filter.institution = req.user.institution || req.query.institution || filter.institution;
+        }
+        const accommodations = await Accommodation.find(filter)
+            .populate('landlordId', 'fullName email')
+            .sort({ createdAt: -1 });
+
+        res.json(accommodations);
+    } catch (err) {
+        console.error('Fetch Accommodations Error:', err.message);
+        res.status(500).json({ message: 'Error fetching accommodations' });
+    }
+});
+
+/**
+ * @route   GET /api/accommodations
+ * @desc    Get all active accommodations (public, for agent dashboard)
+ * @access  Public
+ */
+router.get('/accommodations-public', async (req, res) => {
+    try {
+        const filter = { isActive: true };
+        if (req.query.institution) {
+            filter.institution = req.query.institution;
+        }
+        const accommodations = await Accommodation.find(filter)
+            .sort({ createdAt: -1 });
+
+        res.json(accommodations);
+    } catch (err) {
+        console.error('Fetch Public Accommodations Error:', err.message);
+        res.status(500).json({ message: 'Error fetching accommodations' });
+    }
+});
+
+/**
+ * @route   GET /api/accommodations/:slug
+ * @desc    Get single accommodation by slug
+ * @access  Public
+ */
+router.get('/accommodations-detail/:slug', async (req, res) => {
+    try {
+        const accommodation = await Accommodation.findOne({ slug: req.params.slug })
+            .populate('landlordId', 'fullName email phone');
+
+        if (!accommodation) {
+            return res.status(404).json({ message: 'Accommodation not found' });
+        }
+
+        res.json(accommodation);
+    } catch (err) {
+        console.error('Fetch Accommodation Detail Error:', err.message);
+        res.status(500).json({ message: 'Error fetching accommodation' });
+    }
+});
+
+/**
+ * @route   PUT /api/admin/accommodations/:id
+ * @desc    Update accommodation
+ * @access  Private (Admin Only)
+ */
+router.put('/accommodations/:id', auth, hasRole(['Admin', 'RestrictedAdmin']), upload.array('images'), async (req, res) => {
+    try {
+        const { name, location, description, roomTypes, amenities, nsfasAccredited, contactPhone, contactEmail, landlordId, institution } = req.body;
+
+        let accommodation = await Accommodation.findById(req.params.id);
+        if (!accommodation) {
+            return res.status(404).json({ message: 'Accommodation not found' });
+        }
+
+        // Validate landlord if provided
+        if (landlordId && landlordId !== accommodation.landlordId.toString()) {
+            const landlord = await Landlord.findById(landlordId);
+            if (!landlord) {
+                return res.status(400).json({ message: 'Selected landlord not found' });
+            }
+        }
+
+        // Update fields
+        if (name) accommodation.name = name;
+        if (location) accommodation.location = location;
+        if (description !== undefined) accommodation.description = description;
+        if (nsfasAccredited !== undefined) accommodation.nsfasAccredited = nsfasAccredited === 'true' || nsfasAccredited === true;
+        if (contactPhone) accommodation.contactPhone = contactPhone;
+        if (contactEmail) accommodation.contactEmail = contactEmail;
+        if (landlordId) accommodation.landlordId = landlordId;
+        if (institution) accommodation.institution = institution;
+
+        // Add new images (keep existing ones)
+        if (req.files && req.files.length > 0) {
+            const newImageUrls = req.files.map(file => `/uploads/${file.filename}`);
+            accommodation.images = [...accommodation.images, ...newImageUrls];
+        }
+
+        // Update room types and amenities if provided
+        if (roomTypes) {
+            accommodation.roomTypes = typeof roomTypes === 'string' ? JSON.parse(roomTypes) : roomTypes;
+        }
+        if (amenities) {
+            accommodation.amenities = typeof amenities === 'string' ? JSON.parse(amenities) : amenities;
+        }
+
+        await accommodation.save();
+
+        // Regenerate HTML file
+        const html = generateAccommodationHTML(accommodation);
+        if (html) {
+            const filePath = path.join(__dirname, `../${accommodation.slug}.html`);
+            fs.writeFileSync(filePath, html, 'utf8');
+        }
+
+        res.json({
+            message: 'Accommodation updated successfully',
+            accommodation
+        });
+    } catch (err) {
+        console.error('Accommodation Update Error:', err.message);
+        res.status(500).json({ message: 'Server error: ' + err.message });
+    }
+});
+
+/**
+ * @route   DELETE /api/admin/accommodations/:id
+ * @desc    Delete accommodation
+ * @access  Private (Admin Only)
+ */
+router.delete('/accommodations/:id', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const accommodation = await Accommodation.findById(req.params.id);
+        if (!accommodation) {
+            return res.status(404).json({ message: 'Accommodation not found' });
+        }
+
+        // Delete HTML file
+        const filePath = path.join(__dirname, `../${accommodation.slug}.html`);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        // Delete accommodation from database
+        await Accommodation.findByIdAndDelete(req.params.id);
+
+        res.json({ message: 'Accommodation deleted successfully' });
+    } catch (err) {
+        console.error('Accommodation Delete Error:', err.message);
+        res.status(500).json({ message: 'Server error: ' + err.message });
+    }
+});
+
+/**
+ * @route   PUT /api/admin/agent/:id/role
+ * @desc    Flag an agent as restricted admin or update institution
+ * @access  Private (Admin Only)
+ */
+router.put('/agent/:id/role', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const { institution, isRestrictedAdmin } = req.body;
+        const update = {};
+        if (institution) update.institution = institution;
+        if (typeof isRestrictedAdmin !== 'undefined') {
+            update.isRestrictedAdmin = Boolean(isRestrictedAdmin);
+            update.role = isRestrictedAdmin ? 'RestrictedAdmin' : 'Agent';
+        }
+
+        const agent = await Agent.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password');
+        if (!agent) return res.status(404).json({ message: 'Agent not found' });
+
+        res.json({ message: 'Agent role updated successfully', agent });
+    } catch (err) {
+        console.error('Agent Role Update Error:', err.message);
+        res.status(500).json({ message: 'Error updating agent role' });
+    }
+});
+
+/**
+ * @route   POST /api/admin/uploads
+ * @desc    Upload a contract or progress report
+ * @access  Private (Admin & RestrictedAdmin)
+ */
+router.post('/uploads', auth, hasRole(['Admin', 'RestrictedAdmin']), fileUpload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'File upload is required' });
+        }
+
+        const { category, institution } = req.body;
+        const uploadRecord = new Upload({
+            originalName: req.file.originalname,
+            fileName: req.file.filename,
+            url: `/uploads/admin-files/${req.file.filename}`,
+            category: category || 'Other',
+            institution: institution || 'Other',
+            uploadedBy: req.user.id,
+            uploadedByName: req.user.fullName || req.user.agentId || 'Unknown',
+            uploadedByRole: req.user.role || 'Agent'
+        });
+
+        await uploadRecord.save();
+        res.status(201).json({ message: 'File uploaded successfully', upload: uploadRecord });
+    } catch (err) {
+        console.error('Upload Error:', err.message);
+        res.status(500).json({ message: 'Error uploading file' });
+    }
+});
+
+/**
+ * @route   GET /api/admin/uploads
+ * @desc    Get uploaded contracts and reports
+ * @access  Private (Admin & RestrictedAdmin)
+ */
+router.get('/uploads', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
+    try {
+        const filter = {};
+        if (req.user.role.toLowerCase() !== 'admin') {
+            filter.uploadedBy = req.user.id;
+        }
+        if (req.query.institution) {
+            filter.institution = req.query.institution;
+        }
+        const uploads = await Upload.find(filter).sort({ createdAt: -1 });
+        res.json(uploads);
+    } catch (err) {
+        console.error('Fetch Uploads Error:', err.message);
+        res.status(500).json({ message: 'Error fetching uploads' });
     }
 });
 
