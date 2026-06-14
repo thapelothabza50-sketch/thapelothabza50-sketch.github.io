@@ -492,6 +492,7 @@
 
     <script>
         let currentInstitution = 'UMP';
+        const umpMarkup = document.getElementById('accommGrid').innerHTML;
 
         // 🏆 HAMBURGER LOGIC (FROM INDEX.HTML)
         const hamburger = document.getElementById('hamburger');
@@ -524,16 +525,15 @@
 
             const grid = document.getElementById('accommGrid');
 
-            // If UMP, show hardcoded accommodations
+            // If UMP, restore hardcoded accommodation cards
             if (institution === 'UMP') {
-                document.querySelectorAll('.accommodation').forEach(acc => {
-                    acc.style.display = acc.dataset.institution === 'UMP' ? 'flex' : 'none';
-                });
+                grid.innerHTML = umpMarkup;
                 initializeSlideshows();
-            } else {
-                // For TUT and VUT, fetch from API
-                await fetchAccommodationsByInstitution(institution);
+                return;
             }
+
+            // For TUT and VUT, fetch from API
+            await fetchAccommodationsByInstitution(institution);
         }
 
         async function fetchAccommodationsByInstitution(institution) {
@@ -613,18 +613,15 @@
         const searchBtn = document.getElementById('search-btn');
         const searchBar = document.getElementById('search-bar');
         const filter = document.getElementById('search-filter');
-        const cards = document.querySelectorAll('.accommodation');
 
         function performSearch() {
             let val = searchBar.value.toLowerCase();
             let type = filter.value;
             document.querySelectorAll('.accommodation').forEach(card => {
-                if (card.style.display === 'none' && currentInstitution === 'UMP') return;
-                
                 let name = card.querySelector('h2').innerText.toLowerCase();
-                let loc = card.querySelectorAll('p')[0].innerText.toLowerCase();
+                let loc = card.querySelectorAll('p')[0] ? card.querySelectorAll('p')[0].innerText.toLowerCase() : '';
                 let rooms = card.querySelectorAll('p')[1] ? card.querySelectorAll('p')[1].innerText.toLowerCase() : '';
-                
+
                 let match = (type === 'all' && (name.includes(val) || loc.includes(val))) ||
                             (type === 'name' && name.includes(val)) ||
                             (type === 'location' && loc.includes(val)) ||
