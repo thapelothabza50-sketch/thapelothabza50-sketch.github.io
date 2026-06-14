@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restricted Admin Portal | Campus Collective</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css">
+    <style>
+        body { background: #f1f5f9; }
+        .sidebar-expanded { width: 240px; }
+        .sidebar-collapsed { width: 70px; }
+        .sidebar-item { @apply flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition; cursor: pointer !important; }
+        .sidebar-item * { cursor: pointer !important; }
+        #mobileSidebar { transition: opacity 0.25s ease-in-out, visibility 0.25s; }
+        #mobileSidebar.open { visibility: visible !important; opacity: 1 !important; }
+        #mobileSidebar.open #mobileDrawer { transform: translateX(0); }
+    </style>
+</head>
+<body class="flex">
+
+    <!-- MOBILE SIDEBAR -->
+    <div id="mobileSidebar" class="fixed inset-0 z-40 bg-black/50 lg:hidden transition-opacity duration-300" style="visibility: hidden; opacity: 0;">
+        <div class="bg-white h-full w-72 p-6 shadow-2xl transform -translate-x-full transition-transform duration-300" id="mobileDrawer">
+            <div class="flex justify-between items-center mb-8 border-b pb-4">
+                <h1 class="text-blue-600 font-black text-xl flex items-center gap-2 uppercase tracking-tighter">
+                    <img src="Images/Campus collective logo origin.jpg" class="w-10 h-10 rounded-full border-2 border-blue-100">
+                    Restricted Admin
+                </h1>
+                <button onclick="closeMobileMenu()" class="text-gray-400 text-2xl">&times;</button>
+            </div>
+            <nav class="space-y-3 overflow-y-auto" style="max-height: 80vh;">
+                <div onclick="switchTab('agents'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+                    <i class="ri-user-3-line text-xl text-blue-500"></i> Add Agents
+                </div>
+                <div onclick="switchTab('recruits'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+                    <i class="ri-team-line text-xl text-emerald-500"></i> My Recruits
+                </div>
+                <div onclick="switchTab('residences'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+                    <i class="ri-building-2-line text-xl text-yellow-500"></i> Accommodations
+                </div>
+                <div onclick="switchTab('documents'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+                    <i class="ri-file-upload-line text-xl text-purple-500"></i> Documents
+                </div>
+                <hr class="my-2 border-gray-100">
+                <div onclick="logout()" class="flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 text-red-600 font-bold transition cursor-pointer">
+                    <i class="ri-logout-circle-line text-xl"></i> Logout
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <!-- DESKTOP SIDEBAR -->
+    <aside id="desktopSidebar" class="hidden lg:flex flex-col bg-gray-900 text-gray-100 sidebar-expanded transition-all duration-300 overflow-y-auto h-screen">
+        <div class="p-4 border-b border-gray-700">
+            <h1 class="font-black text-lg text-blue-400 flex items-center gap-2 uppercase tracking-widest">
+                <img src="Images/Campus collective logo origin.jpg" class="w-10 h-10 rounded-full border-2 border-blue-500">
+                <span class="sidebar-text">Restricted Admin</span>
+            </h1>
+        </div>
+        <nav class="flex-1 space-y-2 p-4">
+            <div onclick="switchTab('agents')" class="sidebar-item">
+                <i class="ri-user-3-line text-lg"></i>
+                <span class="sidebar-text hidden">Add Agents</span>
+            </div>
+            <div onclick="switchTab('recruits')" class="sidebar-item">
+                <i class="ri-team-line text-lg"></i>
+                <span class="sidebar-text hidden">My Recruits</span>
+            </div>
+            <div onclick="switchTab('residences')" class="sidebar-item">
+                <i class="ri-building-2-line text-lg"></i>
+                <span class="sidebar-text hidden">Accommodations</span>
+            </div>
+            <div onclick="switchTab('documents')" class="sidebar-item">
+                <i class="ri-file-upload-line text-lg"></i>
+                <span class="sidebar-text hidden">Documents</span>
+            </div>
+        </nav>
+        <div class="p-4 border-t border-gray-700">
+            <div onclick="logout()" class="sidebar-item hover:bg-red-600">
+                <i class="ri-logout-circle-line text-lg"></i>
+                <span class="sidebar-text hidden">Logout</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto flex flex-col">
+        <header class="bg-white shadow-sm border-b border-gray-200 p-4 flex items-center justify-between lg:flex hidden">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleMobileMenu()" class="lg:hidden text-gray-600 text-2xl">☰</button>
+                <h1 class="text-2xl font-black text-gray-700">Restricted Admin Portal</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="adminName" class="text-gray-700 font-bold">Admin</span>
+                <img id="adminAvatar" src="Images/Campus collective logo origin.jpg" class="w-10 h-10 rounded-full border-2 border-blue-500">
+            </div>
+        </header>
+
+        <!-- STATS SECTION -->
+        <section id="statsSection" class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4">
+            <div class="bg-white rounded-xl shadow p-4 border-l-4 border-blue-600">
+                <p class="text-xs text-gray-500 uppercase font-bold">Agents Added</p>
+                <h2 id="stat-agents" class="text-2xl font-black">0</h2>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 border-l-4 border-emerald-600">
+                <p class="text-xs text-gray-500 uppercase font-bold">Recruits</p>
+                <h2 id="stat-recruits" class="text-2xl font-black">0</h2>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 border-l-4 border-yellow-600">
+                <p class="text-xs text-gray-500 uppercase font-bold">Accommodations</p>
+                <h2 id="stat-accommodations" class="text-2xl font-black">0</h2>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 border-l-4 border-purple-600">
+                <p class="text-xs text-gray-500 uppercase font-bold">Documents</p>
+                <h2 id="stat-documents" class="text-2xl font-black">0</h2>
+            </div>
+        </section>
+
+        <!-- CONTENT AREA -->
+        <section id="contentArea" class="p-4 space-y-8 flex-1">
+
+            <!-- AGENTS SECTION -->
+            <div id="section-agents" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-black text-gray-700">Add Internal Agents</h2>
+                </div>
+                
+                <div class="bg-white rounded-xl border shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Register New Agent</h3>
+                    <form id="agentForm" class="space-y-4" onsubmit="createAgent(event)">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input id="agentId" name="agentId" type="text" placeholder="Agent ID (Student Number)" class="p-3 border rounded-lg w-full" required>
+                            <input id="agentEmail" name="email" type="email" placeholder="Email Address" class="p-3 border rounded-lg w-full" required>
+                            <input id="agentName" name="fullName" type="text" placeholder="Full Name" class="p-3 border rounded-lg w-full" required>
+                            <input id="agentPhone" name="phone" type="tel" placeholder="Phone Number" class="p-3 border rounded-lg w-full" required>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-blue-700 transition">Register Agent</button>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-xl border shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Registered Agents</h3>
+                    <div id="agent-list" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- RECRUITS SECTION -->
+            <div id="section-recruits" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-black text-gray-700">My Recruits</h2>
+                    <button onclick="downloadRecruitsPDF()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700">Download PDF</button>
+                </div>
+
+                <div class="bg-white rounded-xl border shadow overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100 border-b">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-700">Student Name</th>
+                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-700">Email</th>
+                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-700">Phone</th>
+                                <th class="px-6 py-3 text-left text-sm font-bold text-gray-700">Status</th>
+                                <th class="px-6 py-3 text-right text-sm font-bold text-gray-700">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recruit-table-body" class="divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ACCOMMODATIONS SECTION -->
+            <div id="section-residences" class="hidden space-y-6">
+                <h2 class="text-2xl font-black text-gray-700">Accommodation Management</h2>
+
+                <div class="bg-white rounded-xl border shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Create Accommodation</h3>
+                    <form id="accommodationForm" class="space-y-4" onsubmit="createAccommodation(event)">
+                        <div class="grid grid-cols-1 gap-4">
+                            <input id="accName" name="name" type="text" placeholder="Accommodation Name" class="p-3 border rounded-lg w-full" required>
+                            <input id="accLocation" name="location" type="text" placeholder="Location" class="p-3 border rounded-lg w-full" required>
+                            <textarea id="accDescription" name="description" rows="4" placeholder="Short description" class="p-3 border rounded-lg w-full"></textarea>
+                            <input id="accContactPhone" name="contactPhone" type="text" placeholder="Contact Phone" class="p-3 border rounded-lg w-full">
+                            <input id="accContactEmail" name="contactEmail" type="email" placeholder="Contact Email" class="p-3 border rounded-lg w-full">
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-green-700 transition">Add Accommodation</button>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-xl border shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">My Accommodations</h3>
+                    <div id="accommodation-list" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- DOCUMENTS SECTION -->
+            <div id="section-documents" class="hidden space-y-6">
+                <h2 class="text-2xl font-black text-gray-700">Document Management</h2>
+
+                <div class="bg-white rounded-xl border shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Upload Document</h3>
+                    <form id="uploadForm" class="space-y-4" onsubmit="uploadDocument(event)">
+                        <div class="grid grid-cols-1 gap-4">
+                            <select id="uploadCategory" name="category" class="p-3 border rounded-lg w-full" required>
+                                <option value="">Select Document Type</option>
+                                <option value="Progress Report">Progress Report</option>
+                                <option value="Contract">Signed Contract</option>
+                                <option value="Other">Other Document</option>
+                            </select>
+                            <div class="flex flex-col">
+                                <label class="text-xs text-gray-500 mb-1 font-bold uppercase">Select File</label>
+                                <input id="uploadFile" name="file" type="file" required class="p-2 border rounded-lg text-sm" />
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-blue-700 transition">Upload Document</button>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-xl border shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Uploaded Documents</h3>
+                    <div id="upload-list" class="space-y-3"></div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        const API_URL = '/api';
+        let allRecruits = [];
+        let allAgents = [];
+        let allAccommodations = [];
+
+        function getToken() {
+            return localStorage.getItem('jwtToken');
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'agent login.html';
+        }
+
+        function closeMobileMenu() {
+            document.getElementById('mobileSidebar').classList.remove('open');
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileSidebar').classList.toggle('open');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden'));
+            const section = document.getElementById(`section-${tabName}`);
+            if (section) {
+                section.classList.remove('hidden');
+                if (tabName === 'recruits') fetchRecruits();
+                if (tabName === 'agents') fetchAgents();
+                if (tabName === 'residences') fetchAccommodations();
+                if (tabName === 'documents') fetchDocuments();
+            }
+        }
+
+        async function createAgent(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const payload = Object.fromEntries(formData.entries());
+
+            try {
+                const res = await fetch(`${API_URL}/auth/register-agent`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}` 
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Agent registered successfully!');
+                    event.target.reset();
+                    fetchAgents();
+                } else {
+                    alert(data.message || 'Registration failed');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error registering agent');
+            }
+        }
+
+        async function fetchAgents() {
+            try {
+                const res = await fetch(`${API_URL}/auth/agents?institution=${encodeURIComponent(localStorage.getItem('institution') || 'VUT')}`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                const agents = await res.json();
+                allAgents = agents;
+                document.getElementById('stat-agents').innerText = agents.length;
+                
+                const list = document.getElementById('agent-list');
+                if (agents.length === 0) {
+                    list.innerHTML = '<p class="text-gray-500 text-center">No agents yet.</p>';
+                } else {
+                    list.innerHTML = agents.map(agent => `
+                        <div class="p-4 border rounded-lg bg-gray-50">
+                            <p class="font-bold text-gray-800">${agent.fullName}</p>
+                            <p class="text-xs text-gray-500">${agent.agentId} | ${agent.email}</p>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchRecruits() {
+            try {
+                const res = await fetch(`${API_URL}/agent/my-recruits`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                const data = await res.json();
+                allRecruits = data.recruits || [];
+                document.getElementById('stat-recruits').innerText = allRecruits.length;
+
+                const tbody = document.getElementById('recruit-table-body');
+                if (allRecruits.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No recruits found.</td></tr>';
+                } else {
+                    tbody.innerHTML = allRecruits.map(r => `
+                        <tr>
+                            <td class="px-6 py-4 font-bold text-gray-800">${r.studentName} ${r.studentSurname}</td>
+                            <td class="px-6 py-4 text-gray-600">${r.studentEmail}</td>
+                            <td class="px-6 py-4 text-gray-600">${r.studentPhone}</td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 rounded text-sm font-bold ${r.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${r.status}</span></td>
+                            <td class="px-6 py-4 text-right"><button onclick="editRecruit('${r._id}')" class="text-blue-600 font-bold">Edit</button></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchAccommodations() {
+            try {
+                const institution = localStorage.getItem('institution') || 'VUT';
+                const res = await fetch(`${API_URL}/admin/accommodations?institution=${encodeURIComponent(institution)}`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                const accommodations = await res.json();
+                allAccommodations = accommodations;
+                document.getElementById('stat-accommodations').innerText = accommodations.length;
+
+                const list = document.getElementById('accommodation-list');
+                if (accommodations.length === 0) {
+                    list.innerHTML = '<p class="text-gray-500 text-center">No accommodations yet.</p>';
+                } else {
+                    list.innerHTML = accommodations.map(acc => `
+                        <div class="p-4 border rounded-lg bg-gray-50">
+                            <p class="font-bold text-gray-800">${acc.name}</p>
+                            <p class="text-xs text-gray-500">${acc.location} | ${acc.institution}</p>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function createAccommodation(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const payload = Object.fromEntries(formData.entries());
+            payload.institution = localStorage.getItem('institution') || 'VUT';
+
+            try {
+                const res = await fetch(`${API_URL}/admin/accommodations`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}` 
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    alert('Accommodation created successfully!');
+                    event.target.reset();
+                    fetchAccommodations();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function uploadDocument(event) {
+            event.preventDefault();
+            const form = document.getElementById('uploadForm');
+            const formData = new FormData(form);
+            formData.append('institution', localStorage.getItem('institution') || 'VUT');
+
+            try {
+                const res = await fetch(`${API_URL}/admin/uploads`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${getToken()}` },
+                    body: formData
+                });
+                if (res.ok) {
+                    alert('Document uploaded successfully!');
+                    form.reset();
+                    fetchDocuments();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchDocuments() {
+            try {
+                const res = await fetch(`${API_URL}/admin/uploads?institution=${encodeURIComponent(localStorage.getItem('institution') || 'VUT')}`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                const uploads = await res.json();
+                document.getElementById('stat-documents').innerText = uploads.length;
+
+                const list = document.getElementById('upload-list');
+                if (uploads.length === 0) {
+                    list.innerHTML = '<p class="text-gray-500 text-center">No documents uploaded yet.</p>';
+                } else {
+                    list.innerHTML = uploads.map(upload => `
+                        <div class="p-4 border rounded-lg bg-gray-50 flex justify-between items-start">
+                            <div>
+                                <p class="font-bold text-gray-800">${upload.category}</p>
+                                <p class="text-xs text-gray-500">Uploaded on ${new Date(upload.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <a href="${upload.url}" target="_blank" class="text-blue-600 font-bold text-sm">View</a>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function downloadRecruitsPDF() {
+            if (allRecruits.length === 0) return alert('No recruits to export');
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.width;
+
+            doc.setDrawColor(37, 99, 235);
+            doc.setLineWidth(1.5);
+            doc.rect(5, 5, pageWidth - 10, 285);
+
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(37, 99, 235);
+            doc.setFontSize(16);
+            doc.text("MY RECRUITS REPORT", 15, 20);
+
+            const tableData = allRecruits.map(r => [
+                `${r.studentName} ${r.studentSurname}`,
+                r.studentEmail,
+                r.studentPhone,
+                r.accommodation,
+                r.status
+            ]);
+
+            doc.autoTable({
+                head: [['Student', 'Email', 'Phone', 'Accommodation', 'Status']],
+                body: tableData,
+                startY: 30,
+                theme: 'grid',
+                headStyles: { fillColor: [37, 99, 235] },
+                margin: { left: 10, right: 10 }
+            });
+
+            doc.save(`recruits_${new Date().getTime()}.pdf`);
+        }
+
+        window.onload = async () => {
+            if (!getToken()) return logout();
+
+            const user = JSON.parse(localStorage.getItem('userData') || '{}');
+            document.getElementById('adminName').innerText = user.fullName || 'Admin';
+            localStorage.setItem('institution', user.institution || 'VUT');
+
+            switchTab('agents');
+            fetchAgents();
+            fetchRecruits();
+            fetchAccommodations();
+            fetchDocuments();
+        };
+    </script>
+</body>
+</html>

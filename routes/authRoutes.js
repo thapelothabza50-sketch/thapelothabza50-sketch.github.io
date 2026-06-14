@@ -57,9 +57,9 @@ const transporter = nodemailer.createTransport({
 /**
  * @route   POST /api/auth/register-agent
  * @desc    Admin creates a draft Agent account and sends welcome email
- * @access  Private (Admin Only)
+ * @access  Private (Admin and RestrictedAdmin)
  */
-router.post('/register-agent', auth, hasRole(['Admin']), async (req, res) => {
+router.post('/register-agent', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
     const { email, agentId, phone, fullName, institution, isRestrictedAdmin } = req.body;
 
     try {
@@ -241,6 +241,26 @@ router.post('/admin-agent/login', async (req, res) => {
         // Handling exceptions as per Lab Work 5.4 
         console.error("AGENT LOGIN ERROR:", err);
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+/**
+ * @route   GET /api/auth/agents
+ * @desc    Get agents by institution (for restricted admin)
+ * @access  Private (Admin, RestrictedAdmin)
+ */
+router.get('/agents', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
+    try {
+        const { institution } = req.query;
+        const filter = {};
+        if (institution) {
+            filter.institution = institution;
+        }
+        const agents = await Agent.find(filter).select('-password').sort({ createdAt: -1 });
+        res.json(agents);
+    } catch (err) {
+        console.error('Fetch Agents Error:', err.message);
+        res.status(500).json({ message: 'Error fetching agents' });
     }
 });
 
