@@ -9,6 +9,7 @@ const LandlordSchema = new mongoose.Schema({
     nsfasAccredited: { type: String, required: true },
     accommodationType: { type: String }, // Added
     rent: { type: Number }, // Added
+    photoPaths: [String],
     status: { type: String, default: 'Pending' },
     createdAt: { type: Date, default: Date.now }
 });

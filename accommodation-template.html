@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{name}} - Campus Collective</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #f1f5f9; }
+        .room-card { transition: transform 0.3s, box-shadow 0.3s; }
+        .room-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
+        .gallery-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        .gallery-img { width: 100%; height: 200px; object-fit: cover; border-radius: 12px; cursor: pointer; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+<header class="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="w-8 h-8 rounded-full">
+            <h1 class="text-xl font-black text-gray-800">Campus Collective</h1>
+        </div>
+        <a href="index.html" class="text-blue-600 font-bold hover:underline">← Back to Home</a>
+    </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-12">
+    <!-- Hero Section -->
+    <div class="card overflow-hidden mb-12">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-0">
+            <div class="md:col-span-2">
+                <div id="mainImage" class="w-full h-96 bg-gray-200 flex items-center justify-center rounded-lg overflow-hidden">
+                    <img src="{{mainImage}}" alt="{{name}}" class="w-full h-full object-cover">
+                </div>
+            </div>
+            <div class="p-8 bg-blue-50 flex flex-col justify-between">
+                <div>
+                    <h1 class="text-3xl font-black text-gray-800 mb-2">{{name}}</h1>
+                    <p class="text-gray-600 text-sm mb-4">📍 {{location}}</p>
+                    {{nsfasAccreditedBadge}}
+                </div>
+                <div class="space-y-3">
+                    <a href="apply.html?accommodation={{nameEncoded}}" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg text-center hover:bg-blue-700 transition block">Apply Now</a>
+                    <div class="text-xs text-gray-600 space-y-1">
+                        <p>📞 {{contactPhone}}</p>
+                        <p>📧 {{contactEmail}}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gallery -->
+    <div class="card p-8 mb-12">
+        <h2 class="text-2xl font-black mb-6 text-gray-800">Photo Gallery</h2>
+        <div class="gallery-container">
+            {{galleryImages}}
+        </div>
+    </div>
+
+    <!-- Description -->
+    <div class="card p-8 mb-12">
+        <h2 class="text-2xl font-black mb-4 text-gray-800">About This Accommodation</h2>
+        <p class="text-gray-600 leading-relaxed whitespace-pre-wrap">{{description}}</p>
+    </div>
+
+    <!-- Room Types -->
+    <div class="card p-8 mb-12">
+        <h2 class="text-2xl font-black mb-6 text-gray-800">Room Types & Pricing</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {{roomTypesHtml}}
+        </div>
+    </div>
+
+    <!-- Amenities -->
+    <div class="card p-8 mb-12">
+        <h2 class="text-2xl font-black mb-6 text-gray-800">Amenities & Features</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {{amenitiesHtml}}
+        </div>
+    </div>
+
+    <!-- Contact Section -->
+    <div class="card p-8 bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+        <h2 class="text-2xl font-black mb-4 text-gray-800">Get in Touch</h2>
+        <div class="space-y-3">
+            <p class="text-gray-700"><strong>Phone:</strong> {{contactPhone}}</p>
+            <p class="text-gray-700"><strong>Email:</strong> {{contactEmail}}</p>
+            <a href="apply.html?accommodation={{nameEncoded}}" class="inline-block bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition">Submit Application</a>
+        </div>
+    </div>
+</main>
+
+<footer class="bg-gray-800 text-gray-300 text-center py-8 mt-16">
+    <p>&copy; 2026 Campus Collective. All rights reserved.</p>
+</footer>
+
+<script>
+    // Simple image gallery functionality
+    const galleryImages = document.querySelectorAll('.gallery-img');
+    const mainImage = document.getElementById('mainImage').querySelector('img');
+
+    galleryImages.forEach(img => {
+        img.addEventListener('click', () => {
+            mainImage.src = img.src;
+            mainImage.alt = img.alt;
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -2,10 +2,37 @@ const express = require('express');
 const router = express.Router();
 const Assistance = require('../models/Assistance');
 const nodemailer = require('nodemailer');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
-router.post('/submit-assistance', async (req, res) => {
+const assistanceStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../uploads/assistance');
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const sanitized = file.originalname.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, '');
+        cb(null, `${Date.now()}-${sanitized}`);
+    }
+});
+const assistanceUpload = multer({ storage: assistanceStorage });
+
+router.post('/submit-assistance', assistanceUpload.fields([
+    { name: 'File_ID', maxCount: 1 },
+    { name: 'File_Academic', maxCount: 1 }
+]), async (req, res) => {
     try {
         // Fix: Mapping HTML field names to Mongoose Model names
+        const selectedUniversities = Object.keys(req.body)
+            .filter(key => key.startsWith('Uni_') && req.body[key] === 'on')
+            .map(key => key.replace('Uni_', '').replace(/_/g, ' '));
+
+        const selectedColleges = Object.keys(req.body)
+            .filter(key => key.startsWith('Col_') && req.body[key] === 'on')
+            .map(key => key.replace('Col_', '').replace(/_/g, ' '));
+
         const mappedData = {
             title: req.body.Title,
             firstNames: req.body.First_Names,
@@ -24,7 +51,25 @@ router.post('/submit-assistance', async (req, res) => {
             nokSurname: req.body.NOK_Surname,
             nokRelationship: req.body.NOK_Relationship,
             nokPhone: req.body.NOK_Phone,
-            nokEmail: req.body.NOK_Email
+            nokEmail: req.body.NOK_Email,
+            resStreet: req.body.Res_Street,
+            resSuburb: req.body.Res_Suburb,
+            resCity: req.body.Res_City,
+            resProvince: req.body.Res_Province,
+            resCode: req.body.Res_Code,
+            highSchool: req.body.High_School,
+            highestGrade: req.body.Highest_Grade,
+            inMatric: req.body.In_Matric,
+            qual1: req.body.Qual_1,
+            qual2: req.body.Qual_2,
+            qual3: req.body.Qual_3,
+            qual4: req.body.Qual_4,
+            selectedUniversities,
+            selectedColleges,
+            promiseId: req.body.Promise_ID === 'on',
+            promiseAcademic: req.body.Promise_Academic === 'on',
+            fileIdPath: req.files?.File_ID?.[0]?.filename ? `/uploads/assistance/${req.files.File_ID[0].filename}` : null,
+            fileAcademicPath: req.files?.File_Academic?.[0]?.filename ? `/uploads/assistance/${req.files.File_Academic[0].filename}` : null,
         };
 
         // 1. Save to Database

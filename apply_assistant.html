@@ -76,7 +76,7 @@
         <h2>Assisted Application Portal</h2>
         <p class="subtitle">Complete the details below. Our team will handle the full process for you.</p>
         
-        <form id="assistanceForm">
+        <form id="assistanceForm" enctype="multipart/form-data">
             
             <h3>1. Personal Identity</h3>
             <div class="section-grid">
@@ -346,68 +346,43 @@
 
         
         document.getElementById('assistanceForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const msgDiv = document.getElementById('responseMessage');
-        const btn = e.target.querySelector('.submit-btn');
-        
-        // UI Loading State
-        btn.innerText = "Processing...";
-        btn.disabled = true;
-        msgDiv.style.display = "none";
+            e.preventDefault();
+            const msgDiv = document.getElementById('responseMessage');
+            const btn = e.target.querySelector('.submit-btn');
+            btn.innerText = 'Processing...';
+            btn.disabled = true;
+            msgDiv.style.display = 'none';
 
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData.entries());
+            const formData = new FormData(e.target);
+            try {
+                const response = await fetch('/api/assistance/submit-assistance', {
+                    method: 'POST',
+                    body: formData
+                });
 
-        try {
-            const response = await fetch('/api/assistance/submit-assistance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
+                const result = await response.json();
+                msgDiv.style.display = 'block';
+                msgDiv.innerText = result.message || 'Request processed successfully.';
 
-            const result = await response.json();
-
-            msgDiv.style.display = "block";
-            msgDiv.innerText = result.message;
-
-            if (response.ok) {
-                msgDiv.style.background = "#d4edda";
-                msgDiv.style.color = "#155724";
-                e.target.reset(); // Clear the form
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
-                msgDiv.style.background = "#f8d7da";
-                msgDiv.style.color = "#721c24";
+                if (response.ok) {
+                    msgDiv.style.background = '#d4edda';
+                    msgDiv.style.color = '#155724';
+                    e.target.reset();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    msgDiv.style.background = '#f8d7da';
+                    msgDiv.style.color = '#721c24';
+                }
+            } catch (error) {
+                msgDiv.style.display = 'block';
+                msgDiv.style.background = '#f8d7da';
+                msgDiv.style.color = '#721c24';
+                msgDiv.innerText = 'Error sending Assistance request. Please check your connection.';
+            } finally {
+                btn.innerText = 'Submit Application Request';
+                btn.disabled = false;
             }
-        } catch (error) {
-            msgDiv.style.display = "block";
-            msgDiv.style.background = "#f8d7da";
-            msgDiv.style.color = "#721c24";
-            msgDiv.innerText = "Error sending Assistance request. Please check your connection.";
-        } finally {
-            btn.innerText = "Submit Request";
-            btn.disabled = false;
-        }
-    });
-
-
-        document.querySelector('form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData.entries());
-
-    const response = await fetch('/api/assistance/submit-assistance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-
-    if(response.ok) {
-        alert("Application Sent! Check your email and tracker.");
-        window.location.href = "success.html";
-    }
-});
+        });
         function toggleOtherDisability() {
             const select = document.getElementById('disabilitySelect');
             const otherBox = document.getElementById('otherDisabilityBox');

@@ -16,17 +16,36 @@ const AssistanceSchema = new mongoose.Schema({
     phone: String,
     email: String,
 
+    // Residential Address
+    resStreet: String,
+    resSuburb: String,
+    resCity: String,
+    resProvince: String,
+    resCode: String,
+
     // Next of Kin
     nokName: String,
     nokSurname: String,
     nokRelationship: String,
     nokPhone: String,
     nokEmail: String,
+
+    // Academic & Qualifications
+    highSchool: String,
+    highestGrade: String,
+    inMatric: String,
+    qual1: String,
+    qual2: String,
+    qual3: String,
+    qual4: String,
+    selectedUniversities: [String],
+    selectedColleges: [String],
+    promiseId: { type: Boolean, default: false },
+    promiseAcademic: { type: Boolean, default: false },
     
-    // Add these for documents
+    // Document upload paths
     fileIdPath: String,
     fileAcademicPath: String,
-
 
     // Status for Tracker
     status: { type: String, default: 'Pending' },

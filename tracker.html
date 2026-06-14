@@ -124,26 +124,16 @@
                 // 1. Fetch Landlords
                 const lRes = await fetch('/api/auth/admin/landlords');
                 const landlords = await lRes.json();
+                window.landlordList = landlords;
                 document.getElementById('landlordBody').innerHTML = landlords.map(l => `
                     <tr class="border-b hover:bg-slate-50 transition">
-                        <td class="p-4 font-semibold text-slate-700" data-label="Property">${l.accommodationName}</td>
-                        <td class="p-4" data-label="Rooms">
-                            <div class="flex gap-2">
-                                <button onclick="toggleRoom('${l._id}', 'single', ${!l.isSingleRoomFull})" 
-                                    class="px-3 py-1 text-xs font-bold rounded-full transition ${l.isSingleRoomFull ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-green-100 text-green-600 border border-green-200'}">
-                                    Single: ${l.isSingleRoomFull ? 'FULL' : 'OPEN'}
-                                </button>
-                                <button onclick="toggleRoom('${l._id}', 'shared', ${!l.isSharedRoomFull})" 
-                                    class="px-3 py-1 text-xs font-bold rounded-full transition ${l.isSharedRoomFull ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-green-100 text-green-600 border border-green-200'}">
-                                    Shared: ${l.isSharedRoomFull ? 'FULL' : 'OPEN'}
-                                </button>
-                            </div>
-                        </td>
+                        <td class="p-4 font-semibold text-slate-700" data-label="Property">${l.accommodationName || l.propertyAddress}</td>
+                        <td class="p-4 text-slate-600" data-label="Location">${l.propertyAddress || 'N/A'}</td>
                         <td class="p-4 text-center" data-label="Status">
-                            <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded font-bold uppercase">${l.status}</span>
+                            <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded font-bold uppercase">${l.status || 'Pending'}</span>
                         </td>
-                        <td class="p-4 text-right" data-label="Files">
-                            <button class="text-blue-600 hover:underline text-sm font-medium">Download Docs</button>
+                        <td class="p-4 text-right" data-label="Action">
+                            <button onclick="showLandlordDetails('${l._id}')" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">Details</button>
                         </td>
                     </tr>
                 `).join('');
@@ -170,26 +160,34 @@
                 // 3. NEW: Fetch Assisted Applications (Institution Apps)
                 const aRes = await fetch('/api/auth/admin/assistance'); // Ensure this endpoint exists on your server
                 const assistants = await aRes.json();
-                document.getElementById('assistanceBody').innerHTML = assistants.map(a => `
-                    <tr class="border-b hover:bg-blue-50/50 transition">
-                        <td class="p-4" data-label="Applicant">
-                            <div class="font-bold text-slate-700">${a.First_Names || a.Full_Names}</div>
-                            <div class="text-xs text-slate-400">${a.ID_Number}</div>
-                        </td>
-                        <td class="p-4 text-sm text-slate-600" data-label="Targets">
-                            ${a.Uni_All ? 'All Universities' : 'Selected Institutions'}
-                        </td>
-                        <td class="p-4 text-sm font-medium text-slate-600" data-label="Choice 1">${a.Qual_1}</td>
-                        <td class="p-4 text-center" data-label="Package">
-                            <span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded-full font-black">
-                                ${a.Uni_All && a.Col_All ? 'COMBO R250' : 'SINGLE R150'}
-                            </span>
-                        </td>
-                        <td class="p-4 text-right" data-label="Action">
-                            <button class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">Process</button>
-                        </td>
-                    </tr>
-                `).join('');
+                window.assistanceList = assistants;
+                document.getElementById('assistanceBody').innerHTML = assistants.map(a => {
+                    const applicantName = a.firstNames || a.First_Names || a.Full_Names || 'Unnamed Applicant';
+                    const idValue = a.idNumber || a.ID_Number || 'N/A';
+                    const firstChoice = a.qual1 || a.Qual_1 || 'N/A';
+                    const selectedUniversities = a.selectedUniversities?.length ? a.selectedUniversities.join(', ') : (a.Uni_All ? 'All Universities' : 'None');
+                    const selectedColleges = a.selectedColleges?.length ? a.selectedColleges.join(', ') : (a.Col_All ? 'All Colleges' : 'None');
+                    const targetsText = [selectedUniversities, selectedColleges].filter(Boolean).join(' | ');
+                    const hasUniversities = (a.selectedUniversities?.length || 0) > 0 || a.Uni_All;
+                    const hasColleges = (a.selectedColleges?.length || 0) > 0 || a.Col_All;
+                    const packageLabel = hasUniversities && hasColleges ? 'COMBO R250' : (hasUniversities || hasColleges ? 'SINGLE R150' : 'TBD');
+                    return `
+                        <tr class="border-b hover:bg-blue-50/50 transition">
+                            <td class="p-4" data-label="Applicant">
+                                <div class="font-bold text-slate-700">${applicantName}</div>
+                                <div class="text-xs text-slate-400">${idValue}</div>
+                            </td>
+                            <td class="p-4 text-sm text-slate-600" data-label="Targets">${targetsText}</td>
+                            <td class="p-4 text-sm font-medium text-slate-600" data-label="Choice 1">${firstChoice}</td>
+                            <td class="p-4 text-center" data-label="Package">
+                                <span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded-full font-black">${packageLabel}</span>
+                            </td>
+                            <td class="p-4 text-right" data-label="Action">
+                                <button onclick="showAssistanceDetails('${a._id}')" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">Details</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
 
             } catch (err) {
                 console.error("Tracker Error:", err);
@@ -236,8 +234,111 @@
             document.getElementById('student-detail-modal')?.classList.add('hidden');
         }
 
+        function showAssistanceDetails(appId) {
+            const app = (window.assistanceList || []).find(a => a._id === appId);
+            if (!app) return;
+            const modal = document.getElementById('assistance-detail-modal');
+            const modalBody = document.getElementById('assistance-detail-body');
+            if (!modal || !modalBody) return;
+
+            modalBody.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><span class="font-bold text-slate-600">Full Name</span><p class="text-slate-800">${app.firstNames || app.First_Names || ''} ${app.surname || app.Surname || ''}</p></div>
+                        <div><span class="font-bold text-slate-600">ID Number</span><p class="text-slate-800">${app.idNumber || app.ID_Number || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Gender</span><p class="text-slate-800">${app.gender || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Marital Status</span><p class="text-slate-800">${app.maritalStatus || app.Marital_Status || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Race</span><p class="text-slate-800">${app.race || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Disability</span><p class="text-slate-800">${app.disability || 'N/A'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Disability Details</span><p class="text-slate-800">${app.disabilityDetails || app.Other_Disability_Detail || 'None'}</p></div>
+                        <div><span class="font-bold text-slate-600">Phone</span><p class="text-slate-800">${app.phone || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Email</span><p class="text-slate-800">${app.email || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">First-time Applicant</span><p class="text-slate-800">${app.isFirstTimeApplicant || app.First_Time_Applicant || 'N/A'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Returning Student Details</span><p class="text-slate-800">${app.returningStudentDetails || app.Returning_Student_Details || 'N/A'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Address</span><p class="text-slate-800">${app.resStreet || app.Res_Street || ''} ${app.resSuburb || app.Res_Suburb || ''}, ${app.resCity || app.Res_City || ''}, ${app.resProvince || app.Res_Province || ''}, ${app.resCode || app.Res_Code || ''}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Next of Kin</span><p class="text-slate-800">${app.nokName || app.NOK_First_Names || 'N/A'} ${app.nokSurname || app.NOK_Surname || ''} (${app.nokRelationship || app.NOK_Relationship || 'N/A'})</p><p class="text-slate-800">${app.nokPhone || app.NOK_Phone || 'N/A'} | ${app.nokEmail || app.NOK_Email || 'N/A'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Academic</span><p class="text-slate-800">High School: ${app.highSchool || app.High_School || 'N/A'}</p><p class="text-slate-800">Highest Grade: ${app.highestGrade || app.Highest_Grade || 'N/A'}</p><p class="text-slate-800">In Matric: ${app.inMatric || app.In_Matric || 'N/A'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Qualification Choices</span><p class="text-slate-800">1: ${app.qual1 || app.Qual_1 || 'N/A'}</p><p class="text-slate-800">2: ${app.qual2 || app.Qual_2 || 'N/A'}</p><p class="text-slate-800">3: ${app.qual3 || app.Qual_3 || 'N/A'}</p><p class="text-slate-800">4: ${app.qual4 || app.Qual_4 || 'N/A'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Selected Institutions</span><p class="text-slate-800">${(app.selectedUniversities || []).length ? app.selectedUniversities.join(', ') : 'None'}</p><p class="text-slate-800">${(app.selectedColleges || []).length ? app.selectedColleges.join(', ') : 'None'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Documents</span><div class="space-y-2">${app.fileIdPath ? `<a href="${app.fileIdPath}" target="_blank" class="text-blue-600 hover:underline">Certified ID</a>` : 'ID not uploaded'}${app.fileAcademicPath ? `<br><a href="${app.fileAcademicPath}" target="_blank" class="text-blue-600 hover:underline">Academic Document</a>` : '<br>Academic document not uploaded'}</div></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Status</span><p class="text-slate-800">${app.status || 'Pending'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Submitted</span><p class="text-slate-800">${app.submittedAt ? new Date(app.submittedAt).toLocaleString() : 'N/A'}</p></div>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        function closeAssistanceDetails() {
+            document.getElementById('assistance-detail-modal')?.classList.add('hidden');
+        }
+
+        function showLandlordDetails(listingId) {
+            const listing = (window.landlordList || []).find(l => l._id === listingId);
+            if (!listing) return;
+            const modal = document.getElementById('landlord-detail-modal');
+            const modalBody = document.getElementById('landlord-detail-body');
+            if (!modal || !modalBody) return;
+
+            modalBody.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><span class="font-bold text-slate-600">Owner</span><p class="text-slate-800">${listing.fullName || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Email</span><p class="text-slate-800">${listing.email || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Phone</span><p class="text-slate-800">${listing.phone || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Institution</span><p class="text-slate-800">${listing.institution || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Accommodation Name</span><p class="text-slate-800">${listing.accommodationName || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">NSFAS Accredited</span><p class="text-slate-800">${listing.nsfasAccredited || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Type</span><p class="text-slate-800">${listing.accommodationType || 'N/A'}</p></div>
+                        <div><span class="font-bold text-slate-600">Rent</span><p class="text-slate-800">${listing.rent ? 'R' + listing.rent : 'N/A'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Address</span><p class="text-slate-800">${listing.propertyAddress || 'N/A'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Documents</span><div class="space-y-2">${(listing.photoPaths || []).length ? listing.photoPaths.map(path => `<a href="${path}" target="_blank" class="text-blue-600 hover:underline">View Document</a>`).join('<br>') : '<p class="text-slate-800">No documents uploaded.</p>'}</div></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Status</span><p class="text-slate-800">${listing.status || 'Pending'}</p></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-600">Submitted</span><p class="text-slate-800">${listing.createdAt ? new Date(listing.createdAt).toLocaleString() : 'N/A'}</p></div>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        function closeLandlordDetails() {
+            document.getElementById('landlord-detail-modal')?.classList.add('hidden');
+        }
+
         window.onload = loadData;
     </script>
+
+    <div id="assistance-detail-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-slate-200">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Assisted Application Details</h2>
+                    <p class="text-sm text-slate-500">Full form data and uploaded documents for the assisted application.</p>
+                </div>
+                <button onclick="closeAssistanceDetails()" class="text-slate-500 hover:text-slate-900 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="assistance-detail-body" class="p-6 text-slate-700"></div>
+            <div class="flex justify-end gap-3 p-6 border-t border-slate-200">
+                <button onclick="closeAssistanceDetails()" class="px-5 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="landlord-detail-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-slate-200">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Landlord Listing Details</h2>
+                    <p class="text-sm text-slate-500">Full landlord details with all documents uploaded during registration.</p>
+                </div>
+                <button onclick="closeLandlordDetails()" class="text-slate-500 hover:text-slate-900 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="landlord-detail-body" class="p-6 text-slate-700"></div>
+            <div class="flex justify-end gap-3 p-6 border-t border-slate-200">
+                <button onclick="closeLandlordDetails()" class="px-5 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200">Close</button>
+            </div>
+        </div>
+    </div>
 
     <div id="student-detail-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
         <div class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">

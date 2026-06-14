@@ -38,7 +38,7 @@
 
         <!-- Right half: Registration form -->
         <div class="md:w-1/2 p-8">
-            <form id="landlordForm" class="space-y-6" onsubmit="handleFormSubmit(event)">
+            <form id="landlordForm" class="space-y-6" onsubmit="handleFormSubmit(event)" enctype="multipart/form-data">
                 <div>
                     <label for="fullName" class="block text-sm font-medium text-gray-700">Full Name</label>
                     <input type="text" id="fullName" name="fullName" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300">
@@ -161,44 +161,24 @@
             }
         }
 
-        function handleFormSubmit(event) {
-            event.preventDefault();
-            
-            // In a real application, you would send this data to a server.
-            const formData = new FormData(event.target);
-            const data = Object.fromEntries(formData.entries());
-            
-            // Note: The photos field will contain the file(s) object(s).
-            // You would typically handle the file upload separately.
-            
-            console.log('Form submitted!');
-            console.log(data);
-            
-            showMessage("Thank you for your submission! We'll review your listing shortly.");
-        }
-
         async function handleFormSubmit(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
-    const data = Object.fromEntries(formData.entries());
 
     try {
         const response = await fetch('/api/auth/landlord/register', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: formData
         });
 
         if (response.ok) {
-            alert("Application submitted! Check your email for confirmation.");
+            alert('Application submitted! Check your email for confirmation.');
             event.target.reset();
         } else {
-            alert("Something went wrong. Please try again.");
+            alert('Something went wrong. Please try again.');
         }
     } catch (error) {
-        console.error("Error:", error);
+        console.error('Error:', error);
     }
 }
-    </script>
-</body>
-</html>
+</script>

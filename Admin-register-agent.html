@@ -66,6 +66,19 @@
                 <label class="block text-xs font-bold text-gray-500 uppercase">Phone Number</label>
                 <input type="text" id="phone" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="012 345 6789">
             </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase">Institution</label>
+                <select id="institution" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="UMP">UMP</option>
+                    <option value="TUT">TUT</option>
+                    <option value="VUT">VUT</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <input id="isRestrictedAdmin" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded" />
+                <label for="isRestrictedAdmin" class="text-sm text-gray-600">Flag as Restricted Admin</label>
+            </div>
             <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white font-black py-4 rounded-lg hover:bg-blue-700 transition uppercase tracking-widest shadow-lg">
                 Create & Send Welcome Email
             </button>
@@ -111,12 +124,12 @@
             triggerLoader("Creating Account & Sending Email...");
 
             const payload = {
-                // ➕ ADDED: fullName to the payload
                 fullName: document.getElementById('fullName').value,
                 email: document.getElementById('email').value,
                 agentId: document.getElementById('agentId').value,
                 phone: document.getElementById('phone').value,
-                role: 'Agent'
+                institution: document.getElementById('institution').value,
+                isRestrictedAdmin: document.getElementById('isRestrictedAdmin').checked
             };
 
             try {

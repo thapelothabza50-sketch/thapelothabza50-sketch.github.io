@@ -140,7 +140,12 @@
             showLoader("ACCESS GRANTED...");
             
             setTimeout(() => {
-                window.location.href = 'Agent profil.html';
+                const role = (data.user?.role || data.role || '').toLowerCase();
+                if (role === 'admin' || role === 'restrictedadmin') {
+                    window.location.href = 'management.html';
+                } else {
+                    window.location.href = 'Agent profil.html';
+                }
             }, 1500);
 
         } catch (err) {

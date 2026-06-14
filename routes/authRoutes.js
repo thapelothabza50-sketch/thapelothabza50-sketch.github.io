@@ -18,6 +18,19 @@ const multer = require('multer');
 const fs = require('fs');
 const Signature = require('../models/Signature');
 
+const landlordStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../uploads/landlords');
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const sanitized = file.originalname.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, '');
+        cb(null, `${Date.now()}-${sanitized}`);
+    }
+});
+const landlordUpload = multer({ storage: landlordStorage });
+
 
 
 // --------------------------------------------------------------------------
@@ -47,7 +60,7 @@ const transporter = nodemailer.createTransport({
  * @access  Private (Admin Only)
  */
 router.post('/register-agent', auth, hasRole(['Admin']), async (req, res) => {
-    const { email, agentId, phone, fullName } = req.body;
+    const { email, agentId, phone, fullName, institution, isRestrictedAdmin } = req.body;
 
     try {
         let agent = await Agent.findOne({ email });
@@ -62,6 +75,9 @@ router.post('/register-agent', auth, hasRole(['Admin']), async (req, res) => {
             agentId,
             phone,
             fullName,
+            institution: institution || 'Other',
+            role: isRestrictedAdmin ? 'RestrictedAdmin' : 'Agent',
+            isRestrictedAdmin: Boolean(isRestrictedAdmin),
             password: temporaryPassword, // Pass plain text; the model will hash it
             mustChangePassword: true
         });
@@ -193,7 +209,13 @@ router.post('/admin-agent/login', async (req, res) => {
 
         // 5. Normal Login: Create the full Token
         const token = jwt.sign(
-            { id: agent._id, role: agent.role, agentId: agent.agentId },
+            {
+                id: agent._id,
+                role: agent.role,
+                agentId: agent.agentId,
+                institution: agent.institution || 'Other',
+                fullName: agent.fullName
+            },
             process.env.JWT_SECRET,
             { expiresIn: '1d' }
         );
@@ -206,6 +228,8 @@ router.post('/admin-agent/login', async (req, res) => {
                 email: agent.email,
                 phone: agent.phone,
                 role: agent.role,
+                institution: agent.institution || 'Other',
+                isRestrictedAdmin: agent.isRestrictedAdmin || false,
                 agentId: agent.agentId,
                 bankName: agent.banking?.bankName || '',
                 accHolder: agent.banking?.accHolder || '',
@@ -566,8 +590,9 @@ router.post('/submit-recruit', auth, async (req, res) => {
             studentName,
             studentSurname,
             studentEmail,
-            studentPhone, 
+            studentPhone,
             accommodation,
+            institution: req.user.institution || 'Other',
             moveInDate,
             status: 'Pending'
         });
@@ -866,9 +891,8 @@ router.delete('/water/delete/:id', auth, hasRole(['Admin']), async (req, res) =>
 const Landlord = require('../models/Landlord');
 
 // --- LANDLORD REGISTRATION ROUTE ---
-router.post('/landlord/register', async (req, res) => {
+router.post('/landlord/register', landlordUpload.array('photos', 10), async (req, res) => {
     try {
-        // We extract all fields from the form, ensuring they match the HTML "name" attributes
         const { 
             fullName, 
             email, 
@@ -878,8 +902,10 @@ router.post('/landlord/register', async (req, res) => {
             nsfasAccredited,
             accommodationType,
             rent,
-            'accommodation name': accommodationName // Handling the space in your HTML name
+            accommodationName
         } = req.body;
+
+        const photoPaths = (req.files || []).map(file => `/uploads/landlords/${file.filename}`);
 
         const newListing = new Landlord({
             fullName,
@@ -889,8 +915,9 @@ router.post('/landlord/register', async (req, res) => {
             institution,
             nsfasAccredited,
             accommodationType, // Make sure to add this to your Landlord.js model!
-            rent,
-            accommodationName
+            rent: rent ? Number(rent) : undefined,
+            accommodationName,
+            photoPaths
         });
 
         await newListing.save();
@@ -1181,6 +1208,16 @@ router.get('/signatures/:ownerId', async (req, res) => {
 
 const Assistance = require('../models/Assistance');
 
+router.get('/admin/assistance', async (req, res) => {
+    try {
+        const data = await Assistance.find().sort({ submittedAt: -1 });
+        res.json(data);
+    } catch (err) {
+        console.error('Fetch Assistance Error:', err.message);
+        res.status(500).json({ message: 'Error fetching assistance applications' });
+    }
+});
+
 router.post('/submit-assistance', async (req, res) => {
     try {
         // 1. Save to Database
@@ -1268,8 +1305,14 @@ router.post('/apply-for-accommodation', async (req, res) => {
 
         // If agent reference provided, try to find matching agent
         if (referencedBy && referencedBy.trim()) {
+            const cleanedReference = referencedBy.trim();
+            const regex = new RegExp(cleanedReference, 'i');
             const agent = await Agent.findOne({
-                fullName: new RegExp(referencedBy.trim(), 'i')
+                $or: [
+                    { fullName: regex },
+                    { agentId: cleanedReference },
+                    { email: cleanedReference.toLowerCase() }
+                ]
             });
 
             if (agent) {

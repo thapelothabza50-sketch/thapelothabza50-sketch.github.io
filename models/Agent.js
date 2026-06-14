@@ -28,11 +28,25 @@ const AgentSchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
+    institution: {
+        type: String,
+        enum: ['UMP', 'TUT', 'VUT', 'Other'],
+        default: 'Other',
+        trim: true,
+    },
     role: {
         type: String,
+        enum: ['Admin', 'RestrictedAdmin', 'Agent'],
         default: 'Agent',
     },
-
+    isRestrictedAdmin: {
+        type: Boolean,
+        default: false,
+    },
+    balance: {
+        type: Number,
+        default: 0,
+    },
     commissionRate: {
     type: Number,
     default: 250, // This ensures every agent has a starting rate

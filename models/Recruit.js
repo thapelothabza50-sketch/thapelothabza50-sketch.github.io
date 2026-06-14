@@ -54,6 +54,12 @@ const RecruitSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    institution: {
+        type: String,
+        enum: ['UMP', 'TUT', 'VUT', 'Other'],
+        default: 'Other',
+        trim: true
+    },
     moveInDate: {
         type: Date,
         required: true
