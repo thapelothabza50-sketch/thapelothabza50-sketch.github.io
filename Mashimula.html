@@ -234,13 +234,13 @@
         </div>
     </div>
 
-    <div id="selectionModal" class="selection-modal">
+     <div id="selectionModal" class="selection-modal">
         <div class="selection-content">
             <span class="close-selection" onclick="closeSelectionModal()">&times;</span>
-            <h3>Select Accommodation</h3>
-            <label class="res-option"><input type="radio" name="mash-choice" value="Mashimula Entokozweni"> Mashimula Entokozweni</label>
-            <label class="res-option"><input type="radio" name="mash-choice" value="Mashimula Likazi"> Mashimula Likazi</label>
-            <button class="confirm-btn" onclick="goToApply()">Confirm Selection</button>
+            <h3>Choose your Location</h3>
+            <label class="res-option"><input type="radio" name="loc-choice" value="Mashimula Likazi"> Mashimula Likazi </label>
+            <label class="res-option"><input type="radio" name="loc-choice" value="Mashimula Entokozweni"> Mashimula Entokozweni</label>
+            <button class="confirm-btn" onclick="goToApply()">Confirm & Apply</button>
         </div>
     </div>
 
@@ -254,9 +254,13 @@
         lightbox.init();
     </script>
 
-    <script>
-        function openSelectionModal() { document.getElementById("selectionModal").style.display = "flex"; }
-        function closeSelectionModal() { document.getElementById("selectionModal").style.display = "none"; }
+     <script>
+        function openSelectionModal() {
+            document.getElementById("selectionModal").style.display = "flex";
+        }
+        function closeSelectionModal() {
+            document.getElementById("selectionModal").style.display = "none";
+        }
         function goToApply() {
     const selected = document.querySelector('input[name="loc-choice"]:checked');
     if (selected) {
@@ -266,8 +270,10 @@
         alert("Please select a location first.");
     }
 }
+        window.onclick = function(event) {
+            if (event.target == document.getElementById("selectionModal")) closeSelectionModal();
+        }
     </script>
-
     <footer>
         &copy; 2025 Campus Collective. All rights reserved.
     </footer>
