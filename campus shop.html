@@ -117,7 +117,9 @@
                 </div>
             </div>
 
-            <div id="productsGrid" class="grid grid-cols-1 gap-4"></div>
+            <div class="overflow-x-auto">
+                <div id="productsGrid" class="grid min-w-[320px] grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3"></div>
+            </div>
         </div>
     </main>
 
@@ -246,7 +248,7 @@ function populateCategories() {
 
     function renderProduct(product) {
         const card = document.createElement('div');
-        card.className = 'product-card overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md';
+        card.className = 'product-card flex h-full min-h-[220px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md';
 
         const imgSrc = product.image && product.image.trim()
             ? product.image
@@ -258,8 +260,8 @@ function populateCategories() {
             : `<span class="text-blue-600 font-bold">R${product.price}</span>`;
 
         card.innerHTML = `
-            <div class="flex flex-col md:flex-row">
-                <div class="h-48 md:h-auto md:w-44 shrink-0 overflow-hidden bg-slate-100">
+            <div class="flex w-full flex-col sm:flex-row">
+                <div class="h-48 w-full shrink-0 overflow-hidden bg-slate-100 sm:h-auto sm:w-40">
                     <img src="${imgSrc}" alt="${product.name}" class="h-full w-full object-cover">
                 </div>
                 <div class="flex flex-1 flex-col justify-between p-4">
