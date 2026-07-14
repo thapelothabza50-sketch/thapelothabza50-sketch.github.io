@@ -228,12 +228,11 @@
     </div>
     <script>
     // --- API CONFIGURATION ---
-    const API_URL = 'http://localhost:8080/api/seller/products';
-    const USER_ME_API = 'http://localhost:8080/api/auth/user/me'; 
-    const USER_UPDATE_API = 'http://localhost:8080/api/auth/user/update'; 
-    const ORDERS_API_URL = 'http://localhost:8080/api/seller/orders'; 
-    // NEW: API for single order detail - THIS IS THE ENDPOINT THAT MUST BE WORKING
-    const ORDER_DETAIL_API_URL = 'http://localhost:8080/api/seller/orders'; 
+    const API_URL = '/api/seller/products';
+    const USER_ME_API = '/api/auth/user/me'; 
+    const USER_UPDATE_API = '/api/auth/user/update'; 
+    const ORDERS_API_URL = '/api/seller/orders'; 
+    const ORDER_DETAIL_API_URL = '/api/seller/orders'; 
     
     const AUTH_TOKEN = localStorage.getItem('jwtToken');
     const productListBody = document.getElementById('product-list-body');
@@ -315,8 +314,8 @@
     
     function displayUserDetails(user) {
         detailEmail.textContent = user.email || 'N/A';
-        detailBusinessName.textContent = user.businessName || 'N/A (Update to set)';
-        detailPhoneNumber.textContent = user.phoneNumber || 'N/A (Update to set)';
+        detailBusinessName.textContent = user.businessName || user.firstName || 'N/A (Update to set)';
+        detailPhoneNumber.textContent = user.phoneNumber || user.phone || 'N/A (Update to set)';
     }
 
     // A. FETCH USER DETAILS
@@ -341,6 +340,12 @@
 
             const nameToDisplay = user.businessName || user.email || 'Your Business';
             dashboardTitle.textContent = `Seller Dashboard for: ${nameToDisplay}`;
+            if (!businessNameInput.value) {
+                businessNameInput.value = user.businessName || '';
+            }
+            if (!phoneNumberInput.value) {
+                phoneNumberInput.value = user.phoneNumber || user.phone || '';
+            }
 
         } catch (error) {
             console.error('User Fetch Error:', error);
@@ -406,6 +411,7 @@
     // G. SIDEBAR FUNCTIONS 
     function openProfileSidebar() {
         if (!currentUserData) {
+            fetchUserDetails();
             showMessage('error', 'User data not loaded yet. Please wait.');
             return;
         }
@@ -900,6 +906,10 @@
     // E. LOGOUT
     function logout() {
         localStorage.removeItem('jwtToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('businessName');
+        localStorage.removeItem('sellerName');
+        localStorage.removeItem('sellerEmail');
         alert("You have been successfully logged out.");
         window.location.href = 'login czra.html'; 
     }

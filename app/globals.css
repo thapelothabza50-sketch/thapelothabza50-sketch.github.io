@@ -1,0 +1,5 @@
+html { color-scheme: light; }
+body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f7; color: #111; }
+a, button, input, textarea { font: inherit; }
+img { border-radius: 8px; }
+button { cursor: pointer; }

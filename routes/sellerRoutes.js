@@ -101,13 +101,13 @@ router.post('/products', auth, hasRole(['Seller']), upload.single('image'), asyn
         const { name, description, price, stock, category, onSpecial, specialEnd, oldPrice } = req.body;
         
         // Check if an image was uploaded
-        const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+        const imagePath = req.file ? `/uploads/${req.file.filename}` : 'no_image.png';
 
         // Basic validation
         if (!name || !price || !stock || !category) {
             // Clean up the uploaded file if validation fails
-            if (imageUrl && fs.existsSync(path.join(__dirname, '..', imageUrl))) {
-                fs.unlinkSync(path.join(__dirname, '..', imageUrl));
+            if (req.file && fs.existsSync(path.join(__dirname, '..', imagePath))) {
+                fs.unlinkSync(path.join(__dirname, '..', imagePath));
             }
             return res.status(400).json({ message: 'Missing required product fields (name, price, stock, category).' });
         }
@@ -119,7 +119,7 @@ router.post('/products', auth, hasRole(['Seller']), upload.single('image'), asyn
             price: parseFloat(price),
             stock: parseInt(stock),
             category,
-            imageUrl, 
+            image: imagePath,
             onSpecial: onSpecial === 'true', // Convert string to boolean
             specialEnd: onSpecial === 'true' ? new Date(specialEnd) : null,
             oldPrice: onSpecial === 'true' ? parseFloat(oldPrice) : 0,
@@ -162,8 +162,8 @@ router.put('/products/:id', auth, hasRole(['Seller']), upload.single('image'), a
         // 2. Handle Image Update
         if (req.file) {
             // Save old image path to delete later
-            oldImagePath = product.imageUrl; 
-            updateData.imageUrl = `/uploads/${req.file.filename}`;
+            oldImagePath = product.image;
+            updateData.image = `/uploads/${req.file.filename}`;
         }
         
         // 3. Update the document

@@ -266,6 +266,186 @@ router.get('/agents', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, r
 
 const Product = require('../models/Product');
 
+router.post('/customer/register', async (req, res) => {
+    const { firstName, surname, phone, email, password } = req.body;
+
+    if (!firstName || !surname || !phone || !email || !password) {
+        return res.status(400).json({ message: 'Please provide your first name, surname, phone, email, and password.' });
+    }
+
+    try {
+        const existingUser = await User.findOne({ email: email.toLowerCase() });
+        if (existingUser) {
+            return res.status(400).json({ message: 'A customer account with this email already exists.' });
+        }
+
+        const newUser = new User({
+            firstName,
+            surname,
+            phone,
+            email: email.toLowerCase(),
+            password,
+            role: 'Customer'
+        });
+
+        await newUser.save();
+
+        const token = jwt.sign({ id: newUser._id, role: 'Customer' }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+        res.status(201).json({
+            token,
+            user: {
+                id: newUser._id,
+                firstName: newUser.firstName,
+                surname: newUser.surname,
+                phone: newUser.phone,
+                email: newUser.email,
+                role: 'Customer'
+            }
+        });
+    } catch (err) {
+        console.error('Customer Register Error:', err.message);
+        res.status(500).json({ message: 'Server error during registration.' });
+    }
+});
+
+router.post('/customer/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required.' });
+    }
+
+    try {
+        const user = await User.findOne({ email: email.toLowerCase(), role: 'Customer' });
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid credentials.' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid credentials.' });
+        }
+
+        const token = jwt.sign({ id: user._id, role: 'Customer' }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+        res.json({
+            token,
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                surname: user.surname,
+                phone: user.phone,
+                email: user.email,
+                role: 'Customer'
+            }
+        });
+    } catch (err) {
+        console.error('Customer Login Error:', err.message);
+        res.status(500).json({ message: 'Server error during login.' });
+    }
+});
+
+router.get('/user/me', auth, async (req, res) => {
+    try {
+        const role = (req.user.role || '').toLowerCase();
+
+        if (role === 'seller') {
+            const seller = await Seller.findById(req.user.id).select('-password');
+            if (!seller) return res.status(404).json({ message: 'Seller profile not found.' });
+            return res.json({
+                id: seller._id,
+                email: seller.email,
+                businessName: seller.businessName,
+                phoneNumber: seller.phoneNumber,
+                role: 'Seller'
+            });
+        }
+
+        if (role === 'customer') {
+            const customer = await User.findById(req.user.id).select('-password');
+            if (!customer) return res.status(404).json({ message: 'Customer profile not found.' });
+            return res.json({
+                id: customer._id,
+                email: customer.email,
+                firstName: customer.firstName,
+                surname: customer.surname,
+                phone: customer.phone,
+                role: 'Customer'
+            });
+        }
+
+        return res.status(403).json({ message: 'Unsupported profile role.' });
+    } catch (err) {
+        console.error('Profile Fetch Error:', err.message);
+        res.status(500).json({ message: 'Server error while loading profile.' });
+    }
+});
+
+router.patch('/user/update', auth, async (req, res) => {
+    try {
+        const role = (req.user.role || '').toLowerCase();
+
+        if (role === 'seller') {
+            const seller = await Seller.findById(req.user.id);
+            if (!seller) return res.status(404).json({ message: 'Seller profile not found.' });
+
+            if (req.body.businessName !== undefined) seller.businessName = req.body.businessName;
+            if (req.body.phoneNumber !== undefined) seller.phoneNumber = req.body.phoneNumber;
+
+            await seller.save();
+            return res.json({
+                id: seller._id,
+                email: seller.email,
+                businessName: seller.businessName,
+                phoneNumber: seller.phoneNumber,
+                role: 'Seller'
+            });
+        }
+
+        if (role === 'customer') {
+            const customer = await User.findById(req.user.id);
+            if (!customer) return res.status(404).json({ message: 'Customer profile not found.' });
+
+            if (req.body.firstName !== undefined) customer.firstName = req.body.firstName;
+            if (req.body.surname !== undefined) customer.surname = req.body.surname;
+            if (req.body.phone !== undefined) customer.phone = req.body.phone;
+
+            await customer.save();
+            return res.json({
+                id: customer._id,
+                email: customer.email,
+                firstName: customer.firstName,
+                surname: customer.surname,
+                phone: customer.phone,
+                role: 'Customer'
+            });
+        }
+
+        return res.status(403).json({ message: 'Unsupported profile role.' });
+    } catch (err) {
+        console.error('Profile Update Error:', err.message);
+        res.status(500).json({ message: 'Server error while updating profile.' });
+    }
+});
+
+router.get('/seller/profile', auth, hasRole(['Seller']), async (req, res) => {
+    try {
+        const seller = await Seller.findById(req.user.id).select('-password');
+        if (!seller) return res.status(404).json({ message: 'Seller profile not found.' });
+
+        res.json({
+            id: seller._id,
+            email: seller.email,
+            businessName: seller.businessName,
+            phoneNumber: seller.phoneNumber,
+            role: 'Seller'
+        });
+    } catch (err) {
+        console.error('Seller Profile Error:', err.message);
+        res.status(500).json({ message: 'Server error while loading seller profile.' });
+    }
+});
 
 router.get('/products', async (req, res) => {
   try {

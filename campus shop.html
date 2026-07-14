@@ -122,10 +122,10 @@
     // 3. NAVBAR & AUTH
     function updateNavbar() {
         const authSection = document.getElementById('authArea');
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('jwtToken');
         if (token && authSection) {
             authSection.innerHTML = `
-                <a href="Profile.html" class="text-gray-700 hover:text-blue-600 font-medium">Profile</a>
+                <a href="customer-orders.html" class="text-gray-700 hover:text-blue-600 font-medium">My Orders</a>
                 <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition ml-4">Logout</button>
             `;
         }
@@ -158,7 +158,7 @@ function populateCategories() {
         showLoader();
         try {
             // This URL must match your backend (shopRoutes.js)
-            const res = await fetch('/api/auth/products');
+            const res = await fetch('/api/shop/products');
             
             if (!res.ok) throw new Error(`Server Error: ${res.status}`);
 

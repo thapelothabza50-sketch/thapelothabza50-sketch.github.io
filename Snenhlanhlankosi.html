@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snenhlanhlankosi - Residence Details</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.2/photoswipe.min.css">
+    <style>
+        :root {
+            --primary-color: #23569d;
+            --accent-color: #ffcc00;
+            --text-color: #333;
+            --bg-color: #f4f7f9;
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* --- MOBILE FRIENDLY NAVBAR --- */
+        .navbar {
+            background-color: var(--primary-color);
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .navbar ul {
+            list-style: none;
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 5px;
+        }
+        
+        .navbar li { margin-right: 15px; }
+        
+        .navbar a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        /* --- HERO SECTION --- */
+        .res-header {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 0 0 25px 25px;
+        }
+
+        .res-header h1 { font-size: 2rem; margin-bottom: 10px; }
+        .res-header p { font-size: 1rem; opacity: 0.9; }
+
+        /* --- MAIN CONTENT --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .section {
+            background-color: var(--white);
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        .info-list { list-style: none; }
+        .info-list li { margin-bottom: 10px; padding-left: 5px; }
+
+        /* --- GALLERY --- */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .gallery-item {
+            display: block;
+            overflow: hidden;
+            border-radius: 12px;
+            height: 220px;
+            text-decoration: none;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Prevents stretching */
+            display: block;
+            transition: transform 0.3s;
+        }
+
+        .gallery-item img:hover { transform: scale(1.05); }
+
+        /* --- APPLY BUTTON --- */
+        .apply-btn {
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 20px auto;
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        footer {
+            background-color: #1a4178;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.85rem;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="apply at uni.html">Apply@Uni</a></li>
+            <li><a href="Learn More.html">Accommodations</a></li>
+            <li><a href="czra contact.html">Contact</a></li>
+        </ul>
+    </nav>
+
+    <div class="res-header">
+        <h1>Welcome to Snenhlanhlankosi</h1>
+        <p>Your home away from home on campus.</p>
+    </div>
+
+    <div class="container">
+        <a href="Learn More.html" class="back-link">← Back to Accommodations</a>
+        
+        <div class="section">
+            <h2>Residence Information</h2>
+            <p style="margin-bottom: 15px;">Snenhlanhlankosi offers modern, secure living spaces tailored for students. We focus on a supportive community environment.</p>
+            <ul class="info-list">
+                <li><strong>📍 Location:</strong> Msholozi</li>
+                <li><strong>🛏️ Room Types:</strong> Single and Shared Rooms available.</li>
+                <li><strong>📡 Facilities:</strong> High-speed Wi-Fi, laundry, study areas.</li>
+                <li><strong>🛡️ Security:</strong> 24-hour security & CCTV.</li>
+                <li><strong>🚌 Distance:</strong> 20 min from campus</li>
+                <li><strong>💵 Monthly Rent:</strong> R 3,800.00</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>Gallery</h2>
+            <div class="gallery-grid" id="boniville-gallery">
+                <a href="Images/down res cover.jpeg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
+                    <img src="Images/down res cover.jpeg" alt="Exterior">
+                </a>
+                <a href="Images/downres bulc.jpeg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
+                    <img src="Images/downres bulc.jpeg" alt="Bulcony">
+                </a>
+                <a href="Images/downres kitchen.jpeg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
+                    <img src="Images/downres kitchen.jpeg" alt="Kitchen">
+                </a>
+                <a href="Images/downres.jpeg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
+                    <img src="Images/downres.jpeg" alt="Dining Interior">
+                </a>
+                <a href="Images/down res cov 2.jpeg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
+                    <img src="Images/down res cov 2.jpeg" alt="Security Gate">
+                </a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Gallery</h2>
+            <div class="gallery-grid" id="boniville-gallery">
+                <a href="Images/middle res kitch ext.jpeg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
+                    <img src="Images/middle res kitch ext.jpeg" alt="Exterior">
+                </a>
+                <a href="Images/middle res stair.jpeg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
+                    <img src="Images/middle res stair.jpeg" alt="Stairs">
+                </a>
+                <a href="Images/downres kitchen.jpeg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
+                    <img src="Images/downres kitchen.jpeg" alt="Kitchen">
+                </a>
+                <a href="Images/downres.jpeg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
+                    <img src="Images/downres.jpeg" alt="Dining Interior">
+                </a>
+                <a href="Images/down res cov 2.jpeg" class="gallery-item" data-pswp-width="1200" data-pswp-height="900">
+                    <img src="Images/down res cov 2.jpeg" alt="Security Gate">
+                </a>
+            </div>
+        </div>
+        
+        <div class="section" style="text-align: center;">
+            <h2>Save your room</h2>
+            <p>Ready to move in? Click below to start your application .</p>
+            
+            <a href="apply.html?res=Boniville" class="apply-btn">Apply Now</a>
+             
+            
+            <p style="font-size: 0.85rem; font-style: italic; color: #666; margin-top: 10px;">
+                Note: NSFAS students should wait for the official moving-in cycle.
+            </p>
+        </div>
+    </div>
+    
+    <script type="module">
+        import PhotoSwipeLightbox from 'https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.2/photoswipe-lightbox.esm.min.js';
+        const lightbox = new PhotoSwipeLightbox({
+            gallery: '#boniville-gallery',
+            children: 'a.gallery-item',
+            pswpModule: () => import('https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.2/photoswipe.esm.min.js')
+        });
+        lightbox.init();
+    </script>
+    
+    <footer>
+        &copy; 2025 Campus Collective. All rights reserved.
+    </footer>
+</body>
+</html>
