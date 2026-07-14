@@ -135,7 +135,7 @@
             </div>
 
             <div class="overflow-auto">
-                <div id="productsGrid" class="flex flex-wrap content-start gap-4 pb-2"></div>
+                <div id="productsGrid" class="grid grid-cols-2 gap-3 pb-2 sm:gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"></div>
             </div>
         </div>
     </main>
@@ -173,19 +173,42 @@
 
     // 3. NAVBAR & AUTH
     function getUserInitials() {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            try {
-                const parsedUser = JSON.parse(storedUser);
-                const fullName = parsedUser.fullName || parsedUser.name || parsedUser.businessName || parsedUser.email || '';
-                if (fullName) {
-                    return fullName.split(' ').slice(0, 2).map(part => part[0]).join('').toUpperCase();
-                }
-            } catch (e) {
-                console.error('Unable to parse user data', e);
+        try {
+            const storedUser = localStorage.getItem('user');
+            if (!storedUser) {
+                console.log('No user data in localStorage');
+                return 'U';
             }
+            
+            const parsedUser = JSON.parse(storedUser);
+            const candidates = [
+                parsedUser.fullName,
+                parsedUser.firstName,
+                parsedUser.name,
+                parsedUser.businessName,
+                parsedUser.email
+            ];
+            
+            let fullName = candidates.find(c => c && typeof c === 'string' && c.trim().length > 0);
+            
+            if (!fullName) {
+                console.log('No suitable name found in user data', parsedUser);
+                return 'U';
+            }
+            
+            fullName = fullName.trim();
+            const initials = fullName
+                .split(/\s+/)
+                .slice(0, 2)
+                .map(part => part.charAt(0).toUpperCase())
+                .join('');
+            
+            console.log('User initials extracted:', initials, 'from:', fullName);
+            return initials || 'U';
+        } catch (e) {
+            console.error('Error extracting initials:', e);
+            return 'U';
         }
-        return 'U';
     }
 
     function getProfileDetails() {
@@ -318,7 +341,7 @@ function populateCategories() {
 
     function renderProduct(product) {
         const card = document.createElement('div');
-        card.className = 'product-card flex w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md sm:w-[calc(50%-0.5rem)] xl:w-[calc(33.333%-0.75rem)] 2xl:w-[calc(25%-0.75rem)]';
+        card.className = 'product-card flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md';
 
         const imgSrc = product.image && product.image.trim()
             ? product.image
