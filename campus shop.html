@@ -46,28 +46,27 @@
 </head>
 <body class="bg-slate-50 min-h-screen">
 
-    <div id="loader-overlay">
-        <div class="logo-container">
-            <div class="loader-ring"></div>
-            <img src="Images/Campus collective logo origin.jpg" alt="Loading..." class="loader-logo">
-        </div>
-        <div class="loader-text">Loading Campus Shop...</div>
-    </div>
-
     <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
+            <div class="flex h-16 items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                     <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="h-10 w-10 rounded-full">
                     <span class="text-xl font-bold text-blue-900">Campus Collective</span>
                 </div>
-                <div class="hidden md:flex space-x-6 items-center">
-                    <a href="index.html" class="text-gray-700 hover:text-blue-600 font-medium">Home</a>
-                    <a href="cart.html" class="text-gray-700 hover:text-blue-600 font-medium">🛒 Cart</a>
-                    <a href="customer-orders.html" class="text-gray-700 hover:text-blue-600 font-medium">My Orders</a>
+
+                <div class="hidden items-center gap-5 md:flex">
+                    <a href="index.html" class="font-medium text-gray-700 hover:text-blue-600">Home</a>
+                    <a href="cart.html" class="font-medium text-gray-700 hover:text-blue-600">🛒 Cart</a>
+                    <a href="customer-orders.html" class="font-medium text-gray-700 hover:text-blue-600">My Orders</a>
                     <div id="authArea" class="flex items-center gap-4">
-                        <a href="customer-login.html" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Login</a>
+                        <a href="customer-login.html" class="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700">Login</a>
                     </div>
+                </div>
+
+                <div class="flex items-center gap-2 md:hidden">
+                    <a href="cart.html" class="rounded-full bg-slate-100 p-2 text-slate-700" aria-label="Cart">🛒</a>
+                    <a href="customer-orders.html" class="rounded-full bg-slate-100 p-2 text-slate-700" aria-label="My Orders">📦</a>
+                    <a href="customer-login.html" class="rounded-full bg-blue-600 px-3 py-2 text-sm font-semibold text-white">Login</a>
                 </div>
             </div>
         </div>
@@ -133,15 +132,11 @@
             <section class="flex-1">
                 <div class="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p id="resultsSummary" class="text-sm font-semibold text-slate-900">Loading products...</p>
-                        <p class="text-xs text-slate-500">Smooth browsing, compact cards, and faster buying experience</p>
-                    </div>
-                    <div class="flex items-center gap-2 text-sm text-slate-500">
-                        <span class="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700">Mobile ready</span>
-                        <span class="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">Fast filters</span>
+                        <p id="resultsSummary" class="text-sm font-semibold text-slate-900">Showing all products</p>
+                        <p class="text-xs text-slate-500">Browse by category, price, or keyword.</p>
                     </div>
                 </div>
-                <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+                <div id="productsGrid" class="grid grid-cols-1 gap-4"></div>
             </section>
         </div>
     </main>
@@ -173,12 +168,10 @@
     const productsGrid = document.getElementById('productsGrid');
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
-    const loader = document.getElementById('loader-overlay');
+    const sortSelect = document.getElementById('sortSelect');
+    const specialOnly = document.getElementById('specialOnly');
+    const resultsSummary = document.getElementById('resultsSummary');
     let allProducts = []; // This stores the products we get from the server
-
-    // 2. LOADER FUNCTIONS
-    function showLoader() { if(loader) loader.style.display = 'flex'; }
-    function hideLoader() { if(loader) loader.style.display = 'none'; }
 
     // 3. NAVBAR & AUTH
     function updateNavbar() {
@@ -186,8 +179,7 @@
         const token = localStorage.getItem('jwtToken');
         if (token && authSection) {
             authSection.innerHTML = `
-                <a href="customer-orders.html" class="text-gray-700 hover:text-blue-600 font-medium">My Orders</a>
-                <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition ml-4">Logout</button>
+                <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">Logout</button>
             `;
         }
     }
@@ -216,131 +208,100 @@ function populateCategories() {
 
     // 4. FETCH DATA FROM SERVER
     async function fetchProducts() {
-        showLoader();
         try {
-            // This URL must match your backend (shopRoutes.js)
             const res = await fetch('/api/shop/products');
-            
             if (!res.ok) throw new Error(`Server Error: ${res.status}`);
 
             allProducts = await res.json();
-            
-            // Once data is here, show it on the screen
             populateCategories();
             filterAndRender();
         } catch (err) {
             console.error("Shop Load Error:", err);
             if (productsGrid) {
                 productsGrid.innerHTML = `
-                    <div class="col-span-full text-center py-10">
-                        <p class="text-red-500 font-bold">Error loading products</p>
-                        <p class="text-gray-500 text-xs">${err.message}</p>
+                    <div class="rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
+                        <p class="text-red-600 font-bold">Error loading products</p>
+                        <p class="text-gray-500 text-sm mt-2">${err.message}</p>
                         <button onclick="fetchProducts()" class="mt-4 text-blue-600 underline">Try Again</button>
                     </div>`;
             }
-        } finally {
-            hideLoader(); // This makes sure the "Loading" screen disappears
         }
     }
-    
-function renderProduct(product) {
-  const card = document.createElement('div');
-  card.className = 'product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
 
-  const imgSrc = product.image && product.image.trim()
-    ? product.image
-    : 'https://via.placeholder.com/300';
+    function renderProduct(product) {
+        const card = document.createElement('div');
+        card.className = 'product-card overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md';
 
-  const priceDisplay = product.onSpecial
-    ? `<span class="text-red-600 font-bold">R${product.price}</span>
-       <span class="text-gray-400 line-through text-xs ml-2">R${product.oldPrice}</span>`
-    : `<span class="text-blue-600 font-bold">R${product.price}</span>`;
+        const imgSrc = product.image && product.image.trim()
+            ? product.image
+            : 'https://via.placeholder.com/300';
 
-  card.innerHTML = `
-    <div class="relative h-48 overflow-hidden bg-gray-100">
-      <img src="${imgSrc}" alt="${product.name}" class="w-full h-full object-cover">
-      ${product.onSpecial ? '<span class="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">SPECIAL</span>' : ''}
-    </div>
-    <div class="p-4 flex-grow flex flex-col">
-      <div class="mb-2">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-1 rounded">${product.category}</span>
-      </div>
-      <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${product.name}</h3>
-      <p class="text-gray-500 text-xs line-clamp-2 mb-4 flex-grow">${product.description}</p>
-      <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-        <div class="flex flex-col">
-          <span class="text-[10px] text-gray-400 uppercase font-bold">Price</span>
-          <div class="flex items-center">${priceDisplay}</div>
-        </div>
-        <button onclick="addToCart('${product._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-bold transition shadow-md">
-          Add to Cart
-        </button>
-      </div>
-    </div>
-  `;
-  productsGrid.appendChild(card);
-}
+        const priceDisplay = product.onSpecial
+            ? `<span class="text-red-600 font-bold">R${product.price}</span>
+               <span class="text-gray-400 line-through text-xs ml-2">R${product.oldPrice}</span>`
+            : `<span class="text-blue-600 font-bold">R${product.price}</span>`;
 
-
-    
-// Helper to fill the category dropdown
-
-function renderProduct(product) {
-  const card = document.createElement('div');
-  card.className = 'product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
-
-  const imgSrc = product.image && product.image.trim()
-    ? product.image
-    : 'https://via.placeholder.com/300';
-
-  const priceDisplay = product.onSpecial
-    ? `<span class="text-red-600 font-bold">R${product.price}</span>
-       <span class="text-gray-400 line-through text-xs ml-2">R${product.oldPrice}</span>`
-    : `<span class="text-blue-600 font-bold">R${product.price}</span>`;
-
-  card.innerHTML = `
-    <div class="relative h-48 overflow-hidden bg-gray-100">
-      <img src="${imgSrc}" alt="${product.name}" class="w-full h-full object-cover">
-      ${product.onSpecial ? '<span class="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">SPECIAL</span>' : ''}
-    </div>
-    <div class="p-4 flex-grow flex flex-col">
-      <div class="mb-2">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-1 rounded">${product.category}</span>
-      </div>
-      <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${product.name}</h3>
-      <p class="text-gray-500 text-xs line-clamp-2 mb-4 flex-grow">${product.description}</p>
-      <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-        <div class="flex flex-col">
-          <span class="text-[10px] text-gray-400 uppercase font-bold">Price</span>
-          <div class="flex items-center">${priceDisplay}</div>
-        </div>
-        <button onclick="addToCart('${product._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-bold transition shadow-md">
-          Add to Cart
-        </button>
-      </div>
-    </div>
-  `;
-  productsGrid.appendChild(card);
-}
-
+        card.innerHTML = `
+            <div class="flex flex-col md:flex-row">
+                <div class="h-48 md:h-auto md:w-44 shrink-0 overflow-hidden bg-slate-100">
+                    <img src="${imgSrc}" alt="${product.name}" class="h-full w-full object-cover">
+                </div>
+                <div class="flex flex-1 flex-col justify-between p-4">
+                    <div>
+                        <div class="mb-2 flex items-center gap-2">
+                            <span class="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-600">${product.category || 'General'}</span>
+                            ${product.onSpecial ? '<span class="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-red-600">Special</span>' : ''}
+                        </div>
+                        <h3 class="font-bold text-gray-900">${product.name}</h3>
+                        <p class="mt-2 text-sm text-gray-500 line-clamp-3">${product.description || 'A quality product from a verified seller.'}</p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                        <div>
+                            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Price</p>
+                            <div class="flex items-center">${priceDisplay}</div>
+                        </div>
+                        <button onclick="addToCart('${product._id}')" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        productsGrid.appendChild(card);
+    }
 
     // 6. SEARCH & FILTER LOGIC
     function filterAndRender() {
         if (!productsGrid) return;
         productsGrid.innerHTML = '';
-        
-        const search = searchInput.value.toLowerCase();
-        const cat = categoryFilter.value;
-        
-        const filtered = allProducts.filter(p => {
+
+        const search = searchInput ? searchInput.value.toLowerCase() : '';
+        const cat = categoryFilter ? categoryFilter.value : '';
+        const sortValue = sortSelect ? sortSelect.value : 'featured';
+        const onlySpecials = specialOnly ? specialOnly.checked : false;
+
+        let filtered = allProducts.filter(p => {
             const matchesCategory = !cat || p.category === cat;
-            const matchesSearch = (p.name || '').toLowerCase().includes(search) || 
+            const matchesSearch = (p.name || '').toLowerCase().includes(search) ||
                                  (p.description || '').toLowerCase().includes(search);
-            return matchesCategory && matchesSearch;
+            const matchesSpecial = !onlySpecials || p.onSpecial;
+            return matchesCategory && matchesSearch && matchesSpecial;
         });
 
+        if (sortValue === 'price-low') {
+            filtered = filtered.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+        } else if (sortValue === 'price-high') {
+            filtered = filtered.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+        } else if (sortValue === 'newest') {
+            filtered = filtered.sort((a, b) => (b._id ? String(b._id).localeCompare(String(a._id)) : 0));
+        }
+
+        if (resultsSummary) {
+            resultsSummary.textContent = filtered.length === 0 ? 'No products found' : `Showing ${filtered.length} product${filtered.length === 1 ? '' : 's'}`;
+        }
+
         if (filtered.length === 0) {
-            productsGrid.innerHTML = '<p class="text-gray-500 col-span-full text-center py-20">No products found matching your search.</p>';
+            productsGrid.innerHTML = '<div class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-gray-500">No products matched your search.</div>';
         } else {
             filtered.forEach(p => renderProduct(p));
         }
@@ -359,6 +320,8 @@ function renderProduct(product) {
     // 8. EVENT LISTENERS
     if(searchInput) searchInput.addEventListener('input', filterAndRender);
     if(categoryFilter) categoryFilter.addEventListener('change', filterAndRender);
+    if(sortSelect) sortSelect.addEventListener('change', filterAndRender);
+    if(specialOnly) specialOnly.addEventListener('change', filterAndRender);
 
     // START EVERYTHING
     window.onload = () => {
