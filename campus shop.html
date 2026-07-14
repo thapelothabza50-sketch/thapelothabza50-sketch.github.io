@@ -46,6 +46,23 @@
 </head>
 <body class="bg-slate-50 min-h-screen">
 
+    <div id="profileModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/70 px-4">
+        <div class="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Customer profile</p>
+                    <h3 id="profileModalTitle" class="mt-1 text-xl font-bold text-slate-900">Your account</h3>
+                </div>
+                <button onclick="closeProfileModal()" class="rounded-full bg-slate-100 p-2 text-slate-600">✕</button>
+            </div>
+            <div id="profileModalBody" class="mt-5 space-y-3 text-sm text-slate-600"></div>
+            <div class="mt-6 flex gap-3">
+                <button onclick="closeProfileModal()" class="flex-1 rounded-2xl border border-slate-200 px-4 py-2 font-semibold text-slate-700">Close</button>
+                <button onclick="logout()" class="flex-1 rounded-2xl bg-red-600 px-4 py-2 font-semibold text-white">Logout</button>
+            </div>
+        </div>
+    </div>
+
     <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 items-center justify-between gap-3">
@@ -87,20 +104,20 @@
 
         <div class="flex flex-col gap-4">
             <div id="filterPanel" class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-                <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-                    <div class="flex-1">
+                <div class="flex flex-row flex-wrap items-end gap-2 sm:gap-3">
+                    <div class="min-w-[170px] flex-1">
                         <label for="searchInput" class="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Search</label>
                         <input type="text" id="searchInput" placeholder="Search products..." class="w-full rounded-xl border border-slate-200 p-3 outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
-                    <div class="w-full lg:w-48">
+                    <div class="min-w-[150px] flex-1 sm:w-44">
                         <label for="categoryFilter" class="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Category</label>
                         <select id="categoryFilter" class="w-full rounded-xl border border-slate-200 p-3 outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="">All Categories</option>
                         </select>
                     </div>
 
-                    <div class="w-full lg:w-48">
+                    <div class="min-w-[150px] flex-1 sm:w-44">
                         <label for="sortSelect" class="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Sort by</label>
                         <select id="sortSelect" class="w-full rounded-xl border border-slate-200 p-3 outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="featured">Featured</option>
@@ -110,15 +127,15 @@
                         </select>
                     </div>
 
-                    <label class="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-3 text-sm font-medium text-slate-700 lg:ml-auto">
+                    <label class="flex min-w-[140px] items-center gap-2 rounded-xl bg-slate-50 px-3 py-3 text-sm font-medium text-slate-700">
                         <input id="specialOnly" type="checkbox" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
                         Only specials
                     </label>
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
-                <div id="productsGrid" class="grid min-w-[320px] grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3"></div>
+            <div class="overflow-auto">
+                <div id="productsGrid" class="flex flex-wrap content-start gap-4 pb-2"></div>
             </div>
         </div>
     </main>
@@ -171,6 +188,59 @@
         return 'U';
     }
 
+    function getProfileDetails() {
+        const storedUser = localStorage.getItem('user');
+        if (!storedUser) return null;
+        try {
+            return JSON.parse(storedUser);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function openProfileModal() {
+        const modal = document.getElementById('profileModal');
+        const title = document.getElementById('profileModalTitle');
+        const body = document.getElementById('profileModalBody');
+        const profile = getProfileDetails();
+
+        if (!modal || !title || !body) return;
+
+        if (!profile) {
+            title.textContent = 'Account required';
+            body.innerHTML = '<p>Please log in to view your profile.</p>';
+        } else {
+            const name = profile.fullName || profile.name || profile.businessName || 'Customer';
+            const email = profile.email || 'No email provided';
+            title.textContent = name;
+            body.innerHTML = `
+                <div class="rounded-2xl bg-slate-50 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Name</p>
+                    <p class="mt-1 font-semibold text-slate-900">${name}</p>
+                </div>
+                <div class="rounded-2xl bg-slate-50 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Email</p>
+                    <p class="mt-1 font-semibold text-slate-900">${email}</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 p-3 text-sm">
+                    <p class="font-semibold text-slate-800">Need help with your account?</p>
+                    <p class="mt-1 text-slate-600">View your orders or update your profile from your account area.</p>
+                </div>
+            `;
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeProfileModal() {
+        const modal = document.getElementById('profileModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
     function updateNavbar() {
         const authSection = document.getElementById('authArea');
         const mobileAuthSection = document.getElementById('mobileAuthArea');
@@ -181,12 +251,12 @@
             const loggedInMarkup = `
                 <a href="customer-orders.html" class="font-medium text-gray-700 hover:text-blue-600">My Orders</a>
                 <a href="cart.html" class="font-medium text-gray-700 hover:text-blue-600">Cart</a>
-                <a href="customer-orders.html" class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-semibold text-white shadow-sm" aria-label="Logged in user">${initials}</a>
+                <button type="button" onclick="openProfileModal()" class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-semibold text-white shadow-sm" aria-label="Open account profile">${initials}</button>
             `;
             if (authSection) authSection.innerHTML = loggedInMarkup;
             if (mobileAuthSection) {
                 mobileAuthSection.innerHTML = `
-                    <a href="customer-orders.html" class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 font-semibold text-white" aria-label="Logged in user">${initials}</a>
+                    <button type="button" onclick="openProfileModal()" class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 font-semibold text-white" aria-label="Open account profile">${initials}</button>
                 `;
             }
         } else {
@@ -248,7 +318,7 @@ function populateCategories() {
 
     function renderProduct(product) {
         const card = document.createElement('div');
-        card.className = 'product-card flex h-full min-h-[220px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md';
+        card.className = 'product-card flex w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md sm:w-[calc(50%-0.5rem)] xl:w-[calc(33.333%-0.75rem)] 2xl:w-[calc(25%-0.75rem)]';
 
         const imgSrc = product.image && product.image.trim()
             ? product.image
@@ -260,8 +330,8 @@ function populateCategories() {
             : `<span class="text-blue-600 font-bold">R${product.price}</span>`;
 
         card.innerHTML = `
-            <div class="flex w-full flex-col sm:flex-row">
-                <div class="h-48 w-full shrink-0 overflow-hidden bg-slate-100 sm:h-auto sm:w-40">
+            <div class="flex h-full flex-col">
+                <div class="h-44 overflow-hidden bg-slate-100">
                     <img src="${imgSrc}" alt="${product.name}" class="h-full w-full object-cover">
                 </div>
                 <div class="flex flex-1 flex-col justify-between p-4">
@@ -342,6 +412,9 @@ function populateCategories() {
         updateNavbar();
         fetchProducts();
     };
+
+    window.openProfileModal = openProfileModal;
+    window.closeProfileModal = closeProfileModal;
 </script>
 </body>
 </html>
