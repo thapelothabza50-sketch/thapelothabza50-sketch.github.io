@@ -201,12 +201,12 @@ router.post('/admin-agent/login', async (req, res) => {
             });
         }
 
-        /*
+        
         if (agent.status === 'locked') { 
             return res.status(403).json({ 
                 message: 'Your account is locked. Please contact administration.' 
             });
-        } */
+        } 
     
 
         // 5. Normal Login: Create the full Token
