@@ -5,157 +5,494 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About Campus Collective</title>
     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <!-- FontAwesome icons for modern UI elements -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         :root {
-            --glass: rgba(255, 255, 255, 0.95);
-            --primary: #1a1a1a;
-            --accent: #ffcc00;
-            --radius: 20px;
+            --glass: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --primary: #121212;
+            --primary-accent: #ffb703;
+            --accent-hover: #ffa200;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 8px;
+            --shadow-subtle: 0 10px 30px rgba(0, 0, 0, 0.15);
+            --shadow-hover: 0 15px 35px rgba(0, 0, 0, 0.25);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            /* Darkened Background Image */
+            color: var(--text-dark);
             background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)), 
                         url('Images/Campus collective logo origin.jpg') no-repeat center center fixed;
             background-size: cover;
-            padding-top: 100px;
+            position: relative;
         }
 
         /* --- NAVIGATION --- */
         nav {
-            position: fixed; top: 0; width: 100%; height: 70px;
-            background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 5%; z-index: 2000;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 75px;
+            background: rgba(18, 18, 18, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 8%;
+            z-index: 2000;
         }
 
-        .nav-logo-text { color: white; font-weight: 800; letter-spacing: 1px; }
-
-        .nav-links { display: flex; list-style: none; gap: 20px; }
-        .nav-links li a { color: white; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: 0.3s; }
-        .nav-links li a:hover { color: var(--accent); }
-
-        .close-btn { display: none; position: absolute; top: 20px; right: 20px; font-size: 2rem; color: white; cursor: pointer; }
-        .hamburger { display: none; cursor: pointer; flex-direction: column; gap: 5px; }
-        .hamburger span { width: 25px; height: 3px; background: white; border-radius: 5px; }
-
-        @media (max-width: 850px) {
-            .nav-links {
-                position: fixed; top: 0; right: -100%; width: 75%; height: 100vh;
-                background: var(--primary); flex-direction: column; padding: 100px 40px;
-                transition: 0.4s ease; box-shadow: -10px 0 30px rgba(0,0,0,0.5);
-            }
-            .nav-links.active { right: 0; }
-            .hamburger { display: flex; }
-            .close-btn { display: block; }
-            .nav-links li { margin: 15px 0; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .nav-logo-text { 
+            color: white; 
+            font-weight: 800; 
+            font-size: 1.25rem;
+            letter-spacing: 1.5px; 
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        /* --- CONTAINER & CONTENT --- */
-        .main-wrapper { flex: 1; }
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav-links li a {
+            color: #e5e7eb;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.92rem;
+            transition: var(--transition);
+            position: relative;
+            padding: 5px 0;
+        }
+
+        .nav-links li a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0%;
+            height: 2px;
+            background-color: var(--primary-accent);
+            transition: var(--transition);
+        }
+
+        .nav-links li a:hover { color: white; }
+        .nav-links li a:hover::after { width: 100%; }
+
+        .nav-links li a.nav-btn {
+            background: var(--primary-accent);
+            color: var(--primary);
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+        }
+
+        .nav-links li a.nav-btn::after { display: none; }
+        .nav-links li a.nav-btn:hover { background: var(--accent-hover); transform: translateY(-2px); }
+
+        .close-btn {
+            display: none;
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            font-size: 1.8rem;
+            color: white;
+            cursor: pointer;
+        }
+
+        .hamburger {
+            display: none;
+            cursor: pointer;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .hamburger span {
+            width: 28px;
+            height: 3px;
+            background: white;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        /* --- CONTENT AREA --- */
+        .main-wrapper { 
+            flex: 1; 
+            padding-top: 110px; 
+            display: flex;
+            align-items: center;
+        }
 
         .container {
-            width: 90%; max-width: 800px; margin: 0 auto 40px;
-            padding: 40px; background: var(--glass);
-            border-radius: var(--radius); box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 900px;
+            margin: 0 auto 50px;
+            padding: 50px 40px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-subtle);
         }
 
         .inner-logo { 
-            width: 150px; display: block; margin: 0 auto 20px; 
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+            width: 130px; 
+            display: block; 
+            margin: 0 auto 15px; 
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: var(--transition);
         }
+
+        .inner-logo:hover { transform: scale(1.05); }
 
         .header { text-align: center; margin-bottom: 30px; }
-        h1 { color: var(--primary); font-size: 2.2rem; margin-bottom: 10px; }
-        h2 { color: #1a4178; font-size: 1.4rem; margin: 25px 0 15px; border-left: 4px solid var(--accent); padding-left: 15px; }
+        h1 { font-size: 2.2rem; color: var(--primary); font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+        .subtitle { font-weight: 600; color: #4b5563; font-size: 1.05rem; }
 
-        p { line-height: 1.7; margin-bottom: 20px; color: #333; font-size: 1.05rem; text-align: justify; }
+        p { line-height: 1.7; margin-bottom: 20px; color: #374151; font-size: 1.05rem; }
 
-        ol { margin-left: 25px; margin-bottom: 30px; }
-        ol li { margin-bottom: 12px; font-size: 1.05rem; color: #333; line-height: 1.5; font-weight: 500; }
-
-        .contact-info-box {
-            background: #f4f7f9; padding: 20px; border-radius: 12px;
-            text-align: center; border: 1px solid #e1e8ed;
+        h2 { 
+            color: var(--primary); 
+            font-size: 1.35rem; 
+            margin: 30px 0 15px; 
+            border-left: 4px solid var(--primary-accent); 
+            padding-left: 12px; 
+            font-weight: 700;
         }
 
-        .contact-info-box a { color: #1a4178; text-decoration: none; font-weight: bold; }
-        .contact-info-box a:hover { text-decoration: underline; }
+        .services-list {
+            list-style: none;
+            margin-bottom: 30px;
+            display: grid;
+            gap: 12px;
+        }
 
-        /* --- FOOTER --- */
+        .services-list li {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            font-size: 1rem;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            transition: var(--transition);
+        }
+
+        .services-list li:hover {
+            transform: translateX(5px);
+            background: #fff;
+        }
+
+        .services-list li i {
+            color: var(--primary-accent);
+            font-size: 1.1rem;
+        }
+
+        .contact-info-box {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 24px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            margin-top: 20px;
+        }
+
+        .contact-info-box p { margin-bottom: 10px; font-weight: 500; text-align: center; }
+        .contact-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary);
+            color: white;
+            padding: 10px 22px;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            margin-top: 5px;
+        }
+
+        .contact-btn:hover {
+            background: #333;
+            transform: translateY(-2px);
+        }
+
+        /* --- MODERN FOOTER --- */
         footer {
-            background: rgba(0,0,0,0.9); color: white; text-align: center;
-            padding: 20px; margin-top: auto; font-size: 0.9rem;
+            background: rgba(18, 18, 18, 0.92);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #a1a1aa;
+            padding: 50px 8% 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-column h3 {
+            color: white;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            position: relative;
+            padding-bottom: 8px;
+        }
+
+        .footer-column h3::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 30px;
+            height: 2px;
+            background-color: var(--primary-accent);
+        }
+
+        .footer-column ul { list-style: none; }
+        .footer-column ul li { margin-bottom: 10px; }
+
+        .footer-column ul li a {
+            color: #a1a1aa;
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .footer-column ul li a:hover {
+            color: white;
+            padding-left: 5px;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .social-icons a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 50%;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .social-icons a:hover {
+            background: var(--primary-accent);
+            color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.85rem;
+        }
+
+        /* --- MOBILE STYLES --- */
+        @media (max-width: 850px) {
+            nav { padding: 0 6%; }
+
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 80%;
+                max-width: 320px;
+                height: 100vh;
+                background: rgba(18, 18, 18, 0.98);
+                backdrop-filter: blur(20px);
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 90px 30px 30px;
+                transition: right 0.4s cubic-bezier(0.77, 0, 0.175, 1);
+                box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+                gap: 0;
+            }
+
+            .nav-links.active { right: 0; }
+            .hamburger { display: flex; }
+            .close-btn { display: block; }
+
+            .nav-links li { 
+                width: 100%;
+                margin: 0; 
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+            }
+
+            .nav-links li a { 
+                display: block;
+                padding: 16px 0;
+                font-size: 1rem; 
+            }
+
+            .nav-links li a::after { display: none; }
+            .nav-links li a.nav-btn { margin-top: 20px; text-align: center; }
+
+            .container { padding: 35px 20px; width: 94%; }
+            h1 { font-size: 1.8rem; }
+            
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
         }
     </style>
 </head>
 <body>
 
+    <!-- NAVIGATION -->
     <nav>
-        <div class="nav-logo-text">CAMPUS COLLECTIVE</div>
+        <div class="nav-logo-text">
+            CAMPUS COLLECTIVE
+        </div>
+        
         <ul class="nav-links" id="navLinks">
-            <span class="close-btn" id="closeBtn">&times;</span>
+            <span class="close-btn" id="closeBtn"><i class="fa-solid fa-xmark"></i></span>
             <li><a href="index.html">Home</a></li>
-            <li><a href="choose _application.html">Apply@Institutions</a></li>
             <li><a href="czra more about us.html">About Us</a></li>
-            <li><a href="version.html">Our-Vision</a></li>
-            <li><a href="czra contact.html">Contact</a></li>
-            <li><a href="choose login.html">Login</a></li>
+            <li><a href="czra contact.html">Contact Us</a></li>
+            <li><a href="version.html">Our Vision</a></li>
+            <li><a href="choose _application.html">Apply@Institutions</a></li>
             <li><a href="campus shop.html">Store</a></li>
             <li><a href="Learn More.html">Accommodations</a></li>
+            <li><a href="choose login.html" class="nav-btn">Login</a></li>
         </ul>
-        <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+
+        <div class="hamburger" id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
     </nav>
 
+    <!-- MAIN CONTENT -->
     <div class="main-wrapper">
         <div class="container">
             <img src="Images/Campus collective logo origin.jpg" alt="Campus Collective Logo" class="inner-logo">
             
             <div class="header">
                 <h1>About Us</h1>
-                <p style="text-align: center; font-weight: bold; color: #555;">Your Partner in Finding the Perfect Accommodation</p>
+                <p class="subtitle">Your Partner in Finding the Perfect Accommodation</p>
             </div>
 
             <p>At Campus Collective, we understand that finding the right accommodation can be a daunting task, especially for students. That's why we're here to assist you in finding the best accommodations that fit your requirements.</p>
             
-            <p>Our team is dedicated to providing you with a hassle-free experience, from searching for accommodations to securing your spot. We work with a wide range of accommodation providers to ensure that you have access to the best options available. 
-                We are also dedicated to helping students with applications for universities and colleges, advising them on courses and providing guidance throughout the application process free of charge.</p>
+            <p>Our team is dedicated to providing you with a hassle-free experience, from searching for accommodations to securing your spot. We work with a wide range of accommodation providers to ensure that you have access to the best options available. We are also dedicated to helping students with applications for universities and colleges, advising them on courses and providing guidance throughout the application process free of charge.</p>
             
-            <h2>Services we offer:</h2>
-            <ol>
-                <li>We help students with applications for universities and colleges.</li>
-                <li>We unite Students with their ideal accommodation.</li>
-                <li>We help Accommodation providers to fill their empty spaces.</li>
-                <li>We help students advertise their small businesses.</li>
-                <li>We also help you get everything you may need in our campus store.</li>
-            </ol>
+            <h2>Services We Offer</h2>
+            <ul class="services-list">
+                <li><i class="fa-solid fa-graduation-cap"></i> Assistance for students applying to universities and colleges.</li>
+                <li><i class="fa-solid fa-house-user"></i> Connecting students directly with their ideal accommodation.</li>
+                <li><i class="fa-solid fa-building-circle-check"></i> Helping accommodation providers fill available spaces.</li>
+                <li><i class="fa-solid fa-bullhorn"></i> Assisting student entrepreneurs to advertise small businesses.</li>
+                <li><i class="fa-solid fa-store"></i> Providing daily campus store marketplace essentials.</li>
+            </ul>
             
             <div class="contact-info-box">
                 <p>Contact us today to learn more about our services:</p>
-                <p>Contact Us: <a href="czra contact.html">Our Contacts</a></p>
+                <a href="czra contact.html" class="contact-btn">Get In Touch <i class="fa-solid fa-envelope"></i></a>
             </div>
         </div>
     </div>
 
+    <!-- MODERN FOOTER -->
     <footer>
-        &copy; 2025 Campus Collective. All rights reserved. | Developed with 🧡 in SA.
+        <div class="footer-content">
+            <div class="footer-column">
+                <h3>Campus Collective</h3>
+                <p style="font-size: 0.9rem; line-height: 1.6; color: #a1a1aa; margin-top: 10px;">
+                    Your ultimate hub for student accommodations, institutional applications, and peer-to-peer campus shopping.
+                </p>
+                <div class="social-icons">
+                    <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="#"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-column">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="czra more about us.html">About Us</a></li>
+                    <li><a href="version.html">Our Vision</a></li>
+                    <li><a href="czra contact.html">Contact Us</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h3>Services</h3>
+                <ul>
+                    <li><a href="Learn More.html">Student Accommodations</a></li>
+                    <li><a href="choose _application.html">Apply @ Institutions</a></li>
+                    <li><a href="campus shop.html">Campus Shop</a></li>
+                    <li><a href="join us.html">List Your Property</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2025 Campus Collective. All rights reserved | Developed with 🧡 in SA.</p>
+        </div>
     </footer>
 
+    <!-- SCRIPT -->
     <script>
-        const hb = document.getElementById('hamburger'), menu = document.getElementById('navLinks'), cb = document.getElementById('closeBtn');
-        hb.onclick = () => menu.classList.add('active');
-        cb.onclick = () => menu.classList.remove('active');
-        
-        // Close menu if user taps outside the drawer
-        document.addEventListener('click', (e) => {
-            if (!menu.contains(e.target) && !hb.contains(e.target) && menu.classList.contains('active')) {
-                menu.classList.remove('active');
+        const hamburger = document.getElementById('hamburger');
+        const closeBtn = document.getElementById('closeBtn');
+        const navLinks = document.getElementById('navLinks');
+
+        hamburger.addEventListener('click', () => {
+            navLinks.classList.add('active');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+        });
+
+        document.addEventListener('click', (event) => {
+            const isClickInsideMenu = navLinks.contains(event.target);
+            const isClickOnHamburger = hamburger.contains(event.target);
+
+            if (!isClickInsideMenu && !isClickOnHamburger && navLinks.classList.contains('active')) {
+                navLinks.classList.remove('active');
             }
         });
     </script>
