@@ -452,28 +452,41 @@
     </footer>
 
     <script>
-        // HAMBURGER & DROPDOWN LOGIC
-        const hamburger = document.getElementById('hamburger');
-        const closeBtn = document.getElementById('closeBtn');
-        const navLinks = document.getElementById('navLinks');
-        const dropdowns = document.querySelectorAll('.dropdown');
+    // HAMBURGER & DROPDOWN LOGIC
+    const hamburger = document.getElementById('hamburger');
+    const closeBtn = document.getElementById('closeBtn');
+    const navLinks = document.getElementById('navLinks');
+    const dropdowns = document.querySelectorAll('.dropdown');
 
-        hamburger.addEventListener('click', () => { navLinks.classList.add('active'); });
-        closeBtn.addEventListener('click', () => { navLinks.classList.remove('active'); });
+    hamburger.addEventListener('click', () => { navLinks.classList.add('active'); });
+    closeBtn.addEventListener('click', () => { navLinks.classList.remove('active'); });
 
-        dropdowns.forEach(dropdown => {
-            dropdown.addEventListener('click', (e) => {
-                if (window.innerWidth <= 850) {
-                    dropdown.classList.toggle('active');
-                }
-            });
-        });
+    dropdowns.forEach(dropdown => {
+        // Target the main toggle link inside the dropdown item
+        const dropdownLink = dropdown.querySelector('a');
 
-        document.addEventListener('click', (event) => {
-            if (!navLinks.contains(event.target) && !hamburger.contains(event.target)) {
-                navLinks.classList.remove('active');
+        dropdownLink.addEventListener('click', (e) => {
+            if (window.innerWidth <= 850) {
+                // Prevent the browser from navigating immediately on mobile
+                e.preventDefault();
+                
+                // Close other open dropdowns (optional, keeps UI clean)
+                dropdowns.forEach(other => {
+                    if (other !== dropdown) other.classList.remove('active');
+                });
+
+                // Toggle the tapped dropdown
+                dropdown.classList.toggle('active');
             }
         });
-    </script>
+    });
+
+    // Close mobile nav when clicking outside
+    document.addEventListener('click', (event) => {
+        if (!navLinks.contains(event.target) && !hamburger.contains(event.target)) {
+            navLinks.classList.remove('active');
+        }
+    });
+</script>
 </body>
 </html>
