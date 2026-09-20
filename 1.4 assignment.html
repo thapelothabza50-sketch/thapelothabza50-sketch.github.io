@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Workshop Registration System</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { background: white; max-width: 700px; margin: auto; padding: 25px; border-radius: 8px; box-shadow: 0 0 10px #ccc; }
+        h1 { color: #003366; text-align: center; }
+        h2 { color: #0055a5; }
+        label { display: block; margin-top: 12px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+        .checkbox { width: auto; }
+        button { margin-top: 20px; background: #003366; color: white; padding: 12px; width: 100%; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0055a5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>University Workshop Registration System</h1>
+        
+        <h2>About Our Workshops</h2>
+        <p>The Student Development Office offers career and academic skills workshops to help you succeed. 
+        Our workshops include CV Writing, Interview Preparation, Research Skills, Programming Fundamentals, and Presentation Skills.</p>
+        <p>Different workshops have different registration fees and printed learning-material costs. 
+        Please fill in the form below to register. The system will calculate total costs and display information about your selected workshop.</p>
+
+        <hr>
+
+        <h2>Workshop Registration Form</h2>
+        <!-- This form will send data to your PHP file for calculation -->
+        <form action="calculate.php" method="POST">
+            
+            <!-- Student Details -->
+            <label for="studentNumber">Student Number:</label>
+            <input type="text" id="studentNumber" name="studentNumber" placeholder="e.g. ST1001" required>
+
+            <label for="studentName">Full Name:</label>
+            <input type="text" id="studentName" name="studentName" placeholder="e.g. Thabo" required>
+
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" name="email" required>
+
+            <!-- Workshop Selection -->
+            <label for="workshop">Select Workshop:</label>
+            <select id="workshop" name="workshop" required>
+                <option value="">-- Choose a Workshop --</option>
+                <option value="CV Writing">CV Writing</option>
+                <option value="Interview Preparation">Interview Preparation</option>
+                <option value="Research Skills">Research Skills</option>
+                <option value="Programming Fundamentals">Programming Fundamentals</option>
+                <option value="Presentation Skills">Presentation Skills</option>
+            </select>
+
+            <!-- Number of Participants -->
+            <label for="participants">Number of Participants:</label>
+            <input type="number" id="participants" name="participants" min="1" value="1" required>
+
+            <!-- Printed Material -->
+            <label>
+                <input type="checkbox" name="materialRequired" value="yes" class="checkbox">
+                I require printed learning material (additional cost applies)
+            </label>
+
+            <button type="submit">Calculate Cost & Register</button>
+        </form>
+    </div>
+</body>
+</html>
+

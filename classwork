@@ -1,0 +1,21 @@
+<?php
+// 1. Declare string variables
+$studentName = "Sibusiso Ndlovu";
+$studentNumber = "221087439";
+$course = "Diploma in Information Technology";
+
+// 2. Declare numeric variables
+$registrationFee = 3000;
+$tuitionFee = 21500;
+
+// 3. Calculate total fee
+$totalFee = $registrationFee + $tuitionFee;
+
+// 4. Display information using echo with string interpolation
+echo "Student Name: $studentName<br>";
+echo "Student Number: $studentNumber<br>";
+echo "Course: $course<br>";
+echo "Registration Fee: R$registrationFee<br>";
+echo "Tuition Fee: R$tuitionFee<br>";
+echo "Total Fee: R$totalFee<br>";
+?>

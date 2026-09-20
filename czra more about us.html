@@ -73,6 +73,10 @@
             align-items: center;
         }
 
+        .nav-links li {
+            position: relative;
+        }
+
         .nav-links li a {
             color: #e5e7eb;
             text-decoration: none;
@@ -80,7 +84,10 @@
             font-size: 0.92rem;
             transition: var(--transition);
             position: relative;
-            padding: 5px 0;
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .nav-links li a::after {
@@ -96,6 +103,51 @@
 
         .nav-links li a:hover { color: white; }
         .nav-links li a:hover::after { width: 100%; }
+
+        /* --- DROPDOWN STYLES --- */
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(16px);
+            min-width: 180px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            list-style: none;
+            padding: 8px 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: var(--transition);
+        }
+
+        .dropdown:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-menu li {
+            width: 100%;
+        }
+
+        .dropdown-menu li a {
+            padding: 10px 16px;
+            font-size: 0.88rem;
+            display: block;
+            color: #d1d5db;
+        }
+
+        .dropdown-menu li a::after {
+            display: none;
+        }
+
+        .dropdown-menu li a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--primary-accent);
+        }
 
         .nav-links li a.nav-btn {
             background: var(--primary-accent);
@@ -343,6 +395,7 @@
                 transition: right 0.4s cubic-bezier(0.77, 0, 0.175, 1);
                 box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
                 gap: 0;
+                overflow-y: auto;
             }
 
             .nav-links.active { right: 0; }
@@ -356,13 +409,35 @@
             }
 
             .nav-links li a { 
-                display: block;
+                display: flex;
+                justify-content: space-between;
                 padding: 16px 0;
                 font-size: 1rem; 
             }
 
             .nav-links li a::after { display: none; }
-            .nav-links li a.nav-btn { margin-top: 20px; text-align: center; }
+
+            .dropdown-menu {
+                position: static;
+                opacity: 1;
+                visibility: visible;
+                transform: none;
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                padding-left: 15px;
+                display: none;
+            }
+
+            .dropdown.active .dropdown-menu {
+                display: block;
+            }
+
+            .nav-links li a.nav-btn { 
+                margin-top: 20px; 
+                text-align: center; 
+                justify-content: center;
+            }
 
             .container { padding: 35px 20px; width: 94%; }
             h1 { font-size: 1.8rem; }
@@ -385,12 +460,28 @@
         <ul class="nav-links" id="navLinks">
             <span class="close-btn" id="closeBtn"><i class="fa-solid fa-xmark"></i></span>
             <li><a href="index.html">Home</a></li>
-            <li><a href="czra more about us.html">About Us</a></li>
-            <li><a href="czra contact.html">Contact Us</a></li>
-            <li><a href="version.html">Our Vision</a></li>
-            <li><a href="choose _application.html">Apply@Institutions</a></li>
-            <li><a href="campus shop.html">Store</a></li>
+            
+            <li class="dropdown">
+                <a href="czra more about us.html">About Us <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem;"></i></a>
+                <ul class="dropdown-menu">
+                    <li><a href="czra more about us.html">About Us</a></li>
+                    <li><a href="version.html">Our Vision</a></li>
+                    <li><a href="team.html">Our Team</a></li>
+                </ul>
+            </li>
+
             <li><a href="Learn More.html">Accommodations</a></li>
+
+            <li class="dropdown">
+                <a href="#">Services <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem;"></i></a>
+                <ul class="dropdown-menu">
+                    <li><a href="choose _application.html">Apply@Institutions</a></li>
+                    <li><a href="campus shop.html">Campus Shop</a></li>
+                </ul>
+            </li>
+
+            <li><a href="czra contact.html">Contact Us</a></li>
+            <li><a href="join us.html">Join Us</a></li>
             <li><a href="choose login.html" class="nav-btn">Login</a></li>
         </ul>
 
@@ -480,6 +571,7 @@
         const hamburger = document.getElementById('hamburger');
         const closeBtn = document.getElementById('closeBtn');
         const navLinks = document.getElementById('navLinks');
+        const dropdowns = document.querySelectorAll('.dropdown');
 
         hamburger.addEventListener('click', () => {
             navLinks.classList.add('active');
@@ -487,6 +579,14 @@
 
         closeBtn.addEventListener('click', () => {
             navLinks.classList.remove('active');
+        });
+
+        dropdowns.forEach(dropdown => {
+            dropdown.addEventListener('click', (e) => {
+                if (window.innerWidth <= 850) {
+                    dropdown.classList.toggle('active');
+                }
+            });
         });
 
         document.addEventListener('click', (event) => {
