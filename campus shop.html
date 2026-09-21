@@ -74,14 +74,12 @@
                 <div class="hidden items-center gap-5 md:flex">
                     <a href="index.html" class="font-medium text-gray-700 hover:text-blue-600">Home</a>
                     <a href="cart.html" class="font-medium text-gray-700 hover:text-blue-600">🛒 Cart</a>
-                    <a href="customer-orders.html" class="font-medium text-gray-700 hover:text-blue-600">My Orders</a>
                     <div id="authArea" class="flex items-center gap-4"></div>
                 </div>
 
                 <div class="flex items-center gap-2 md:hidden">
                     <a href="cart.html" class="rounded-full bg-slate-100 p-2 text-slate-700" aria-label="Cart">🛒</a>
-                    <a href="customer-orders.html" class="rounded-full bg-slate-100 p-2 text-slate-700" aria-label="My Orders">📦</a>
-                    <div id="mobileAuthArea"></div>
+                    <div id="mobileAuthArea" class="flex items-center gap-2"></div>
                 </div>
             </div>
         </div>
@@ -163,48 +161,43 @@
 
    <script>
     // 1. GLOBAL VARIABLES
-    // We define these at the top so every function below can see them
     const productsGrid = document.getElementById('productsGrid');
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const sortSelect = document.getElementById('sortSelect');
     const specialOnly = document.getElementById('specialOnly');
-    let allProducts = []; // This stores the products we get from the server
+    let allProducts = [];
 
     // 3. NAVBAR & AUTH
     function getUserInitials() {
         try {
             const storedUser = localStorage.getItem('user');
-            if (!storedUser) {
-                console.log('No user data in localStorage');
-                return 'U';
+            if (!storedUser) return 'U';
+            
+            const p = JSON.parse(storedUser);
+
+            // Case A: Separate firstName and lastName/surname properties exist
+            const first = p.firstName || p.name || '';
+            const last = p.lastName || p.surname || '';
+
+            if (first && last) {
+                return (first.trim().charAt(0) + last.trim().charAt(0)).toUpperCase();
             }
-            
-            const parsedUser = JSON.parse(storedUser);
-            const candidates = [
-                parsedUser.fullName,
-                parsedUser.firstName,
-                parsedUser.name,
-                parsedUser.businessName,
-                parsedUser.email
-            ];
-            
-            let fullName = candidates.find(c => c && typeof c === 'string' && c.trim().length > 0);
-            
-            if (!fullName) {
-                console.log('No suitable name found in user data', parsedUser);
-                return 'U';
+
+            // Case B: Combined name string stored in fullName, businessName, or email
+            const combinedName = p.fullName || p.businessName || first || p.email || '';
+            if (!combinedName) return 'U';
+
+            const nameParts = combinedName.trim().split(/\s+/);
+            if (nameParts.length >= 2) {
+                // First name initial + Surname initial
+                return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+            } else if (nameParts.length === 1 && nameParts[0].length > 0) {
+                // Fallback for single-word names
+                return nameParts[0].charAt(0).toUpperCase();
             }
-            
-            fullName = fullName.trim();
-            const initials = fullName
-                .split(/\s+/)
-                .slice(0, 2)
-                .map(part => part.charAt(0).toUpperCase())
-                .join('');
-            
-            console.log('User initials extracted:', initials, 'from:', fullName);
-            return initials || 'U';
+
+            return 'U';
         } catch (e) {
             console.error('Error extracting initials:', e);
             return 'U';
@@ -233,7 +226,7 @@
             title.textContent = 'Account required';
             body.innerHTML = '<p>Please log in to view your profile.</p>';
         } else {
-            const name = profile.fullName || profile.name || profile.businessName || 'Customer';
+            const name = profile.fullName || (profile.firstName ? `${profile.firstName} ${profile.lastName || profile.surname || ''}` : null) || profile.name || profile.businessName || 'Customer';
             const email = profile.email || 'No email provided';
             title.textContent = name;
             body.innerHTML = `
@@ -273,12 +266,12 @@
             const initials = getUserInitials();
             const loggedInMarkup = `
                 <a href="customer-orders.html" class="font-medium text-gray-700 hover:text-blue-600">My Orders</a>
-                <a href="cart.html" class="font-medium text-gray-700 hover:text-blue-600">Cart</a>
                 <button type="button" onclick="openProfileModal()" class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-semibold text-white shadow-sm" aria-label="Open account profile">${initials}</button>
             `;
             if (authSection) authSection.innerHTML = loggedInMarkup;
             if (mobileAuthSection) {
                 mobileAuthSection.innerHTML = `
+                    <a href="customer-orders.html" class="rounded-full bg-slate-100 p-2 text-slate-700" aria-label="My Orders">📦</a>
                     <button type="button" onclick="openProfileModal()" class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 font-semibold text-white" aria-label="Open account profile">${initials}</button>
                 `;
             }
@@ -294,28 +287,22 @@
             }
         }
     }
-    // Helper to fill the category dropdown
-function populateCategories() {
-    if (!categoryFilter) return;
 
-    // Get unique categories from the allProducts array
-    const categories = [...new Set(allProducts.map(p => p.category))];
-    
-    // Reset the dropdown to just the "All Categories" option
-    categoryFilter.innerHTML = '<option value="">All Categories</option>';
-    
-    // Add each unique category found in your data
-    categories.forEach(cat => {
-        if (cat) {
-            const option = document.createElement('option');
-            option.value = cat;
-            option.textContent = cat;
-            categoryFilter.appendChild(option);
-        }
-    });
-}
+    function populateCategories() {
+        if (!categoryFilter) return;
 
-   
+        const categories = [...new Set(allProducts.map(p => p.category))];
+        categoryFilter.innerHTML = '<option value="">All Categories</option>';
+        
+        categories.forEach(cat => {
+            if (cat) {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categoryFilter.appendChild(option);
+            }
+        });
+    }
 
     // 4. FETCH DATA FROM SERVER
     async function fetchProducts() {
@@ -414,12 +401,13 @@ function populateCategories() {
         }
     }
 
-    // 7. CART LOGIC (Placeholder)
+    // 7. CART & LOGOUT LOGIC
     function addToCart(productId) {
         alert("Product added to cart!");
         console.log("Cart ID:", productId);
     }
-     function logout() {
+    
+    function logout() {
         localStorage.clear();
         window.location.reload();
     }
