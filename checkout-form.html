@@ -7,6 +7,8 @@
     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Paystack SDK -->
+    <script src="https://js.paystack.co/v2/inline.js"></script>
     <style>
         body.modal-open {
             overflow: hidden !important;
@@ -252,8 +254,8 @@
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 md:py-4 rounded-lg transition shadow">
-                Place Order (Pay on Collection / Delivery)
+            <button type="submit" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 md:py-4 rounded-lg transition shadow flex items-center justify-center gap-2">
+                <span>Checkout</span>
             </button>
         </form>
     </main>
@@ -268,6 +270,8 @@
     </footer>
 
     <script>
+        const PAYSTACK_PUBLIC_KEY = 'pk_test_1b8f0ff1575e417029a50a81ae53ec88fad0afbe';
+
         const saInstitutions = [
             "Central University of Technology (CUT)",
             "Cape Peninsula University of Technology (CPUT)",
@@ -303,6 +307,7 @@
         ].sort();
 
         let cartSubtotal = 0;
+        let finalTotalAmount = 0;
         let globalPostalDatabase = [];
         let isPostalDataLoaded = false;
         const checkoutForm = document.getElementById('checkout-form');
@@ -356,7 +361,6 @@
             statusEl.classList.remove('hidden');
 
             try {
-                // Exact file name specified: postalcodes (1).json
                 const response = await fetch('postalcodes (1).json');
                 if (!response.ok) {
                     throw new Error('Could not load postalcodes (1).json file');
@@ -458,19 +462,60 @@
         function recalculateTotal() {
             const deliveryMethod = document.querySelector('input[name="delivery_method"]:checked').value;
             let deliveryFee = deliveryMethod === 'doorstep' ? 35.00 : 0.00;
+            finalTotalAmount = cartSubtotal + deliveryFee;
 
             document.getElementById('delivery-fee-display').textContent = deliveryFee > 0 ? `R${deliveryFee.toFixed(2)}` : "R0.00 (Free Pickup)";
-            document.getElementById('total-price').textContent = `R${(cartSubtotal + deliveryFee).toFixed(2)}`;
+            document.getElementById('total-price').textContent = `R${finalTotalAmount.toFixed(2)}`;
         }
 
+        // Handle Paystack Popup Checkout
         checkoutForm.addEventListener('submit', (e) => {
             e.preventDefault();
+
+            const firstName = document.getElementById('shipping-name').value;
+            const surname = document.getElementById('shipping-surname').value;
+            const email = document.getElementById('shipping-email').value;
+            const phone = document.getElementById('shipping-phone').value;
+            const campus = document.getElementById('buyer-campus').value;
+
+            // Paystack requires amount in CENTS (Multiply Rands by 100)
+            const amountInCents = Math.round(finalTotalAmount * 100);
+
+            if (amountInCents <= 0) {
+                alert("Your cart is empty or amount is invalid.");
+                return;
+            }
+
             loader.classList.remove('hidden-loader');
-            setTimeout(() => {
-                alert('Thank you! Your order has been placed successfully.');
-                localStorage.removeItem('cart');
-                window.location.href = 'index.html';
-            }, 2500);
+
+            const paystack = new PaystackPop();
+            paystack.newTransaction({
+                key: PAYSTACK_PUBLIC_KEY,
+                email: email,
+                amount: amountInCents,
+                currency: 'ZAR',
+                firstName: firstName,
+                lastName: surname,
+                phone: phone,
+                metadata: {
+                    custom_fields: [
+                        {
+                            display_name: "Campus",
+                            variable_name: "campus",
+                            value: campus
+                        }
+                    ]
+                },
+                onSuccess: function(transaction) {
+                    loader.classList.add('hidden-loader');
+                    localStorage.removeItem('cart');
+                    window.location.href = `https://mycampuscollective.me/order-success.html?reference=${transaction.reference}&status=success`;
+                },
+                onClose: function() {
+                    loader.classList.add('hidden-loader');
+                    window.location.href = 'https://mycampuscollective.me/order-success.html?status=failed';
+                }
+            });
         });
 
         function initCheckout() {
