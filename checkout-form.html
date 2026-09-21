@@ -8,7 +8,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* 🏆 3D SPINNING LOADER CSS */
+        body.modal-open {
+            overflow: hidden !important;
+        }
+
         #loader-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.95); display: flex; flex-direction: column;
@@ -29,7 +32,6 @@
         .loader-text { margin-top: 30px; font-weight: 700; color: #2563eb; letter-spacing: 2px; text-transform: uppercase; }
         .hidden-loader { display: none !important; }
 
-        /* 🏆 CAMPUS SHOP FOOTER STYLES */
         footer {
             background-color: #174483; color: white; padding: 30px 20px; margin-top: 40px;
             font-size: 0.9em; line-height: 1.6; width: 100%;
@@ -45,21 +47,29 @@
 
         label { display: block; font-weight: 600; color: #374151; margin-bottom: 4px; font-size: 0.875rem; }
         input, select { margin-bottom: 16px; width: 100%; border: 1px solid #d1d5db; padding: 12px; border-radius: 8px; outline: none; }
-        input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        input:focus, select:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
 
-        /* 🏆 POSTAL MODAL STYLES */
-        #postal-modal {
+        .search-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10000;
+            background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 10000;
+            padding: 12px;
         }
         .modal-content {
-            background: white; width: 95%; max-width: 500px; border-radius: 12px; padding: 20px; max-height: 85vh; display: flex; flex-direction: column;
+            background: white; width: 100%; max-width: 550px; border-radius: 16px; padding: 16px; 
+            max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
         }
-        #postal-results { overflow-y: auto; flex-grow: 1; margin-top: 10px; }
+        .modal-results { 
+            overflow-y: auto; 
+            flex-grow: 1; 
+            margin-top: 10px; 
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch; 
+        }
     </style>
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
 
+    <!-- Loader -->
     <div id="loader-overlay" class="hidden-loader">
         <div class="logo-container">
             <div class="loader-ring"></div>
@@ -67,98 +77,183 @@
         </div>
         <div class="loader-text">Processing Order...</div>
     </div>
-    <div id="postal-modal">
-        <div class="modal-content shadow-2xl">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-blue-900">SA Postal Code Search</h3>
-                <button onclick="closeModal()" class="text-gray-500 hover:text-red-500 font-bold text-2xl">&times;</button>
-            </div>
-            
-            <button onclick="enableManualEntry()" class="w-full mb-4 bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold py-3 rounded-lg border-2 border-dashed border-orange-300 transition">
-                Can't find your area? Enter manually
-            </button>
 
-            <input type="text" id="postal-search-input" placeholder="Type Suburb or Code (e.g. Pretoria, Kabokwen)..." class="mb-2 border-2 border-blue-100 focus:border-blue-500">
-            
-            <div id="postal-results" class="space-y-2 pr-2">
-                </div>
+    <!-- 1. SEARCH INSTITUTION MODAL -->
+    <div id="institution-modal" class="search-modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-bold text-gray-800">Select SA Institution / Campus</h3>
+                <button type="button" onclick="closeModal('institution-modal')" class="text-gray-500 hover:text-black font-bold text-xl">&times;</button>
+            </div>
+            <input type="text" id="institution-search-input" placeholder="Search University or College (e.g. UMP, TUT, Wits)..." class="mb-2 border-2 border-blue-200 focus:border-blue-600">
+            <div id="institution-results" class="modal-results space-y-2"></div>
         </div>
     </div>
 
-    <nav class="bg-white shadow-md p-4 sticky top-0 z-40">
+    <!-- 2. ALPHABETICAL POSTAL CODE & AREA JSON MODAL -->
+    <div id="postal-modal" class="search-modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-3">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">SA Postal Code Directory</h3>
+                    <p class="text-xs text-gray-500">Scroll through suburbs or search below.</p>
+                </div>
+                <button type="button" onclick="closeModal('postal-modal')" class="text-gray-500 hover:text-black font-bold text-xl">&times;</button>
+            </div>
+
+            <input type="text" id="postal-search-input" placeholder="Type suburb or postal code..." class="mb-2 border-2 border-blue-200 focus:border-blue-600">
+
+            <div id="postal-loading-status" class="text-xs font-semibold text-blue-600 my-1 animate-pulse flex justify-between">
+                <span>Loading postal codes from postalcodes (1).json...</span>
+            </div>
+
+            <button type="button" onclick="enableManualEntry()" class="w-full mb-2 bg-yellow-50 text-yellow-800 font-semibold py-2 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition text-xs">
+                Can't find your area? Enter details manually
+            </button>
+
+            <!-- Scrollable Alphabetical List -->
+            <div id="postal-results" class="modal-results space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Header Navigation -->
+    <nav class="bg-white shadow-sm p-4 sticky top-0 z-40">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <img src="Images/Campus collective logo origin.jpg" alt="Logo" class="h-10 w-10 rounded-full">
-                <span class="text-xl font-bold text-blue-900">Checkout</span>
+                <span class="text-xl font-bold text-gray-800">Checkout</span>
             </div>
-            <a href="cart.html" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">← Back to Cart</a>
+            <a href="cart.html" class="text-blue-600 font-semibold flex items-center gap-1 hover:underline text-sm md:text-base">← Back to Cart</a>
         </div>
     </nav>
 
-    <main class="flex-grow max-w-4xl mx-auto p-6 w-full">
-        <form id="checkout-form" class="bg-white shadow-lg rounded-xl p-8">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Shipping Details</h2>
+    <!-- Main Content -->
+    <main class="flex-grow max-w-4xl mx-auto p-4 md:p-6 w-full">
+        <form id="checkout-form" class="bg-white shadow-md rounded-lg p-4 md:p-8 border border-gray-100">
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                <div><label>First Name</label><input type="text" id="shipping-name" required></div>
-                <div><label>Surname</label><input type="text" id="shipping-surname" required></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                <div><label>Email Address</label><input type="email" id="shipping-email" required></div>
-                <div><label>Phone Number</label><input type="tel" id="shipping-phone" required></div>
-            </div>
-
-            <h2 class="text-lg font-bold mt-4 mb-4 text-blue-800">Delivery Address</h2>
-            
-            <div>
-                <label>Street Address</label>
-                <input type="text" id="street" placeholder="House number and street name" required>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                <div><label>Suburb</label><input type="text" id="suburb" required></div>
-                <div><label>City / Town</label><input type="text" id="city" required></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                <div>
-                    <label>Province</label>
-                    <select id="province" required>
-                        <option value="">Select Province</option>
-                        <option value="Gauteng">Gauteng</option>
-                        <option value="Western Cape">Western Cape</option>
-                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                        <option value="Eastern Cape">Eastern Cape</option>
-                        <option value="Free State">Free State</option>
-                        <option value="Limpopo">Limpopo</option>
-                        <option value="Mpumalanga">Mpumalanga</option>
-                        <option value="North West">North West</option>
-                        <option value="Northern Cape">Northern Cape</option>
-                    </select>
+            <!-- Customer & Contact -->
+            <div class="mb-6">
+                <h2 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2">Customer & Contact Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                    <div><label>First Name</label><input type="text" id="shipping-name" required></div>
+                    <div><label>Surname</label><input type="text" id="shipping-surname" required></div>
                 </div>
-                <div class="relative">
-                    <label>Postal Code</label>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                    <div><label>Email Address</label><input type="email" id="shipping-email" required></div>
+                    <div><label>Phone Number (WhatsApp Preferred)</label><input type="tel" id="shipping-phone" placeholder="0712345678" required></div>
+                </div>
+            </div>
+
+            <!-- Campus & Details -->
+            <div class="mb-6">
+                <h2 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2">Campus & Details</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
                     <div class="relative">
-                        <input type="text" id="postal-code" placeholder="Click to search..." readonly required onclick="handlePostalInputClick()" class="cursor-pointer pr-10 bg-blue-50 font-bold text-blue-800">
-                        <div id="search-icon-container" class="absolute inset-y-0 right-3 top-[-15px] flex items-center pointer-events-none text-blue-400">
-                            <i data-lucide="search" class="w-5 h-5"></i>
+                        <label>Tertiary Institution / Campus</label>
+                        <input type="text" id="buyer-campus" placeholder="Click to search institution..." readonly required onclick="openModal('institution-modal')" class="cursor-pointer bg-gray-50 font-semibold text-gray-800">
+                        <div class="absolute inset-y-0 right-3 top-3 flex items-center pointer-events-none text-gray-400">
+                            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Residence / Housing Type</label>
+                        <select id="res-type" required>
+                            <option value="on-campus">On-Campus Residence</option>
+                            <option value="off-campus">Off-Campus Student Accommodation</option>
+                            <option value="private">Private Residential House/Apartment</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label>Residence / Building Name & Room Number</label>
+                    <input type="text" id="residence-name" placeholder="e.g. Mbombela Res, Block B, Room 204" required>
+                </div>
+            </div>
+
+            <!-- Delivery Preference -->
+            <div class="mb-6">
+                <h2 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2">Delivery Preference</h2>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <label class="font-bold text-gray-800 mb-2">How would you like to receive your item?</label>
+                    <div class="space-y-2 mt-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="delivery_method" value="pickup" checked onchange="recalculateTotal()" class="w-auto mb-0">
+                            <span class="text-sm md:text-base"><strong>Free On-Campus Meetup / Pickup Point</strong> (Free — Same Campus Only)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="delivery_method" value="doorstep" onchange="recalculateTotal()" class="w-auto mb-0">
+                            <span class="text-sm md:text-base"><strong>Doorstep Delivery</strong> (Runner / Courier Fee Applies)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address Section -->
+            <div id="address-section" class="mb-6">
+                <h2 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2">Street Delivery Address</h2>
+                <div>
+                    <label>Street Address</label>
+                    <input type="text" id="street" placeholder="House/Building number and street name">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                    <div><label>Suburb / Township / Area</label><input type="text" id="suburb"></div>
+                    <div><label>City / Town</label><input type="text" id="city"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                    <div>
+                        <label>Province</label>
+                        <select id="province">
+                            <option value="">Select Province</option>
+                            <option value="Gauteng">Gauteng</option>
+                            <option value="Western Cape">Western Cape</option>
+                            <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                            <option value="Eastern Cape">Eastern Cape</option>
+                            <option value="Free State">Free State</option>
+                            <option value="Limpopo">Limpopo</option>
+                            <option value="Mpumalanga">Mpumalanga</option>
+                            <option value="North West">North West</option>
+                            <option value="Northern Cape">Northern Cape</option>
+                        </select>
+                    </div>
+                    <div class="relative">
+                        <label>Postal Code (Click to Select)</label>
+                        <div class="relative">
+                            <input type="text" id="postal-code" placeholder="Click to search area/code..." readonly onclick="openModal('postal-modal')" class="cursor-pointer pr-10 bg-gray-50 font-semibold text-gray-800">
+                            <div id="search-icon-container" class="absolute inset-y-0 right-3 top-[-10px] flex items-center pointer-events-none text-gray-400">
+                                <i data-lucide="search" class="w-5 h-5"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-8 bg-gray-50 p-6 rounded-lg">
-                <h2 class="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Order Summary</h2>
-                <div id="order-summary-items" class="space-y-3 mb-4 text-gray-700"></div>
-                <div class="text-xl font-bold text-blue-900 flex justify-between pt-4 border-t">
+            <!-- Order Summary -->
+            <div class="mt-6 bg-gray-50 p-4 md:p-6 rounded-lg border border-gray-200">
+                <h2 class="text-lg font-bold mb-3 text-gray-800 border-b pb-2">Order Summary</h2>
+                <div id="order-summary-items" class="space-y-2 mb-3 text-gray-700 text-sm md:text-base"></div>
+                
+                <div class="flex justify-between text-gray-600 mb-1 text-sm md:text-base">
+                    <span>Subtotal:</span>
+                    <span id="subtotal-price">R0.00</span>
+                </div>
+                <div class="flex justify-between text-gray-600 mb-2 text-sm md:text-base">
+                    <span>Delivery Fee:</span>
+                    <span id="delivery-fee-display" class="font-semibold text-orange-600">R0.00 (Free Pickup)</span>
+                </div>
+
+                <div class="text-lg font-bold text-gray-900 flex justify-between pt-2 border-t border-gray-200">
                     <span>Total Amount:</span>
                     <span id="total-price">R0.00</span>
                 </div>
             </div>
 
-            <button type="submit" class="w-full mt-8 bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg text-lg">
-                Place Order (Pay on Collection)
+            <!-- Submit Button -->
+            <button type="submit" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 md:py-4 rounded-lg transition shadow">
+                Place Order (Pay on Collection / Delivery)
             </button>
         </form>
     </main>
@@ -166,108 +261,232 @@
     <footer>
         <div class="footer-content">
             <div class="footer-section"><h3>About Us</h3><p>Campus Collective Shop is your dedicated marketplace for student essentials.</p></div>
-            <div class="footer-section"><h3>Quick Links</h3><p><a href="index.html">Home</a><br><a href="campus shop.html">Shop</a></p></div>
+            <div class="footer-section"><h3>Quick Links</h3><p><a href="index.html" class="hover:underline">Home</a><br><a href="campus shop.html" class="hover:underline">Shop</a></p></div>
             <div class="footer-section"><h3>Contact Us</h3><p>Email: support@campuscollective.co.za</p></div>
         </div>
         <div class="footer-bottom">&copy; 2025 Campus Collective. All Rights Reserved.</div>
     </footer>
 
     <script>
-        // 🏆 EXPANDED POSTAL DATA (Existing Data Preserved)
-        const saPostalCodes = [{"suburb": "Aandrus", "city": "Bloemfontein", "code": "9301"},{"suburb": "Nelspruit", "city": "Mbombela", "code": "1200"}, {"suburb": "Abbotsford", "city": "Johannesburg", "code": "2192"}, {"suburb": "Abel", "city": "Polokwane", "code": "884"}, {"suburb": "Acornhoek", "city": "Nelspruit", "code": "1360"}, {"suburb": "Addington", "city": "Durban", "code": "4001"}, {"suburb": "Addney", "city": "Polokwane", "code": "712"}, {"suburb": "Aeroton", "city": "Johannesburg", "code": "2190"}, {"suburb": "African Jewel", "city": "Polokwane", "code": "699"}, {"suburb": "Airdlin", "city": "Johannesburg", "code": "2157"}, {"suburb": "Akasia", "city": "Pretoria", "code": "182"}, {"suburb": "Alberton", "city": "Johannesburg", "code": "1449"}, {"suburb": "Albertsville", "city": "Johannesburg", "code": "2195"}, {"suburb": "Amanzimtoti", "city": "Durban", "code": "4126"}, {"suburb": "Arcadia", "city": "Pretoria", "code": "83"}, {"suburb": "Auckland Park", "city": "Johannesburg", "code": "2092"}, {"suburb": "Belhar", "city": "Cape Town", "code": "7493"}, {"suburb": "Bellville", "city": "Cape Town", "code": "7530"}, {"suburb": "Bloemfontein Central", "city": "Bloemfontein", "code": "9301"}, {"suburb": "Braamfontein", "city": "Johannesburg", "code": "2001"}, {"suburb": "Cape Town CBD", "city": "Cape Town", "code": "8001"}, {"suburb": "Centurion", "city": "Pretoria", "code": "157"}, {"suburb": "Chweni", "city": "Kabokweni", "code": "1250"}, {"suburb": "Daantjie", "city": "Kanyamazane", "code": "1215"}, {"suburb": "Durban CBD", "city": "Durban", "code": "4001"}, {"suburb": "Embonisweni", "city": "Kabokweni", "code": "1252"}, {"suburb": "Gutshwa", "city": "Kabokweni", "code": "1247"}, {"suburb": "Hatfield", "city": "Pretoria", "code": "28"}, {"suburb": "Kabokweni", "city": "White River", "code": "1245"}, {"suburb": "Kanyamazane", "city": "Kanyamazane", "code": "1214"}, {"suburb": "Legogote", "city": "White River", "code": "1257"}, {"suburb": "Luphisa", "city": "Kanyamazane", "code": "1217"}, {"suburb": "Makoko", "city": "Kabokweni", "code": "1251"}, {"suburb": "Malekutu", "city": "White River", "code": "1256"}, {"suburb": "Mganduzweni", "city": "White River", "code": "1240"}, {"suburb": "Msogwaba", "city": "Kanyamazane", "code": "1215"}, {"suburb": "Nelspruit", "city": "Nelspruit", "code": "1201"}, {"suburb": "Pienaar", "city": "Kanyamazane", "code": "1214"}, {"suburb": "Polokwane", "city": "Polokwane", "code": "700"}, {"suburb": "Pretoria Central", "city": "Pretoria", "code": "2"}, {"suburb": "Rondebosch", "city": "Cape Town", "code": "7700"}, {"suburb": "Soweto", "city": "Johannesburg", "code": "1818"}, {"suburb": "Stellenbosch", "city": "Stellenbosch", "code": "7600"}, {"suburb": "Sunnyside", "city": "Pretoria", "code": "2"}, {"suburb": "Swalala", "city": "White River", "code": "1254"}, {"suburb": "White River", "city": "Nelspruit", "code": "1240"}, {"suburb": "Witrivier", "city": "White River", "code": "1240"}];
+        const saInstitutions = [
+            "Central University of Technology (CUT)",
+            "Cape Peninsula University of Technology (CPUT)",
+            "Durban University of Technology (DUT)",
+            "Ehlanzeni TVET College",
+            "Ekurhuleni East/West TVET College",
+            "Mangosuthu University of Technology (MUT)",
+            "Nelson Mandela University (NMU)",
+            "North-West University (NWU)",
+            "Rhodes University (RU)",
+            "Sefako Makgatho Health Sciences University (SMU)",
+            "Sol Plaatje University (SPU)",
+            "Stellenbosch University (SU)",
+            "Tshwane North TVET College",
+            "Tshwane South TVET College",
+            "Tshwane University of Technology (TUT)",
+            "University of Cape Town (UCT)",
+            "University of Fort Hare (UFH)",
+            "University of Free State (UFS)",
+            "University of Johannesburg (UJ)",
+            "University of KwaZulu-Natal (UKZN)",
+            "University of Limpopo (UL)",
+            "University of Mpumalanga (UMP)",
+            "University of Pretoria (UP)",
+            "University of South Africa (UNISA)",
+            "University of Venda (UNIVEN)",
+            "University of Western Cape (UWC)",
+            "University of Witwatersrand (WITS)",
+            "University of Zululand (UNIZULU)",
+            "Vaal University of Technology (VUT)",
+            "Walter Sisulu University (WSU)",
+            "Other / Private College"
+        ].sort();
 
-        const modal = document.getElementById('postal-modal');
-        const searchInput = document.getElementById('postal-search-input');
-        const resultsDiv = document.getElementById('postal-results');
-        const postalInput = document.getElementById('postal-code');
+        let cartSubtotal = 0;
+        let globalPostalDatabase = [];
+        let isPostalDataLoaded = false;
         const checkoutForm = document.getElementById('checkout-form');
         const loader = document.getElementById('loader-overlay');
 
-        // 🏆 NEW: Form Submission Handler with Loader
-        checkoutForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            // Show the 3D spinning loader
-            loader.classList.remove('hidden-loader');
+        function openModal(id) {
+            document.getElementById(id).style.display = 'flex';
+            document.body.classList.add('modal-open');
 
-            // Simulate processing time before final action
-            setTimeout(() => {
-                // Here you would normally send the data to a database
-                alert('Thank you! Your order has been placed successfully. You can pay on collection.');
-                
-                // Clear cart and redirect
-                localStorage.removeItem('cart');
-                window.location.href = 'index.html';
-            }, 3000); // 3-second delay to show off the loader
-        });
-
-        function handlePostalInputClick() { if (postalInput.readOnly) openModal(); }
-
-        function openModal() { 
-            modal.style.display = 'flex'; 
-            renderResults(saPostalCodes.slice(0, 50)); 
-            setTimeout(() => searchInput.focus(), 100); 
+            if (id === 'institution-modal') {
+                renderInstitutions(saInstitutions);
+            }
+            if (id === 'postal-modal') {
+                document.getElementById('postal-search-input').value = '';
+                if (isPostalDataLoaded) {
+                    renderPostalList(globalPostalDatabase);
+                } else {
+                    fetchPostalDataFromLocalFile();
+                }
+            }
         }
 
-        function closeModal() { modal.style.display = 'none'; }
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+
+        function renderInstitutions(data) {
+            const results = document.getElementById('institution-results');
+            results.innerHTML = data.map(item => `
+                <div onclick="selectInstitution('${item}')" class="p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition border-gray-200 font-semibold text-gray-700 text-sm md:text-base">
+                    ${item}
+                </div>
+            `).join('') || '<p class="text-center text-red-500 font-bold p-4">No institution found.</p>';
+        }
+
+        document.getElementById('institution-search-input').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase().trim();
+            const filtered = saInstitutions.filter(item => item.toLowerCase().includes(val));
+            renderInstitutions(filtered);
+        });
+
+        function selectInstitution(name) {
+            document.getElementById('buyer-campus').value = name;
+            closeModal('institution-modal');
+        }
+
+        // FETCH DIRECTLY FROM postalcodes (1).json
+        async function fetchPostalDataFromLocalFile() {
+            const statusEl = document.getElementById('postal-loading-status');
+            statusEl.classList.remove('hidden');
+
+            try {
+                // Exact file name specified: postalcodes (1).json
+                const response = await fetch('postalcodes (1).json');
+                if (!response.ok) {
+                    throw new Error('Could not load postalcodes (1).json file');
+                }
+
+                const rawData = await response.json();
+                const uniqueMap = new Map();
+
+                rawData.forEach(item => {
+                    const suburb = item.SUBURB ? item.SUBURB.trim() : '';
+                    const code = String(item['STR-CODE'] || item['BOX-CODE'] || '').trim();
+                    const area = item.AREA ? item.AREA.trim() : '';
+
+                    if (suburb && !uniqueMap.has(suburb + '-' + code)) {
+                        uniqueMap.set(suburb + '-' + code, {
+                            suburb: suburb,
+                            area: area,
+                            code: code
+                        });
+                    }
+                });
+
+                globalPostalDatabase = Array.from(uniqueMap.values()).sort((a, b) => 
+                    a.suburb.localeCompare(b.suburb)
+                );
+
+                isPostalDataLoaded = true;
+                statusEl.classList.add('hidden');
+                renderPostalList(globalPostalDatabase);
+
+            } catch (err) {
+                statusEl.classList.add('hidden');
+                document.getElementById('postal-results').innerHTML = '<p class="text-center text-red-500 font-bold p-4 text-sm">Unable to load "postalcodes (1).json". Make sure the file is placed in the same folder as this HTML file.</p>';
+            }
+        }
+
+        function renderPostalList(list) {
+            const resultsContainer = document.getElementById('postal-results');
+
+            if (!list || list.length === 0) {
+                resultsContainer.innerHTML = '<p class="text-center text-red-500 font-bold p-4 text-sm">No suburb matching your search. Click "Enter details manually" above.</p>';
+                return;
+            }
+
+            const displayList = list.length > 300 ? list.slice(0, 200) : list;
+
+            resultsContainer.innerHTML = displayList.map(item => `
+                <div onclick="selectPostal('${escapeQuotes(item.suburb)}', '${escapeQuotes(item.area)}', '${item.code}')" 
+                     class="p-2.5 border rounded-lg cursor-pointer hover:bg-blue-50 transition border-gray-200 flex justify-between items-center text-sm md:text-base">
+                    <div>
+                        <div class="font-bold text-gray-800">${item.suburb}</div>
+                        ${item.area ? `<div class="text-xs text-gray-500">${item.area}</div>` : ''}
+                    </div>
+                    <div class="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-xs md:text-sm">
+                        ${item.code}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('postal-search-input').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            if (!term) {
+                renderPostalList(globalPostalDatabase);
+                return;
+            }
+
+            const filtered = globalPostalDatabase.filter(item => 
+                item.suburb.toLowerCase().includes(term) || 
+                item.code.toLowerCase().includes(term) ||
+                item.area.toLowerCase().includes(term)
+            );
+
+            renderPostalList(filtered);
+        });
+
+        function escapeQuotes(str) {
+            return str.replace(/'/g, "\\'");
+        }
+
+        function selectPostal(suburb, area, code) {
+            document.getElementById('suburb').value = suburb;
+            document.getElementById('city').value = area || suburb;
+            document.getElementById('postal-code').value = code;
+            closeModal('postal-modal');
+        }
 
         function enableManualEntry() {
+            const postalInput = document.getElementById('postal-code');
             postalInput.readOnly = false;
             postalInput.placeholder = "Enter code...";
             postalInput.value = "";
-            postalInput.classList.remove('bg-blue-50', 'cursor-pointer');
+            postalInput.classList.remove('bg-gray-50', 'cursor-pointer');
             document.getElementById('search-icon-container').style.display = 'none';
-            closeModal();
+            closeModal('postal-modal');
             postalInput.focus();
         }
 
-        function renderResults(data) {
-            resultsDiv.innerHTML = data.map(item => `
-                <div onclick="selectPostal('${item.suburb}', '${item.city}', '${item.code}')" 
-                     class="p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition border-blue-100 flex justify-between items-center">
-                    <div>
-                        <div class="font-bold text-blue-800">${item.suburb}</div>
-                        <div class="text-xs text-gray-500">${item.city}</div>
-                    </div>
-                    <div class="font-mono font-bold text-orange-600">${item.code}</div>
-                </div>
-            `).join('') || '<p class="text-center text-red-500 font-bold p-4">Not found. Use Manual Entry above.</p>';
+        function recalculateTotal() {
+            const deliveryMethod = document.querySelector('input[name="delivery_method"]:checked').value;
+            let deliveryFee = deliveryMethod === 'doorstep' ? 35.00 : 0.00;
+
+            document.getElementById('delivery-fee-display').textContent = deliveryFee > 0 ? `R${deliveryFee.toFixed(2)}` : "R0.00 (Free Pickup)";
+            document.getElementById('total-price').textContent = `R${(cartSubtotal + deliveryFee).toFixed(2)}`;
         }
 
-        searchInput.addEventListener('input', (e) => {
-            const val = e.target.value.toLowerCase().trim();
-            if (val.length < 2) { renderResults(saPostalCodes.slice(0, 50)); return; }
-            const filtered = saPostalCodes.filter(item => 
-                item.suburb.toLowerCase().includes(val) || item.code.includes(val) || item.city.toLowerCase().includes(val)
-            );
-            renderResults(filtered);
+        checkoutForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            loader.classList.remove('hidden-loader');
+            setTimeout(() => {
+                alert('Thank you! Your order has been placed successfully.');
+                localStorage.removeItem('cart');
+                window.location.href = 'index.html';
+            }, 2500);
         });
-
-        function selectPostal(sub, city, code) {
-            document.getElementById('suburb').value = sub;
-            document.getElementById('city').value = city;
-            postalInput.value = code;
-            closeModal();
-        }
 
         function initCheckout() {
             lucide.createIcons(); 
-            const userData = localStorage.getItem('user');
-            if (userData) {
-                const user = JSON.parse(userData);
-                document.getElementById('shipping-name').value = user.firstName || '';
-                document.getElementById('shipping-surname').value = user.surname || '';
-                document.getElementById('shipping-email').value = user.email || '';
-                document.getElementById('shipping-phone').value = user.phone || '';
-            }
             const cart = JSON.parse(localStorage.getItem('cart')) || [];
-            let total = 0;
+            cartSubtotal = 0;
             const summaryDiv = document.getElementById('order-summary-items');
             summaryDiv.innerHTML = cart.map(item => {
-                total += item.price * item.quantity;
-                return `<div class="flex justify-between"><span>${item.name} (x${item.quantity})</span><span>R${(item.price * item.quantity).toFixed(2)}</span></div>`;
+                cartSubtotal += item.price * item.quantity;
+                return `<div class="flex justify-between"><span>${item.name} (x${item.quantity})</span><span class="font-semibold">R${(item.price * item.quantity).toFixed(2)}</span></div>`;
             }).join('');
-            document.getElementById('total-price').textContent = `R${total.toFixed(2)}`;
+
+            document.getElementById('subtotal-price').textContent = `R${cartSubtotal.toFixed(2)}`;
+            recalculateTotal();
+
+            fetchPostalDataFromLocalFile();
         }
 
         window.onload = initCheckout;
