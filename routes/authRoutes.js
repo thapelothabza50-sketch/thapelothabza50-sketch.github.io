@@ -1785,7 +1785,7 @@ const requireApprovedSeller = async (req, res, next) => {
 };
 
 // POST /api/products/create - Only approved sellers can add products
-router.post('/create', verifyJwtToken, requireApprovedSeller, async (req, res) => {
+router.post('/create', auth, requireApprovedSeller, async (req, res) => {
     try {
         const { title, price, category, description, images } = req.body;
 
