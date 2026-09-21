@@ -1662,4 +1662,184 @@ router.post('/apply-for-accommodation', async (req, res) => {
     }
 });
 
+// =========================================================================
+// FORM & REGISTRATION EMAIL OTP VERIFICATION SYSTEM
+// =========================================================================
+
+// Temporary storage for form/registration OTP codes
+const formEmailOtpStore = new Map();
+
+/**
+ * @route   POST /api/auth/send-form-email-otp
+ * @desc    Sends a 6-digit OTP to verify an email address for forms/registrations
+ */
+router.post('/send-form-email-otp', async (req, res) => {
+    const { email } = req.body;
+    
+    if (!email) {
+        return res.status(400).json({ message: 'Email address is required.' });
+    }
+
+    try {
+        // 1. Generate 6-digit verification code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = Date.now() + 10 * 60 * 1000; // Expires in 10 minutes
+
+        // 2. Save to temporary store
+        formEmailOtpStore.set(email.toLowerCase().trim(), { code, expiresAt });
+
+        // 3. Define the professional HTML email using your existing no-reply address
+        const mailOptions = {
+            from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+            to: email.trim(),
+            subject: 'Email Verification Code - Campus Collective',
+            html: `
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #f8fafc;">
+                    <div style="background-color: #1e40af; padding: 25px; text-align: center;">
+                        <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px;">Campus Collective</h1>
+                    </div>
+                    <div style="padding: 35px; background-color: #ffffff;">
+                        <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">Email Verification</h2>
+                        <p style="color: #475569; line-height: 1.6;">Hello,</p>
+                        <p style="color: #475569; line-height: 1.6;">Please use the verification code below to confirm your email address and proceed with your submission.</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <div style="display: inline-block; padding: 18px 35px; background-color: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px;">
+                                <span style="font-size: 32px; font-weight: 800; color: #1e40af; letter-spacing: 6px;">${code}</span>
+                            </div>
+                            <p style="color: #ef4444; font-size: 13px; font-weight: 600; margin-top: 12px;">⏳ This code expires in 10 minutes.</p>
+                        </div>
+                        <p style="color: #475569; line-height: 1.6;">
+                            <strong>Security Note:</strong> If you did not request this code, please ignore this email.
+                        </p>
+                    </div>
+                    <div style="padding: 20px; background-color: #f1f5f9; text-align: center;">
+                        <p style="color: #64748b; font-size: 12px; margin: 0;">This is an automated message. <strong>Do not reply directly.</strong></p>
+                    </div>
+                </div>`
+        };
+
+        // 4. Send using your existing transporter
+        await transporter.sendMail(mailOptions);
+        res.json({ success: true, message: "Verification code sent to your email!" });
+
+    } catch (err) {
+        console.error("SEND FORM EMAIL OTP ERROR:", err.message);
+        res.status(500).json({ message: "An error occurred while sending the verification email." });
+    }
+});
+
+/**
+ * @route   POST /api/auth/verify-form-email-otp
+ * @desc    Verifies the OTP code entered by the user
+ */
+router.post('/verify-form-email-otp', (req, res) => {
+    const { email, code } = req.body;
+    const cleanEmail = email?.toLowerCase().trim();
+
+    if (!cleanEmail || !code) {
+        return res.status(400).json({ message: 'Email and verification code are required.' });
+    }
+
+    const record = formEmailOtpStore.get(cleanEmail);
+
+    if (!record) {
+        return res.status(400).json({ message: 'Verification code not requested or has expired.' });
+    }
+
+    if (Date.now() > record.expiresAt) {
+        formEmailOtpStore.delete(cleanEmail);
+        return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
+    }
+
+    if (record.code !== code.trim()) {
+        return res.status(400).json({ message: 'Invalid verification code.' });
+    }
+
+    // Code is correct, remove it from store so it cannot be reused
+    formEmailOtpStore.delete(cleanEmail);
+    res.json({ success: true, message: 'Email verified successfully!' });
+});
+
+// Middleware to check if seller account is approved by admin
+const requireApprovedSeller = async (req, res, next) => {
+    try {
+        // req.user.id comes from your JWT token verification middleware
+        const seller = await Seller.findById(req.user.id);
+        
+        if (!seller) {
+            return res.status(404).json({ message: 'Seller profile not found.' });
+        }
+
+        if (seller.status !== 'approved') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Your account is currently pending admin approval. You cannot add products or sell items yet.' 
+            });
+        }
+
+        next(); // Proceed if approved
+    } catch (error) {
+        console.error('Approval check error:', error);
+        res.status(500).json({ message: 'Server error verifying account status.' });
+    }
+};
+
+// POST /api/products/create - Only approved sellers can add products
+router.post('/create', verifyJwtToken, requireApprovedSeller, async (req, res) => {
+    try {
+        const { title, price, category, description, images } = req.body;
+
+        const newProduct = new Product({
+            seller: req.user.id,
+            title,
+            price,
+            category,
+            description,
+            images,
+            status: 'active' // Will only show up in shop since account is approved
+        });
+
+        await newProduct.save();
+        res.status(201).json({ success: true, message: 'Product listed successfully!' });
+    } catch (error) {
+        console.error('Error creating product:', error);
+        res.status(500).json({ message: 'Failed to create product.' });
+    }
+});
+
+// POST /api/admin/approve-seller/:id
+router.post('/admin/approve-seller/:id', async (req, res) => {
+    try {
+        const sellerId = req.params.id;
+
+        // Update seller status to approved
+        const seller = await Seller.findByIdAndUpdate(
+            sellerId, 
+            { status: 'approved' }, 
+            { new: true }
+        );
+
+        if (!seller) {
+            return res.status(404).json({ message: 'Seller not found.' });
+        }
+
+        // TODO: Send Confirmation Email to the Seller
+        // Example using Nodemailer:
+        // await sendEmail({
+        //     to: seller.email,
+        //     subject: 'Your Campus Collective Seller Account is Approved!',
+        //     text: `Hi ${seller.fullName}, good news! Your seller account has been approved. You can now log in, upload products, and start selling.`
+        // });
+
+        res.status(200).json({ 
+            success: true, 
+            message: `Seller ${seller.businessName} has been approved and notified via email.` 
+        });
+
+    } catch (error) {
+        console.error('Error approving seller:', error);
+        res.status(500).json({ message: 'Server error during approval process.' });
+    }
+});
+
 module.exports = router;

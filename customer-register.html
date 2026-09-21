@@ -44,7 +44,7 @@
         <h2 class="text-3xl font-extrabold text-gray-900 text-center mb-6">Join Campus Collective 🛒</h2>
         <p id="message" class="text-center mb-4 hidden"></p>
 
-        <form id="register-form" class="space-y-6">
+        <form id="register-form" class="space-y-5">
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label for="firstName" class="block text-sm font-medium text-gray-700">First Name</label>
@@ -61,9 +61,30 @@
                 <input type="text" id="phone" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 outline-none">
             </div>
 
+            <!-- Email & Verification Group -->
             <div>
                 <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                <input type="email" id="email" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                <div class="flex gap-2 mt-1">
+                    <input type="email" id="email" required class="block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <button type="button" id="verify-email-btn" onclick="sendEmailOtp()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap">
+                        Verify Email
+                    </button>
+                </div>
+                <p id="email-status-text" class="text-xs mt-1 text-gray-500 hidden"></p>
+            </div>
+
+            <!-- GitHub Style 6-Box OTP Container (Hidden by default) -->
+            <div id="otp-container" class="hidden bg-blue-50 p-4 rounded-lg border border-blue-200 text-center">
+                <label class="block text-sm font-semibold text-blue-900 mb-2">Enter 6-Digit Code Sent to Email</label>
+                <div class="flex justify-center gap-2" id="otp-inputs">
+                    <input type="text" maxlength="1" class="otp-box w-10 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none bg-white" />
+                    <input type="text" maxlength="1" class="otp-box w-10 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none bg-white" />
+                    <input type="text" maxlength="1" class="otp-box w-10 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none bg-white" />
+                    <input type="text" maxlength="1" class="otp-box w-10 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none bg-white" />
+                    <input type="text" maxlength="1" class="otp-box w-10 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none bg-white" />
+                    <input type="text" maxlength="1" class="otp-box w-10 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none bg-white" />
+                </div>
+                <p id="otp-feedback" class="text-xs mt-2 text-blue-700 font-medium"></p>
             </div>
 
             <div>
@@ -71,7 +92,12 @@
                 <input type="password" id="password" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 outline-none">
             </div>
 
-            <button type="submit" class="w-full py-3 px-4 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-bold shadow-md transition-all">
+            <div>
+                <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                <input type="password" id="confirmPassword" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 outline-none">
+            </div>
+
+            <button type="submit" id="register-btn" class="w-full py-3 px-4 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-bold shadow-md transition-all">
                 Register
             </button>
         </form>
@@ -82,30 +108,140 @@
     </div>
 
     <script>
-        // 🏆 FULL ADDRESS: Prevents the "Unexpected token <" error
-        const API_URL = '/api/auth/customer/register'; 
+        const REGISTER_API = '/api/auth/customer/register';
+        const SEND_OTP_API = '/api/auth/send-form-email-otp';
+        const VERIFY_OTP_API = '/api/auth/verify-form-email-otp';
 
         const form = document.getElementById('register-form');
         const message = document.getElementById('message');
         const loader = document.getElementById('loader-overlay');
+        const emailInput = document.getElementById('email');
+        const verifyBtn = document.getElementById('verify-email-btn');
+        const emailStatusText = document.getElementById('email-status-text');
+        const otpContainer = document.getElementById('otp-container');
+        const otpBoxes = document.querySelectorAll('.otp-box');
+        const otpFeedback = document.getElementById('otp-feedback');
 
+        let isEmailVerified = false;
+
+        // --- STEP 1: SEND EMAIL OTP ---
+        async function sendEmailOtp() {
+            const email = emailInput.value.trim();
+            if (!email || !email.includes('@')) {
+                showMsg('Please enter a valid email address first.', 'red');
+                return;
+            }
+
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Sending...';
+            emailStatusText.textContent = '⏳ Sending verification code...';
+            emailStatusText.className = 'text-xs mt-1 text-orange-600 font-semibold';
+            emailStatusText.classList.remove('hidden');
+
+            try {
+                const response = await fetch(SEND_OTP_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Failed to send OTP.');
+
+                verifyBtn.textContent = 'Resend OTP';
+                verifyBtn.disabled = false;
+                emailStatusText.innerHTML = '✅ OTP sent to email. Please check your inbox.';
+                emailStatusText.className = 'text-xs mt-1 text-green-600 font-semibold';
+
+                // Reveal 6-box OTP container
+                otpContainer.classList.remove('hidden');
+                otpBoxes[0].focus();
+
+            } catch (err) {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify Email';
+                emailStatusText.textContent = err.message;
+                emailStatusText.className = 'text-xs mt-1 text-red-600 font-semibold';
+            }
+        }
+
+        // --- STEP 2: GITHUB STYLE AUTO-FOCUS & AUTO-VERIFY ---
+        otpBoxes.forEach((box, index) => {
+            box.addEventListener('input', (e) => {
+                const value = e.target.value;
+                if (value && index < otpBoxes.length - 1) {
+                    otpBoxes[index + 1].focus();
+                }
+                checkAndVerifyOtp();
+            });
+
+            box.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !box.value && index > 0) {
+                    otpBoxes[index - 1].focus();
+                }
+            });
+        });
+
+        async function checkAndVerifyOtp() {
+            const code = Array.from(otpBoxes).map(b => b.value).join('');
+            if (code.length === 6) {
+                otpFeedback.textContent = 'Verifying code...';
+                otpFeedback.className = 'text-xs mt-2 text-blue-600 font-bold';
+
+                try {
+                    const response = await fetch(VERIFY_OTP_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: emailInput.value.trim(), code })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message || 'Invalid OTP');
+
+                    isEmailVerified = true;
+                    otpFeedback.textContent = '✔ Email Verified Successfully!';
+                    otpFeedback.className = 'text-xs mt-2 text-green-600 font-bold';
+                    otpContainer.classList.add('bg-green-50', 'border-green-300');
+                    otpBoxes.forEach(b => b.disabled = true);
+                    verifyBtn.disabled = true;
+                    emailInput.readOnly = true;
+
+                } catch (err) {
+                    otpFeedback.textContent = err.message;
+                    otpFeedback.className = 'text-xs mt-2 text-red-600 font-bold';
+                }
+            }
+        }
+
+        // --- STEP 3: FINAL SUBMISSION & PASSWORD MATCH CHECK ---
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            loader.classList.remove('hidden-loader');
             message.classList.add('hidden');
 
-            // Collect all data including the new Phone and Surname
+            if (!isEmailVerified) {
+                showMsg('Please verify your email address with the 6-digit OTP before registering.', 'red');
+                return;
+            }
+
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showMsg('Passwords do not match! Please check your typing.', 'red');
+                return;
+            }
+
+            loader.classList.remove('hidden-loader');
+
             const registerData = {
                 firstName: document.getElementById('firstName').value,
                 surname: document.getElementById('surname').value,
                 phone: document.getElementById('phone').value,
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value,
+                email: emailInput.value.trim(),
+                password: password,
                 role: 'Customer'
             };
 
             try {
-                const response = await fetch(API_URL, {
+                const response = await fetch(REGISTER_API, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(registerData)
@@ -119,11 +255,15 @@
 
             } catch (error) {
                 loader.classList.add('hidden-loader');
-                message.textContent = error.message; 
-                message.className = 'p-3 bg-red-100 text-red-700 rounded-lg text-center mb-4 font-bold';
-                message.classList.remove('hidden');
+                showMsg(error.message, 'red');
             }
         });
+
+        function showMsg(text, type) {
+            message.textContent = text;
+            message.className = type === 'red' ? 'p-3 bg-red-100 text-red-700 rounded-lg text-center mb-4 font-bold text-sm' : 'p-3 bg-green-100 text-green-700 rounded-lg text-center mb-4 font-bold text-sm';
+            message.classList.remove('hidden');
+        }
     </script>
 </body>
 </html>

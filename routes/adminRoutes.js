@@ -4,6 +4,7 @@ const { auth, hasRole } = require('../middleware/auth');
 const Seller = require('../models/Seller');
 const Agent = require('../models/Agent');
 const Recruit = require('../models/Recruit');
+const nodemailer = require('nodemailer');
 const Season = require('../models/Season');
 const Accommodation = require('../models/Accommodation');
 const Upload = require('../models/Upload');
@@ -88,16 +89,68 @@ router.get('/recruits', auth, async (req, res) => {
 });
 
 // --- TOGGLE LOCK ---
+// --- TOGGLE LOCK / APPROVAL ---
 router.post('/toggle-lock', auth, hasRole(['Admin']), async (req, res) => {
     const { userId, status } = req.body;
     try {
         let user = await Seller.findByIdAndUpdate(userId, { status }, { new: true });
+        let userType = 'Seller';
+        
         if (!user) {
             user = await Agent.findByIdAndUpdate(userId, { status }, { new: true });
+            userType = 'Agent';
         }
         if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // --- AUTOMATED EMAIL UPON APPROVAL ---
+        if (status.toLowerCase() === 'approved') {
+            try {
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail', // Or your email provider
+                    auth: {
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASS
+                    }
+                });
+
+                const mailOptions = {
+                    from: process.env.EMAIL_USER,
+                    to: user.email,
+                    subject: '🎉 Your Campus Collective Account Has Been Approved!',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto;">
+                            <h2 style="color: #2563eb;">Congratulations, ${user.fullName || user.businessName}!</h2>
+                            <p>Your account status has been updated to <strong>Approved</strong> by the administrator.</p>
+                            <p>You can go and create your products now! All restrictions have been lifted from your seller account.</p>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="https://www.mycampuscollective.me/login%20czra.html" 
+                                   style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                                   Log in now
+                                </a>
+                            </div>
+
+                            <p style="font-size: 12px; color: #666; word-break: break-all;">
+                                If the button doesn't work, copy and paste this link into your browser:<br>
+                                https://www.mycampuscollective.me/login%20czra.html
+                            </p>
+                            <br>
+                            <p>Best regards,</p>
+                            <p><strong>Campus Collective Team</strong></p>
+                        </div>
+                    `
+                };
+
+                await transporter.sendMail(mailOptions);
+                console.log(`Approval email sent to ${user.email}`);
+            } catch (emailErr) {
+                console.error('Failed to send approval email:', emailErr.message);
+            }
+        }
+
         res.json({ message: `Account successfully ${status}`, userStatus: user.status });
     } catch (err) {
+        console.error('Toggle lock error:', err.message);
         res.status(500).json({ message: 'Server error' });
     }
 });

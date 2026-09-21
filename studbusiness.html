@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Business Registration</title>
-     <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -19,7 +18,6 @@
             padding: 2rem 1rem;
         }
 
-        /* 🏆 3D SPINNING LOADER CSS - ADDED */
         #loader-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.95); display: none; flex-direction: column;
@@ -38,9 +36,22 @@
         @keyframes spin-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes spin-3d { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
         .loader-text { margin-top: 30px; font-weight: 700; color: #2563eb; letter-spacing: 2px; text-transform: uppercase; }
-    </style>
 
-    </head>
+        /* Card Guidance Box Overlay Style */
+        .card-guide-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 60%;
+            border: 2px dashed #38bdf8;
+            border-radius: 8px;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.4);
+            pointer-events: none;
+        }
+    </style>
+</head>
 <body class="bg-gray-100 p-8">
 
     <div id="loader-overlay">
@@ -48,7 +59,7 @@
             <div class="loader-ring"></div>
             <img src="Images/campus collective icon.ico" alt="Loading..." class="loader-logo">
         </div>
-        <div class="loader-text">Submitting Business...</div>
+        <div class="loader-text text-xs">Submitting Business & Verifying...</div>
     </div>
 
     <div class="max-w-3xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden md:flex">
@@ -72,25 +83,109 @@
 
                 <div>
                     <label for="fullName" class="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input type="text" id="fullName" name="fullName" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                    <input type="text" id="fullName" name="fullName" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- Email & OTP Group -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                    <div class="flex gap-2 mt-1">
+                        <input type="email" id="email" name="email" required class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <button type="button" id="verify-email-btn" onclick="sendEmailOtp()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md font-medium text-xs whitespace-nowrap transition-all">
+                            Verify
+                        </button>
+                    </div>
+                    <p id="email-status-text" class="text-xs mt-1 text-gray-500 hidden"></p>
+                </div>
+
+                <!-- GitHub Style 6-Box OTP Container -->
+                <div id="otp-container" class="hidden bg-blue-50 p-3 rounded-lg border border-blue-200 text-center">
+                    <label class="block text-xs font-semibold text-blue-900 mb-2">Enter 6-Digit Code Sent to Email</label>
+                    <div class="flex justify-center gap-1.5" id="otp-inputs">
+                        <input type="text" maxlength="1" class="otp-box w-8 h-10 text-center text-lg font-bold border border-gray-300 rounded-md focus:border-blue-600 outline-none bg-white" />
+                        <input type="text" maxlength="1" class="otp-box w-8 h-10 text-center text-lg font-bold border border-gray-300 rounded-md focus:border-blue-600 outline-none bg-white" />
+                        <input type="text" maxlength="1" class="otp-box w-8 h-10 text-center text-lg font-bold border border-gray-300 rounded-md focus:border-blue-600 outline-none bg-white" />
+                        <input type="text" maxlength="1" class="otp-box w-8 h-10 text-center text-lg font-bold border border-gray-300 rounded-md focus:border-blue-600 outline-none bg-white" />
+                        <input type="text" maxlength="1" class="otp-box w-8 h-10 text-center text-lg font-bold border border-gray-300 rounded-md focus:border-blue-600 outline-none bg-white" />
+                        <input type="text" maxlength="1" class="otp-box w-8 h-10 text-center text-lg font-bold border border-gray-300 rounded-md focus:border-blue-600 outline-none bg-white" />
+                    </div>
+                    <p id="otp-feedback" class="text-xs mt-2 text-blue-700 font-medium"></p>
+                </div>
+
+                <!-- Passwords -->
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" name="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700"> Email Address</label>
-                    <input type="email" id="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">Set Account Password</label>
-                    <input type="password" id="password" name="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+
+                <!-- VERIFICATION 1: Live Head-to-Shoulder Selfie -->
+                <div class="border border-dashed border-gray-300 p-3 rounded-lg bg-gray-50 text-center">
+                    <label class="block text-xs font-semibold text-gray-800 mb-1">Live Head-to-Shoulder Selfie</label>
+                    <p class="text-xs text-gray-500 mb-2">Keep your face straight and centered.</p>
+                    
+                    <div id="selfie-camera-container" class="relative hidden mb-2">
+                        <video id="selfieVideo" autoplay playsinline class="w-full h-36 bg-black rounded-lg object-cover"></video>
+                        <button type="button" onclick="captureSelfie()" class="mt-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-xs font-bold shadow">
+                            📸 Snap Selfie
+                        </button>
+                    </div>
+
+                    <div id="selfie-preview-container" class="hidden mb-2">
+                        <img id="selfiePreview" class="w-20 h-20 object-cover mx-auto rounded-full border-2 border-green-500 shadow" alt="Selfie">
+                        <button type="button" onclick="retakeSelfie()" class="mt-1 text-xs text-blue-600 hover:underline font-semibold block mx-auto">Retake</button>
+                    </div>
+
+                    <button type="button" id="start-selfie-btn" onclick="startSelfieCamera()" class="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded-md text-xs font-semibold shadow">
+                        Open Camera for Selfie
+                    </button>
+                    <canvas id="selfieCanvas" class="hidden"></canvas>
                 </div>
-                
-                <p class="text-sm text-gray-500 pt-2 border-t mt-4">Business Profile (Can be completed later)</p>
+
+                <!-- VERIFICATION 2: ID / Student Card (Upload OR Capture with Guidance Box) -->
+                <div class="border border-gray-300 p-3 rounded-lg bg-gray-50">
+                    <label class="block text-xs font-semibold text-gray-800 mb-1">ID Document or Student Card</label>
+                    <p class="text-xs text-gray-500 mb-2">Upload a file or capture it inside the alignment box.</p>
+                    
+                    <!-- File Upload Option -->
+                    <input type="file" id="idCardFile" accept="image/*" class="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-2">
+                    
+                    <!-- OR Camera Capture Option with Box Guide -->
+                    <div class="text-center mt-2 border-t pt-2">
+                        <button type="button" id="start-id-camera-btn" onclick="startIdCamera()" class="text-xs bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-md font-semibold">
+                            📷 Or Capture ID with Camera
+                        </button>
+
+                        <div id="id-camera-container" class="relative hidden mt-2 overflow-hidden rounded-lg">
+                            <video id="idVideo" autoplay playsinline class="w-full h-40 bg-black object-cover"></video>
+                            <!-- Visual Guidance Box -->
+                            <div class="card-guide-overlay"></div>
+                            <span class="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded z-10">Align card inside the box</span>
+                            <button type="button" onclick="captureIdPhoto()" class="mt-2 relative z-20 bg-green-600 text-white px-3 py-1 rounded-md text-xs font-bold block mx-auto">
+                                📸 Snap ID Photo
+                            </button>
+                        </div>
+
+                        <div id="id-preview-container" class="hidden mt-2">
+                            <img id="idPreview" class="w-32 h-20 object-cover mx-auto rounded border border-green-500 shadow" alt="ID Card">
+                            <button type="button" onclick="retakeIdPhoto()" class="mt-1 text-xs text-blue-600 hover:underline font-semibold block mx-auto">Retake ID Photo</button>
+                        </div>
+                    </div>
+                    <canvas id="idCanvas" class="hidden"></canvas>
+                </div>
+
+                <!-- Business Profile -->
+                <p class="text-sm text-gray-500 pt-2 border-t mt-2">Business Profile</p>
                 <div>
                     <label for="businessName" class="block text-sm font-medium text-gray-700">Business Name</label>
-                    <input type="text" id="businessName" name="businessName" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                    <input type="text" id="businessName" name="businessName" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
                     <label for="businessCategory" class="block text-sm font-medium text-gray-700">Business Category</label>
-                    <select id="businessCategory" name="businessCategory" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                    <select id="businessCategory" name="businessCategory" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Select a category</option>
                         <option value="food">Food & Drinks</option>
                         <option value="fashion">Fashion & Apparel</option>
@@ -102,162 +197,298 @@
                 </div>
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700">Business Description</label>
-                    <textarea id="description" name="description" rows="3" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300" placeholder="Tell us about your business, products, or services."></textarea>
+                    <textarea id="description" name="description" rows="2" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Tell us about your business."></textarea>
                 </div>
                 
                 <div class="flex items-start">
-                    <div class="flex items-center h-5">
-                        <input id="terms" name="terms" type="checkbox" required class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
-                    </div>
-                    <div class="ml-3 text-sm">
-                        <label for="terms" class="font-medium text-gray-700">I agree to the <a href="terms.html" class="text-blue-600 hover:text-blue-500">terms and conditions</a></label>
-                    </div>
+                    <input id="terms" name="terms" type="checkbox" required class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded mt-0.5">
+                    <label for="terms" class="ml-2 text-xs text-gray-700">I agree to the <a href="terms.html" class="text-blue-600 hover:underline">terms and conditions</a></label>
                 </div>
 
                 <div>
-                    <button type="submit" id="submitButton" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300">
+                    <button type="submit" id="submitButton" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors">
                         Submit Business
                     </button>
                 </div>
                 
-                <p class="text-center text-sm text-gray-600">
-                    Already registered? <a href="login czra.html" class="font-medium text-blue-600 hover:text-blue-500">Log In here</a>
+                <p class="text-center text-xs text-gray-600">
+                    Already registered? <a href="login czra.html" class="font-medium text-blue-600 hover:underline">Log In here</a>
                 </p>
             </form>
         </div>
     </div>
 
-    <div id="messageBox" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50">
-        <div class="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full text-center">
-            <p id="messageText" class="text-lg font-semibold mb-4"></p>
-            <button id="modalCloseButton" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" ><a href="join us.html">
-                Close</a>
-            </button>
-        </div>
-    </div>
-
-<script>
-    // --- API Configuration ---
-    const REGISTER_API = 'http://localhost:8080/api/auth/seller/register'; 
-    const REDIRECT_PAGE = 'seller dashboard main.html'; 
-    
-    // --- UI Element References ---
-    const form = document.getElementById('studentForm');
-    const submitButton = document.getElementById('submitButton');
-    const inlineMessage = document.getElementById('inline-message');
-    const messageBox = document.getElementById('messageBox');
-    const messageText = document.getElementById('messageText');
-    const modalCloseButton = document.getElementById('modalCloseButton');
-    const loader = document.getElementById('loader-overlay'); // Loader reference added
-    
-    // --- UI Helper Functions ---
-    function displayMessage(message, isError, shouldRedirect = false) {
-        inlineMessage.textContent = message;
-        inlineMessage.classList.remove('hidden');
-        if (isError) {
-            inlineMessage.className = 'p-3 text-sm text-red-700 bg-red-100 rounded-lg font-medium mb-4';
-        } else {
-            inlineMessage.className = 'p-3 text-sm text-green-700 bg-green-100 rounded-lg font-medium mb-4';
-        }
-
-        if (shouldRedirect) {
-            messageText.textContent = message;
-            messageBox.classList.remove('hidden');
-            messageBox.classList.add('flex');
-            
-            setTimeout(() => {
-                window.location.href = REDIRECT_PAGE;
-            }, 1000); 
-        }
-    }
-    
-    modalCloseButton.onclick = () => {
-        messageBox.classList.add('hidden');
-        messageBox.classList.remove('flex');
-    };
-
-    messageBox.onclick = (e) => {
-        if (e.target === messageBox) {
-            messageBox.classList.add('hidden');
-            messageBox.classList.remove('flex');
-        }
-    };
-
-
-    // --- API REGISTRATION LOGIC ---
-    async function handleFormSubmit(event) {
-        event.preventDefault(); 
+    <script>
+        const REGISTER_API = '/api/auth/seller/register'; 
+        const SEND_OTP_API = '/api/auth/send-form-email-otp';
+        const VERIFY_OTP_API = '/api/auth/verify-form-email-otp';
+        const REDIRECT_PAGE = 'seller dashboard main.html'; 
         
-        // 🏆 START LOADER
-        loader.style.display = 'flex';
-        submitButton.disabled = true;
-        submitButton.textContent = 'Creating Account...';
-        inlineMessage.classList.add('hidden'); 
+        const form = document.getElementById('studentForm');
+        const submitButton = document.getElementById('submitButton');
+        const inlineMessage = document.getElementById('inline-message');
+        const loader = document.getElementById('loader-overlay');
+        
+        const emailInput = document.getElementById('email');
+        const verifyBtn = document.getElementById('verify-email-btn');
+        const emailStatusText = document.getElementById('email-status-text');
+        const otpContainer = document.getElementById('otp-container');
+        const otpBoxes = document.querySelectorAll('.otp-box');
+        const otpFeedback = document.getElementById('otp-feedback');
 
-        // 🏆 CHECK FOR SIGNATURE BEFORE SUBMITTING
-        const signature = localStorage.getItem('pendingSignature');
-        if (!signature) {
-            loader.style.display = 'none';
-            alert("You must sign the Terms & Conditions first.");
-            window.location.href = "terms.html";
-            return;
+        let isEmailVerified = false;
+        let capturedSelfieData = null;
+        let capturedIdData = null;
+        let selfieStream = null;
+        let idStream = null;
+
+        // --- 1. EMAIL OTP LOGIC ---
+        async function sendEmailOtp() {
+            const email = emailInput.value.trim();
+            if (!email || !email.includes('@')) {
+                displayMessage('Please enter a valid email address first.', true);
+                return;
+            }
+
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Sending...';
+            emailStatusText.textContent = '⏳ Sending code...';
+            emailStatusText.className = 'text-xs mt-1 text-orange-600 font-semibold';
+            emailStatusText.classList.remove('hidden');
+
+            try {
+                const response = await fetch(SEND_OTP_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Failed to send OTP.');
+
+                verifyBtn.textContent = 'Resend';
+                verifyBtn.disabled = false;
+                emailStatusText.innerHTML = '✅ OTP sent to your email inbox.';
+                emailStatusText.className = 'text-xs mt-1 text-green-600 font-semibold';
+
+                otpContainer.classList.remove('hidden');
+                otpBoxes[0].focus();
+            } catch (err) {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify';
+                emailStatusText.textContent = err.message;
+                emailStatusText.className = 'text-xs mt-1 text-red-600 font-semibold';
+            }
         }
 
-        const parsedSignature = JSON.parse(signature);
-        const registrationData = {
-            fullName: form.elements.fullName.value,
-            email: form.elements.email.value,
-            password: form.elements.password.value,
-            businessName: form.elements.businessName.value,
-            businessCategory: form.elements.businessCategory.value,
-            description: form.elements.description.value,
-            legalSignature: parsedSignature.fullName, // Combined signature
-            signatureDate: parsedSignature.agreedAt
-        };
-
-        try {
-            const response = await fetch(REGISTER_API, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(registrationData)
+        // --- 2. GITHUB STYLE OTP AUTO-NAVIGATE & VERIFY ---
+        otpBoxes.forEach((box, index) => {
+            box.addEventListener('input', (e) => {
+                if (e.target.value && index < otpBoxes.length - 1) {
+                    otpBoxes[index + 1].focus();
+                }
+                checkAndVerifyOtp();
             });
+            box.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !box.value && index > 0) {
+                    otpBoxes[index - 1].focus();
+                }
+            });
+        });
 
-            const contentType = response.headers.get("content-type");
-            const isJson = contentType && contentType.indexOf("application/json") !== -1;
-            
-            let data = {};
-            if (isJson) {
-                data = await response.json();
-            } else if (!response.ok) {
-                throw new Error(`Server returned status ${response.status}.`);
-            }
+        async function checkAndVerifyOtp() {
+            const code = Array.from(otpBoxes).map(b => b.value).join('');
+            if (code.length === 6) {
+                otpFeedback.textContent = 'Verifying code...';
+                otpFeedback.className = 'text-xs mt-2 text-blue-600 font-bold';
 
+                try {
+                    const response = await fetch(VERIFY_OTP_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: emailInput.value.trim(), code })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message || 'Invalid code');
 
-            if (!response.ok) {
-                throw new Error(data.message || 'Registration failed.');
-            }
-
-            if (data.token) {
-                localStorage.setItem('jwtToken', data.token);
-            }
-            
-            localStorage.removeItem('pendingSignature'); // Clear signature memory
-            displayMessage(`Success! Your account has been created. Redirecting...`, false, true);
-            
-        } catch (error) {
-            loader.style.display = 'none'; // Hide loader on error
-            console.error("Registration Error: ", error);
-            displayMessage(`Error: ${error.message}`, true, false); 
-        } finally {
-            if (!localStorage.getItem('jwtToken') || inlineMessage.classList.contains('text-red-700')) {
-                submitButton.disabled = false;
-                submitButton.textContent = 'Submit Business';
+                    isEmailVerified = true;
+                    otpFeedback.textContent = '✔ Email Verified Successfully!';
+                    otpFeedback.className = 'text-xs mt-2 text-green-600 font-bold';
+                    otpBoxes.forEach(b => b.disabled = true);
+                    verifyBtn.disabled = true;
+                    emailInput.readOnly = true;
+                } catch (err) {
+                    otpFeedback.textContent = err.message;
+                    otpFeedback.className = 'text-xs mt-2 text-red-600 font-bold';
+                }
             }
         }
-    }
-    
-    form.addEventListener('submit', handleFormSubmit);
-    
-</script>
+
+        // --- 3. LIVE HEAD-TO-SHOULDER SELFIE CAMERA ---
+        async function startSelfieCamera() {
+            try {
+                selfieStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                document.getElementById('selfieVideo').srcObject = selfieStream;
+                document.getElementById('selfie-camera-container').classList.remove('hidden');
+                document.getElementById('start-selfie-btn').classList.add('hidden');
+            } catch (err) {
+                alert('Unable to access camera.');
+            }
+        }
+
+        function captureSelfie() {
+            const video = document.getElementById('selfieVideo');
+            const canvas = document.getElementById('selfieCanvas');
+            canvas.width = video.videoWidth || 320;
+            canvas.height = video.videoHeight || 240;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            capturedSelfieData = canvas.toDataURL('image/jpeg');
+            document.getElementById('selfiePreview').src = capturedSelfieData;
+            
+            selfieStream.getTracks().forEach(track => track.stop());
+            document.getElementById('selfie-camera-container').classList.add('hidden');
+            document.getElementById('selfie-preview-container').classList.remove('hidden');
+        }
+
+        function retakeSelfie() {
+            capturedSelfieData = null;
+            document.getElementById('selfie-preview-container').classList.add('hidden');
+            startSelfieCamera();
+        }
+
+        // --- 4. ID CARD CAMERA CAPTURE OPTION ---
+        async function startIdCamera() {
+            try {
+                idStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                document.getElementById('idVideo').srcObject = idStream;
+                document.getElementById('id-camera-container').classList.remove('hidden');
+                document.getElementById('start-id-camera-btn').classList.add('hidden');
+            } catch (err) {
+                alert('Unable to access camera.');
+            }
+        }
+
+        function captureIdPhoto() {
+            const video = document.getElementById('idVideo');
+            const canvas = document.getElementById('idCanvas');
+            canvas.width = video.videoWidth || 320;
+            canvas.height = video.videoHeight || 240;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            capturedIdData = canvas.toDataURL('image/jpeg');
+            document.getElementById('idPreview').src = capturedIdData;
+            
+            idStream.getTracks().forEach(track => track.stop());
+            document.getElementById('id-camera-container').classList.add('hidden');
+            document.getElementById('id-preview-container').classList.remove('hidden');
+            document.getElementById('idCardFile').value = ''; 
+        }
+
+        function retakeIdPhoto() {
+            capturedIdData = null;
+            document.getElementById('id-preview-container').classList.add('hidden');
+            startIdCamera();
+        }
+
+        function convertFileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // --- 5. FORM SUBMISSION ---
+        async function handleFormSubmit(event) {
+            event.preventDefault(); 
+            inlineMessage.classList.add('hidden');
+
+            if (!isEmailVerified) {
+                displayMessage('Please complete email verification with the 6-digit OTP first.', true);
+                return;
+            }
+
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            if (password !== confirmPassword) {
+                displayMessage('Passwords do not match! Please check your typing.', true);
+                return;
+            }
+
+            if (!capturedSelfieData) {
+                displayMessage('Please take a live head-to-shoulder selfie for verification.', true);
+                return;
+            }
+
+            const idCardFileInput = document.getElementById('idCardFile');
+            if (!capturedIdData && (!idCardFileInput.files || idCardFileInput.files.length === 0)) {
+                displayMessage('Please either upload your ID card file or capture it with your camera.', true);
+                return;
+            }
+
+            const signature = localStorage.getItem('pendingSignature');
+            if (!signature) {
+                alert("You must sign the Terms & Conditions first.");
+                window.location.href = "terms.html";
+                return;
+            }
+
+            loader.style.display = 'flex';
+            submitButton.disabled = true;
+
+            try {
+                let idCardBase64 = capturedIdData;
+                if (!idCardBase64 && idCardFileInput.files.length > 0) {
+                    idCardBase64 = await convertFileToBase64(idCardFileInput.files[0]);
+                }
+
+                const parsedSignature = JSON.parse(signature);
+                const registrationData = {
+                    fullName: form.elements.fullName.value,
+                    email: emailInput.value.trim(),
+                    password: password,
+                    businessName: form.elements.businessName.value,
+                    businessCategory: form.elements.businessCategory.value,
+                    description: form.elements.description.value,
+                    liveSelfie: capturedSelfieData,
+                    idCardDocument: idCardBase64,
+                    legalSignature: parsedSignature.fullName,
+                    signatureDate: parsedSignature.agreedAt
+                };
+
+                const response = await fetch(REGISTER_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(registrationData)
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Registration failed.');
+
+                if (data.token) localStorage.setItem('jwtToken', data.token);
+                localStorage.removeItem('pendingSignature');
+                
+                displayMessage('Success! Account submitted for review. Redirecting...', false);
+                setTimeout(() => { window.location.href = REDIRECT_PAGE; }, 2000);
+            } catch (error) {
+                loader.style.display = 'none';
+                submitButton.disabled = false;
+                displayMessage(`Error: ${error.message}`, true);
+            }
+        }
+        
+        function displayMessage(message, isError) {
+            inlineMessage.textContent = message;
+            inlineMessage.classList.remove('hidden');
+            inlineMessage.className = isError 
+                ? 'p-3 text-sm text-red-700 bg-red-100 rounded-lg font-medium mb-4' 
+                : 'p-3 text-sm text-green-700 bg-green-100 rounded-lg font-medium mb-4';
+        }
+
+        form.addEventListener('submit', handleFormSubmit);
+    </script>
 </body>
 </html>

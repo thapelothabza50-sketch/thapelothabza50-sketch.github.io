@@ -96,7 +96,7 @@ router.get('/products', auth, hasRole(['Seller']), async (req, res) => {
 
 
 // B. POST /api/seller/products - Create a New Product (with optional image upload)
-router.post('/products', auth, hasRole(['Seller']), upload.single('image'), async (req, res) => {
+router.post('/products', auth, hasRole(['Seller']), requireApprovedAccount, upload.single('image'), async (req, res) => {
     try {
         const { name, description, price, stock, category, onSpecial, specialEnd, oldPrice } = req.body;
         
@@ -219,6 +219,30 @@ router.delete('/products/:id', auth, hasRole(['Seller']), async (req, res) => {
         res.status(500).send('Server Error during product deletion.');
     }
 });
+
+// --- NEW: Helper or Middleware to check if Seller is Approved ---
+const requireApprovedAccount = async (req, res, next) => {
+    try {
+        const Seller = require('../models/Seller');
+        const seller = await Seller.findById(req.user.id);
+        
+        if (!seller) {
+            return res.status(404).json({ message: 'Seller profile not found.' });
+        }
+
+        if (seller.status !== 'approved') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Your account is currently pending admin approval. You cannot add or publish products yet.' 
+            });
+        }
+
+        next();
+    } catch (err) {
+        console.error('Approval status check error:', err.message);
+        res.status(500).json({ message: 'Server error verifying account status.' });
+    }
+};
 
 
 // =========================================================================
