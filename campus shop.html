@@ -63,6 +63,7 @@
         </div>
     </div>
 
+    <!-- NAVBAR WITH DYNAMIC CART COUNTER BADGES -->
     <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 items-center justify-between gap-3">
@@ -73,12 +74,18 @@
 
                 <div class="hidden items-center gap-5 md:flex">
                     <a href="index.html" class="font-medium text-gray-700 hover:text-blue-600">Home</a>
-                    <a href="cart.html" class="font-medium text-gray-700 hover:text-blue-600">🛒 Cart</a>
+                    <a href="cart.html" class="relative font-medium text-gray-700 hover:text-blue-600 flex items-center gap-1">
+                        🛒 Cart
+                        <span id="cart-badge-desktop" class="hidden bg-red-500 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center -top-2 -right-2">0</span>
+                    </a>
                     <div id="authArea" class="flex items-center gap-4"></div>
                 </div>
 
                 <div class="flex items-center gap-2 md:hidden">
-                    <a href="cart.html" class="rounded-full bg-slate-100 p-2 text-slate-700" aria-label="Cart">🛒</a>
+                    <a href="cart.html" class="relative rounded-full bg-slate-100 p-2 text-slate-700" aria-label="Cart">
+                        🛒
+                        <span id="cart-badge-mobile" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">0</span>
+                    </a>
                     <div id="mobileAuthArea" class="flex items-center gap-2"></div>
                 </div>
             </div>
@@ -168,6 +175,35 @@
     const specialOnly = document.getElementById('specialOnly');
     let allProducts = [];
 
+    // 2. CART BADGE LOGIC
+    function getCart() {
+        try {
+            const storedCart = localStorage.getItem('cart');
+            return storedCart ? JSON.parse(storedCart) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function updateCartBadge() {
+        const cart = getCart();
+        const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
+        const desktopBadge = document.getElementById('cart-badge-desktop');
+        const mobileBadge = document.getElementById('cart-badge-mobile');
+
+        [desktopBadge, mobileBadge].forEach(badge => {
+            if (badge) {
+                if (totalItems > 0) {
+                    badge.textContent = totalItems;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        });
+    }
+
     // 3. NAVBAR & AUTH
     function getUserInitials() {
         try {
@@ -176,7 +212,6 @@
             
             const p = JSON.parse(storedUser);
 
-            // Case A: Separate firstName and lastName/surname properties exist
             const first = p.firstName || p.name || '';
             const last = p.lastName || p.surname || '';
 
@@ -184,16 +219,13 @@
                 return (first.trim().charAt(0) + last.trim().charAt(0)).toUpperCase();
             }
 
-            // Case B: Combined name string stored in fullName, businessName, or email
             const combinedName = p.fullName || p.businessName || first || p.email || '';
             if (!combinedName) return 'U';
 
             const nameParts = combinedName.trim().split(/\s+/);
             if (nameParts.length >= 2) {
-                // First name initial + Surname initial
                 return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
             } else if (nameParts.length === 1 && nameParts[0].length > 0) {
-                // Fallback for single-word names
                 return nameParts[0].charAt(0).toUpperCase();
             }
 
@@ -401,10 +433,30 @@
         }
     }
 
-    // 7. CART & LOGOUT LOGIC
+    // 7. UPDATED ADD TO CART FUNCTION
     function addToCart(productId) {
-        alert("Product added to cart!");
-        console.log("Cart ID:", productId);
+        const product = allProducts.find(p => p._id === productId);
+        if (!product) return;
+
+        let cart = getCart();
+        const existingIndex = cart.findIndex(item => item.id === product._id || item._id === product._id);
+
+        if (existingIndex > -1) {
+            cart[existingIndex].quantity = (cart[existingIndex].quantity || 1) + 1;
+        } else {
+            cart.push({
+                id: product._id,
+                name: product.name,
+                price: Number(product.price) || 0,
+                imageUrl: product.image || 'https://via.placeholder.com/300',
+                quantity: 1,
+                maxStock: product.stock || 99
+            });
+        }
+
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCartBadge();
+        alert(`"${product.name}" added to cart!`);
     }
     
     function logout() {
@@ -422,6 +474,7 @@
     window.onload = () => {
         updateNavbar();
         fetchProducts();
+        updateCartBadge();
     };
 
     window.openProfileModal = openProfileModal;

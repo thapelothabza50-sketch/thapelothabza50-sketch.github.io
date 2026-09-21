@@ -74,186 +74,140 @@
     </main>
 
     <script>
-        // --- CONFIGURATION ---
-        const SHIPPING_FEE = 50.00;
-        const TAX_RATE = 0.08; 
+    const SHIPPING_FEE = 50.00;
+    const TAX_RATE = 0.08; 
+    let cart = []; 
+
+    function loadCart() {
+        const storedCart = JSON.parse(localStorage.getItem('cart'));
+        cart = Array.isArray(storedCart) ? storedCart : [];
         
-        // --- STATE ---
-        let cart = []; 
-
-        // --- CORE LOGIC ---
-
-        /**
-         * Loads cart data from localStorage, updates the state, and renders the page.
-         */
-        function loadCart() {
-            // Retrieve cart as an array (expected format from campus shop.html)
-            const storedCart = JSON.parse(localStorage.getItem('cart'));
-            
-            // CRITICAL: Ensure we only load it if it's an Array and is not null
-            if (Array.isArray(storedCart)) {
-                cart = storedCart;
-            } else {
-                cart = [];
-            }
-            
-            renderCartItems();
-            updateSummary();
-            
-            // Enable/disable checkout button based on cart items
-            document.getElementById('checkout-btn').disabled = cart.length === 0;
-            document.getElementById('empty-cart-message').classList.toggle('hidden', cart.length > 0);
-        }
+        renderCartItems();
+        updateSummary();
         
-        /**
-         * Renders all items in the cart array to the DOM.
-         */
-        function renderCartItems() {
-            const container = document.getElementById('cart-items');
-            container.innerHTML = ''; 
+        const clearBtn = document.getElementById('clear-cart-btn');
+        if (clearBtn) clearBtn.classList.toggle('hidden', cart.length === 0);
+        
+        document.getElementById('checkout-btn').disabled = cart.length === 0;
+        document.getElementById('empty-cart-message').classList.toggle('hidden', cart.length > 0);
+    }
+    
+    function renderCartItems() {
+        const container = document.getElementById('cart-items');
+        container.innerHTML = ''; 
 
-            if (cart.length === 0) {
-                return; // Message is handled by loadCart()
-            }
+        if (cart.length === 0) return;
 
-            cart.forEach(item => {
-                const itemHTML = `
-                    <div class="flex py-6 border-b border-gray-200">
-                        <div class="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
-                            <img src="${item.imageUrl || 'Images/placeholder.jpg'}" alt="${item.name}" class="w-full h-full object-center object-cover">
+        cart.forEach(item => {
+            const itemHTML = `
+                <div class="flex py-6 border-b border-gray-200">
+                    <div class="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
+                        <img src="${item.imageUrl || 'Images/placeholder.jpg'}" alt="${item.name}" class="w-full h-full object-center object-cover">
+                    </div>
+
+                    <div class="ml-4 flex-1 flex flex-col">
+                        <div>
+                            <div class="flex justify-between text-base font-medium text-gray-900">
+                                <h3>${item.name}</h3>
+                                <p class="ml-4 font-bold text-blue-600">R${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</p>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">Unit Price: R${Number(item.price || 0).toFixed(2)}</p>
                         </div>
 
-                        <div class="ml-4 flex-1 flex flex-col">
-                            <div>
-                                <div class="flex justify-between text-base font-medium text-gray-900">
-                                    <h3><a href="#">${item.name}</a></h3>
-                                    <p class="ml-4">R${(item.price * item.quantity).toFixed(2)}</p>
-                                </div>
-                                <p class="mt-1 text-sm text-gray-500">Price: R${item.price.toFixed(2)}</p>
+                        <div class="flex-1 flex items-end justify-between text-sm">
+                            <div class="flex items-center space-x-2">
+                                <label for="quantity-${item.id}" class="text-gray-500">Qty:</label>
+                                <input 
+                                    type="number" 
+                                    id="quantity-${item.id}" 
+                                    value="${item.quantity || 1}" 
+                                    min="1" 
+                                    max="${item.maxStock || 99}" 
+                                    data-id="${item.id}"
+                                    onchange="updateQuantity(this)"
+                                    class="w-16 p-1 border border-gray-300 rounded-md text-center"
+                                >
                             </div>
 
-                            <div class="flex-1 flex items-end justify-between text-sm">
-                                <div class="flex items-center space-x-2">
-                                    <label for="quantity-${item.id}" class="text-gray-500">Qty:</label>
-                                    <input 
-                                        type="number" 
-                                        id="quantity-${item.id}" 
-                                        value="${item.quantity}" 
-                                        min="1" 
-                                        max="${item.maxStock}" 
-                                        data-id="${item.id}"
-                                        onchange="updateQuantity(this)"
-                                        class="w-16 p-1 border border-gray-300 rounded-md text-center"
-                                    >
-                                </div>
-
-                                <div class="flex">
-                                    <button type="button" onclick="removeItem('${item.id}')" class="font-medium text-red-600 hover:text-red-800">
-                                        Remove
-                                    </button>
-                                </div>
-                            </div>
+                            <button type="button" onclick="removeItem('${item.id}')" class="font-semibold text-red-600 hover:text-red-800">
+                                Remove Item
+                            </button>
                         </div>
                     </div>
-                `;
-                container.innerHTML += itemHTML;
-            });
-        }
+                </div>
+            `;
+            container.innerHTML += itemHTML;
+        });
+    }
 
-        /**
-         * Updates the quantity of an item in the cart.
-         * @param {HTMLInputElement} input - The input element that changed.
-         */
-        function updateQuantity(input) {
-            const productId = input.getAttribute('data-id');
-            const newQuantity = parseInt(input.value);
-            
-            // Check limits set by the input 'max' attribute
-            if (newQuantity < 1) {
-                input.value = 1;
-                return;
-            }
-            if (newQuantity > input.max) {
-                alert(`Cannot add more than ${input.max} of this item (current stock).`);
-                input.value = input.max;
-                return;
-            }
-
-            const itemIndex = cart.findIndex(item => item.id === productId);
-
-            if (itemIndex > -1) {
-                cart[itemIndex].quantity = newQuantity;
-                saveCart();
-            }
-        }
+    function updateQuantity(input) {
+        const productId = input.getAttribute('data-id');
+        let newQuantity = parseInt(input.value) || 1;
+        const max = parseInt(input.max) || 99;
         
-        /**
-         * Removes an item from the cart array.
-         * @param {string} productId - The ID of the product to remove.
-         */
-        function removeItem(productId) {
-            const itemIndex = cart.findIndex(item => item.id === productId);
-            
-            if (itemIndex > -1) {
-                // Use splice to remove the item from the array
-                cart.splice(itemIndex, 1);
-                saveCart();
-            }
+        if (newQuantity < 1) newQuantity = 1;
+        if (newQuantity > max) {
+            alert(`Cannot add more than ${max} items (stock limit).`);
+            newQuantity = max;
         }
+        input.value = newQuantity;
+
+        const itemIndex = cart.findIndex(item => item.id === productId);
+        if (itemIndex > -1) {
+            cart[itemIndex].quantity = newQuantity;
+            saveCart();
+        }
+    }
+    
+    function removeItem(productId) {
+        cart = cart.filter(item => item.id !== productId);
+        saveCart();
+    }
+
+    function clearEntireCart() {
+        if (confirm("Are you sure you want to clear all items from your cart?")) {
+            cart = [];
+            saveCart();
+        }
+    }
+    
+    function saveCart() {
+        localStorage.setItem('cart', JSON.stringify(cart));
+        loadCart();
+    }
+
+    function updateSummary() {
+        const subtotal = cart.reduce((total, item) => total + ((item.price || 0) * (item.quantity || 1)), 0);
+        let tax = 0;
+        let total = subtotal;
+        let shippingFee = 0;
         
-        /**
-         * Saves the current cart state to localStorage and re-renders the page.
-         */
-        function saveCart() {
-            localStorage.setItem('cart', JSON.stringify(cart));
-            loadCart(); // Reload the cart to refresh the display
+        if (cart.length > 0) {
+            shippingFee = SHIPPING_FEE;
+            tax = subtotal * TAX_RATE;
+            total += shippingFee + tax;
         }
 
-        /**
-         * Calculates and updates the Order Summary section.
-         */
-        function updateSummary() {
-            // Calculate subtotal from the cart array
-            const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-            
-            let tax = 0;
-            let total = subtotal;
-            let shippingFee = 0;
-            
-            // Only include shipping and tax if the cart is not empty
-            if (cart.length > 0) {
-                shippingFee = SHIPPING_FEE;
-                tax = subtotal * TAX_RATE;
-                total += shippingFee + tax;
-            }
+        document.getElementById('cart-subtotal').textContent = `R${subtotal.toFixed(2)}`;
+        document.getElementById('cart-shipping').textContent = `R${shippingFee.toFixed(2)}`;
+        document.getElementById('cart-tax').textContent = `R${tax.toFixed(2)}`;
+        document.getElementById('cart-total').textContent = `R${total.toFixed(2)}`;
+    }
 
-            // Format and update the display with the 'R' symbol
-            document.getElementById('cart-subtotal').textContent = `R${subtotal.toFixed(2)}`;
-            document.getElementById('cart-shipping').textContent = `R${shippingFee.toFixed(2)}`;
-            document.getElementById('cart-tax').textContent = `R${tax.toFixed(2)}`;
-            document.getElementById('cart-total').textContent = `R${total.toFixed(2)}`;
+    function proceedToCheckout() {
+        if (cart.length === 0) {
+            alert("Your cart is empty. Please add items before checking out.");
+            return;
         }
+        window.location.href = 'checkout-form.html';
+    }
 
-        /**
-         * Redirects to the checkout form page.
-         */
-        function proceedToCheckout() {
-            if (cart.length === 0) {
-                alert("Your cart is empty. Please add items before checking out.");
-                return;
-            }
-            // CRITICAL REDIRECTION: Sends the user to the form to collect shipping details
-            window.location.href = 'checkout-form.html';
-        }
+    window.updateQuantity = updateQuantity;
+    window.removeItem = removeItem;
+    window.clearEntireCart = clearEntireCart;
+    window.proceedToCheckout = proceedToCheckout;
 
-        // Expose functions for HTML event handlers
-        window.updateQuantity = updateQuantity;
-        window.removeItem = removeItem;
-        window.proceedToCheckout = proceedToCheckout;
-
-
-        // Initialize the cart when the page loads
-        document.addEventListener('DOMContentLoaded', loadCart);
-    </script>
+    document.addEventListener('DOMContentLoaded', loadCart);
+</script>
 </body>
 </html>
