@@ -145,15 +145,13 @@
                     <canvas id="selfieCanvas" class="hidden"></canvas>
                 </div>
 
-                <!-- VERIFICATION 2: ID / Student Card (Upload OR Capture with Guidance Box) -->
+                <!-- VERIFICATION 2: ID / Student Card -->
                 <div class="border border-gray-300 p-3 rounded-lg bg-gray-50">
                     <label class="block text-xs font-semibold text-gray-800 mb-1">ID Document or Student Card</label>
                     <p class="text-xs text-gray-500 mb-2">Upload a file or capture it inside the alignment box.</p>
                     
-                    <!-- File Upload Option -->
                     <input type="file" id="idCardFile" accept="image/*" class="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-2">
                     
-                    <!-- OR Camera Capture Option with Box Guide -->
                     <div class="text-center mt-2 border-t pt-2">
                         <button type="button" id="start-id-camera-btn" onclick="startIdCamera()" class="text-xs bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-md font-semibold">
                             📷 Or Capture ID with Camera
@@ -161,7 +159,6 @@
 
                         <div id="id-camera-container" class="relative hidden mt-2 overflow-hidden rounded-lg">
                             <video id="idVideo" autoplay playsinline class="w-full h-40 bg-black object-cover"></video>
-                            <!-- Visual Guidance Box -->
                             <div class="card-guide-overlay"></div>
                             <span class="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded z-10">Align card inside the box</span>
                             <button type="button" onclick="captureIdPhoto()" class="mt-2 relative z-20 bg-green-600 text-white px-3 py-1 rounded-md text-xs font-bold block mx-auto">
@@ -202,7 +199,7 @@
                 
                 <div class="flex items-start">
                     <input id="terms" name="terms" type="checkbox" required class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded mt-0.5">
-                    <label for="terms" class="ml-2 text-xs text-gray-700">I agree to the <a href="terms.html" class="text-blue-600 hover:underline">terms and conditions</a></label>
+                    <label for="terms" class="ml-2 text-xs text-gray-700">I agree to the <a href="terms.html" onclick="saveFormStateBeforeTerms()" class="text-blue-600 hover:underline">terms and conditions</a></label>
                 </div>
 
                 <div>
@@ -242,7 +239,65 @@
         let selfieStream = null;
         let idStream = null;
 
-        // --- 1. EMAIL OTP LOGIC ---
+        // --- PRESERVE FORM DATA ACROSS TERMS REDIRECTION ---
+        function saveFormStateBeforeTerms() {
+            const formData = {
+                fullName: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                confirmPassword: document.getElementById('confirmPassword').value,
+                businessName: document.getElementById('businessName').value,
+                businessCategory: document.getElementById('businessCategory').value,
+                description: document.getElementById('description').value,
+                capturedSelfieData: capturedSelfieData,
+                capturedIdData: capturedIdData,
+                isEmailVerified: isEmailVerified
+            };
+            localStorage.setItem('savedRegistrationForm', JSON.stringify(formData));
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('savedRegistrationForm');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    document.getElementById('fullName').value = data.fullName || '';
+                    document.getElementById('email').value = data.email || '';
+                    document.getElementById('password').value = data.password || '';
+                    document.getElementById('confirmPassword').value = data.confirmPassword || '';
+                    document.getElementById('businessName').value = data.businessName || '';
+                    document.getElementById('businessCategory').value = data.businessCategory || '';
+                    document.getElementById('description').value = data.description || '';
+                    
+                    if (data.isEmailVerified) {
+                        isEmailVerified = true;
+                        emailInput.readOnly = true;
+                        verifyBtn.disabled = true;
+                        verifyBtn.textContent = 'Verified';
+                        emailStatusText.innerHTML = '✅ Email Verified Successfully.';
+                        emailStatusText.className = 'text-xs mt-1 text-green-600 font-semibold';
+                        emailStatusText.classList.remove('hidden');
+                    }
+
+                    if (data.capturedSelfieData) {
+                        capturedSelfieData = data.capturedSelfieData;
+                        document.getElementById('selfiePreview').src = capturedSelfieData;
+                        document.getElementById('selfie-preview-container').classList.remove('hidden');
+                        document.getElementById('start-selfie-btn').classList.add('hidden');
+                    }
+
+                    if (data.capturedIdData) {
+                        capturedIdData = data.capturedIdData;
+                        document.getElementById('idPreview').src = capturedIdData;
+                        document.getElementById('id-preview-container').classList.remove('hidden');
+                    }
+                } catch (e) {
+                    console.error('Error restoring form data', e);
+                }
+            }
+        });
+
+        // --- EMAIL OTP LOGIC ---
         async function sendEmailOtp() {
             const email = emailInput.value.trim();
             if (!email || !email.includes('@')) {
@@ -280,7 +335,6 @@
             }
         }
 
-        // --- 2. GITHUB STYLE OTP AUTO-NAVIGATE & VERIFY ---
         otpBoxes.forEach((box, index) => {
             box.addEventListener('input', (e) => {
                 if (e.target.value && index < otpBoxes.length - 1) {
@@ -323,7 +377,7 @@
             }
         }
 
-        // --- 3. LIVE HEAD-TO-SHOULDER SELFIE CAMERA ---
+        // --- CAMERA UTILS ---
         async function startSelfieCamera() {
             try {
                 selfieStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
@@ -357,7 +411,6 @@
             startSelfieCamera();
         }
 
-        // --- 4. ID CARD CAMERA CAPTURE OPTION ---
         async function startIdCamera() {
             try {
                 idStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -401,7 +454,7 @@
             });
         }
 
-        // --- 5. FORM SUBMISSION ---
+        // --- FORM SUBMISSION ---
         async function handleFormSubmit(event) {
             event.preventDefault(); 
             inlineMessage.classList.add('hidden');
@@ -470,6 +523,7 @@
 
                 if (data.token) localStorage.setItem('jwtToken', data.token);
                 localStorage.removeItem('pendingSignature');
+                localStorage.removeItem('savedRegistrationForm'); // clear saved state
                 
                 displayMessage('Success! Account submitted for review. Redirecting...', false);
                 setTimeout(() => { window.location.href = REDIRECT_PAGE; }, 2000);
