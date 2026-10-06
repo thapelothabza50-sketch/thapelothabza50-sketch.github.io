@@ -68,6 +68,18 @@
         <i class="ri-user-3-line text-xl text-blue-500"></i> Agents
     </div>
     
+    <div onclick="switchTab('performance'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-bar-chart-2-line text-xl text-indigo-500"></i> Agent Performance
+    </div>
+
+    <div onclick="switchTab('teams'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-group-line text-xl text-violet-500"></i> Teams
+    </div>
+
+    <div onclick="switchTab('announcements'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
+        <i class="ri-mail-send-line text-xl text-rose-500"></i> Announcements
+    </div>
+
     <div onclick="switchTab('profiles'); closeMobileMenu();" class="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 text-gray-700 font-bold transition cursor-pointer">
         <i class="ri-store-2-line text-xl text-orange-500"></i> Marketplace Sellers
     </div>
@@ -122,6 +134,21 @@
             <div onclick="switchTab('agents')" class="sidebar-item">
                 <i class="ri-user-3-line sidebar-icon"></i>
                 <span class="sidebar-text hidden">Internal Agents</span>
+            </div>
+
+            <div onclick="switchTab('performance')" class="sidebar-item">
+                <i class="ri-bar-chart-2-line sidebar-icon"></i>
+                <span class="sidebar-text hidden">Agent Performance</span>
+            </div>
+
+            <div onclick="switchTab('teams')" class="sidebar-item">
+                <i class="ri-group-line sidebar-icon"></i>
+                <span class="sidebar-text hidden">Teams</span>
+            </div>
+
+            <div onclick="switchTab('announcements')" class="sidebar-item">
+                <i class="ri-mail-send-line sidebar-icon"></i>
+                <span class="sidebar-text hidden">Announcements</span>
             </div>
 
             <div onclick="switchTab('profiles')" class="sidebar-item">
@@ -204,7 +231,7 @@
         </header>
 
         <!-- ✅ STATS ROW -->
-        <section class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4">
+        <section class="grid grid-cols-2 md:grid-cols-5 gap-4 p-4">
 
             <div class="bg-blue-600 text-white p-5 rounded-xl shadow-lg">
                 <p class="opacity-80 text-sm">Revenue</p>
@@ -224,6 +251,11 @@
             <div class="bg-gray-800 text-white p-5 rounded-xl shadow-lg">
                 <p class="opacity-80 text-sm">Personnel</p>
                 <h2 id="stat-users" class="text-2xl font-black">0</h2>
+            </div>
+
+            <div class="bg-amber-500 text-white p-5 rounded-xl shadow-lg">
+                <p class="opacity-90 text-sm">Total Recruits</p>
+                <h2 id="stat-recruits" class="text-2xl font-black">0</h2>
             </div>
 
         </section>
@@ -260,6 +292,79 @@
 </div>
 
 
+<!-- 🚀 AGENT PERFORMANCE SECTION -->
+<div id="section-performance" class="hidden space-y-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h2 class="text-xl font-black text-gray-700">Agent Performance</h2>
+            <p class="text-sm text-gray-500">Highest-performing agents appear first. Recruit totals include assigned/referral credit.</p>
+        </div>
+        <button onclick="runReferralReconciliation()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700">
+            <i class="ri-magic-line"></i> Match Referrals
+        </button>
+    </div>
+    <div id="referral-match-summary" class="hidden p-4 rounded-xl border bg-indigo-50 text-indigo-800"></div>
+    <div id="performance-chart" class="bg-white rounded-xl shadow border p-5"></div>
+    <div class="bg-white rounded-xl shadow border overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100"><tr>
+                <th class="p-3 text-left">Rank / Agent</th><th class="p-3">Recruits</th><th class="p-3">Approved</th>
+                <th class="p-3">Pending</th><th class="p-3">Conversion</th><th class="p-3">Commission</th><th class="p-3">Leadership</th>
+            </tr></thead>
+            <tbody id="performance-table-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 👥 TEAM MANAGEMENT SECTION -->
+<div id="section-teams" class="hidden space-y-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div><h2 class="text-xl font-black text-gray-700">Head Agents & Teams</h2><p class="text-sm text-gray-500">Create teams, assign agents and track team performance.</p></div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-5">
+        <div class="bg-white rounded-xl shadow border p-5">
+            <h3 class="font-black text-gray-800 mb-4">Create Team</h3>
+            <form onsubmit="createTeam(event)" class="space-y-3">
+                <input id="team-name" required class="w-full p-3 border rounded-lg" placeholder="Team name">
+                <select id="team-head" required class="w-full p-3 border rounded-lg"><option value="">Select Head Agent</option></select>
+                <textarea id="team-description" class="w-full p-3 border rounded-lg" placeholder="Team description"></textarea>
+                <button class="w-full bg-violet-600 text-white p-3 rounded-lg font-bold">Create Team</button>
+            </form>
+        </div>
+        <div class="bg-white rounded-xl shadow border p-5">
+            <h3 class="font-black text-gray-800 mb-4">Team Performance</h3>
+            <div id="team-performance-list" class="space-y-3"></div>
+        </div>
+    </div>
+    <div class="bg-white rounded-xl shadow border overflow-x-auto">
+        <table class="w-full text-sm"><thead class="bg-gray-100"><tr>
+            <th class="p-3 text-left">Agent</th><th class="p-3">Head Agent</th><th class="p-3">Team</th><th class="p-3">Action</th>
+        </tr></thead><tbody id="team-agent-table"></tbody></table>
+    </div>
+</div>
+
+<!-- ✉️ ANNOUNCEMENTS SECTION -->
+<div id="section-announcements" class="hidden space-y-5">
+    <div><h2 class="text-xl font-black text-gray-700">Announcements</h2><p class="text-sm text-gray-500">Send from info@mycampuscollective.me to all agents, a team, an individual or every user.</p></div>
+    <div class="bg-white rounded-xl shadow border p-5 max-w-4xl">
+        <form onsubmit="sendAnnouncement(event)" class="space-y-4">
+            <div class="grid md:grid-cols-2 gap-4">
+                <select id="announcement-target" onchange="toggleAnnouncementTarget()" class="p-3 border rounded-lg">
+                    <option value="allAgents">All active agents</option>
+                    <option value="team">A Head Agent team</option>
+                    <option value="individual">One agent</option>
+                    <option value="allUsers">Every user in the system</option>
+                </select>
+                <select id="announcement-team" class="hidden p-3 border rounded-lg"><option value="">Select team</option></select>
+                <select id="announcement-agent" class="hidden p-3 border rounded-lg"><option value="">Select agent</option></select>
+            </div>
+            <input id="announcement-subject" required class="w-full p-3 border rounded-lg" placeholder="Announcement subject">
+            <textarea id="announcement-message" required rows="9" class="w-full p-3 border rounded-lg" placeholder="Write your announcement..."></textarea>
+            <button class="bg-rose-600 text-white px-5 py-3 rounded-lg font-black hover:bg-rose-700"><i class="ri-send-plane-line"></i> Send Announcement</button>
+        </form>
+    </div>
+</div>
+
 <!-- ✅ MARKETPLACE SELLERS SECTION -->
 <div id="section-profiles" class="hidden space-y-4">
 
@@ -287,7 +392,10 @@
 <!-- ✅ STUDENT RECRUITS SECTION -->
 <div id="section-recruits" class="hidden space-y-4">
 
-    <h2 class="text-xl font-black text-gray-700">Student Recruits</h2>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div><h2 class="text-xl font-black text-gray-700">Student Recruits</h2><p class="text-sm text-gray-500">Manage, inspect, assign and contact recruits.</p></div>
+        <div class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-xl font-black">TOTAL: <span id="recruit-total-badge">0</span></div>
+    </div>
 
     <div class="flex flex-wrap gap-3 bg-blue-50 p-4 border border-blue-100 rounded-xl">
         <span class="text-sm font-bold text-blue-800">Season:</span>
@@ -309,7 +417,11 @@
 
         <button onclick="printAccPDF()"
             class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold text-xs hover:bg-blue-700">
-            Print List
+            Print PDF
+        </button>
+        <button onclick="downloadAccommodationWord()"
+            class="bg-green-600 text-white px-4 py-1.5 rounded-lg font-bold text-xs hover:bg-green-700">
+            Word List
         </button>
 
         <button onclick="printAccommodationStatement()"
@@ -554,6 +666,9 @@
     function switchTab(tab) {
     const sections = [
         "agents",
+        "performance",
+        "teams",
+        "announcements",
         "profiles",
         "recruits",
         "escrow",
@@ -578,6 +693,15 @@
     // Trigger data fetches
     if (tab === "agents" || tab === "profiles") {
         fetchProfiles();
+    }
+    if (tab === "performance") {
+        fetchProfiles(); loadAgentPerformance();
+    }
+    if (tab === "teams") {
+        loadTeams();
+    }
+    if (tab === "announcements") {
+        loadTeams();
     }
     if (tab === "recruits") {
         fetchRecruits();
@@ -856,6 +980,10 @@ async function fetchSeasons() {
 
             if (data) {
                 allRecruits = data.recruits || [];
+                const recruitStat = document.getElementById('stat-recruits');
+                if (recruitStat) recruitStat.innerText = allRecruits.length;
+                const recruitBadge = document.getElementById('recruit-total-badge');
+                if (recruitBadge) recruitBadge.innerText = allRecruits.length;
 
                 const accFilter = document.getElementById('acc-filter');
                 if (accFilter) {
@@ -991,71 +1119,37 @@ function renderAllUsers(users) {
 function renderRecruits(data) {
     const tbody = document.getElementById('recruit-table-body');
     if (!tbody) return;
-
-    tbody.innerHTML = data.map(r => `
-        <tr class="border-b hover:bg-gray-50 transition">
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+    tbody.innerHTML = data.map((r, index) => {
+        const agent = r.agent?.fullName || allUsers.find(u => u._id === (r.agent?._id || r.agent))?.fullName || 'Direct / Unassigned';
+        const status = r.status || 'Pending';
+        const phone = (r.studentPhone || '').replace(/\D/g, '');
+        const wa = phone ? `https://wa.me/${phone.startsWith('27') ? phone : '27' + phone.replace(/^0/, '')}` : '#';
+        return `
+        <tr class="border-b hover:bg-blue-50/50 transition">
             <td class="p-3">
-                <div class="font-bold text-gray-800">
-                    ${r.studentName || 'N/A'} ${r.studentSurname || ''}
-                </div>
-                <div class="text-[10px] text-gray-400 uppercase font-black">
-                    ${r.studentEmail || r.email || 'UNDEFINED'}
-                </div>
+                <div class="flex gap-2 items-start"><span class="text-xs font-black text-gray-400">${index + 1}</span>
+                <div><div class="font-bold text-gray-800">${esc(r.studentName)} ${esc(r.studentSurname)}</div>
+                <div class="text-[10px] text-gray-400 uppercase font-black">${esc(r.studentEmail || 'UNDEFINED')}</div></div></div>
             </td>
-            <td class="p-3 text-xs font-mono text-gray-600">
-                ${r.studentPhone || r.phone || 'N/A'}
-            </td>
-            <td class="p-3">
-                <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-black uppercase">
-                    ${r.accommodation || 'Not Assigned'}
-                </span>
-            </td>
-
-         <td class="p-3">
-             <div class="text-xs font-bold text-gray-700">
-             ${
-              r.agent?.fullName ||
-              allUsers.find(u => u._id === (r.agent?._id || r.agent))?.fullName ||
-            'Direct'
-             }
-            </div>
-            <div class="text-[10px] text-gray-400 italic">
-             ${r.agentId || (r.agent?.agentId) || ''}
-           </div>
-          </td>
-
-          <td class="p-3">
-             <div class="text-xs font-bold text-gray-600">
-             ${r.referencedByName || '-'}
-            </div>
-          </td>
-            <td class="p-3 text-xs text-gray-500">
-                ${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'N/A'}
-            </td>
-            <td class="p-3 text-xs font-bold text-orange-600">${r.moveInDate || 'TBD'}</td>
-            <td class="p-3">
-                <span class="px-2 py-1 rounded-full text-[10px] font-black uppercase 
-                    ${r.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">
-                    ${r.status || 'pending'}
-                </span>
-            </td>
-            <td class="p-3">
-                <div class="flex gap-2">
-                    <button onclick="approveRecruit('${r._id}')" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Download Docs">
-                        <i class="ri-file-download-line"></i>
-                    </button>
-                    ${r.status !== 'approved' ? `
-                        <button onclick="approveRecruit('${r._id}')" class="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100" title="Approve">
-                            <i class="ri-check-double-line"></i>
-                        </button>
-                    ` : ''}
-                    <button onclick="deleteRecruit('${r._id}')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
-                        <i class="ri-delete-bin-line"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
+            <td class="p-3 text-xs font-mono text-gray-600">${esc(r.studentPhone || 'N/A')}</td>
+            <td class="p-3"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-black uppercase">${esc(r.accommodation || 'Not Assigned')}</span></td>
+            <td class="p-3"><div class="text-xs font-bold text-gray-700">${esc(agent)}</div><div class="text-[10px] text-gray-400 italic">${esc(r.agentId || r.agent?.agentId || '')}</div></td>
+            <td class="p-3 text-xs font-bold text-gray-600">${esc(r.referencedByName || '-')}</td>
+            <td class="p-3 text-xs text-gray-500">${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'N/A'}</td>
+            <td class="p-3 text-xs font-bold text-orange-600">${r.moveInDate ? new Date(r.moveInDate).toLocaleDateString() : 'TBD'}</td>
+            <td class="p-3"><span class="px-2 py-1 rounded-full text-[10px] font-black uppercase ${status === 'Approved' ? 'bg-green-100 text-green-700' : status === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}">${esc(status)}</span></td>
+            <td class="p-3"><div class="flex gap-1 flex-wrap">
+                <button onclick="openRecruitInfo('${r._id}')" class="p-2 bg-slate-100 text-slate-700 rounded-lg" title="View full information"><i class="ri-information-line"></i></button>
+                <button onclick="openAssignRecruit('${r._id}')" class="p-2 bg-blue-50 text-blue-600 rounded-lg" title="Assign agent"><i class="ri-user-add-line"></i></button>
+                <a href="${wa}" target="_blank" rel="noopener" class="p-2 bg-green-50 text-green-600 rounded-lg ${phone ? '' : 'pointer-events-none opacity-40'}" title="WhatsApp"><i class="ri-whatsapp-line"></i></a>
+                <a href="mailto:${esc(r.studentEmail || '')}" class="p-2 bg-purple-50 text-purple-600 rounded-lg" title="Email"><i class="ri-mail-line"></i></a>
+                <button onclick="downloadDocuments('${r._id}')" class="p-2 bg-indigo-50 text-indigo-600 rounded-lg" title="Documents"><i class="ri-file-download-line"></i></button>
+                ${status !== 'Approved' ? `<button onclick="approveRecruit('${r._id}')" class="p-2 bg-emerald-50 text-emerald-600 rounded-lg" title="Approve"><i class="ri-check-double-line"></i></button>` : ''}
+                <button onclick="deleteRecruit('${r._id}')" class="p-2 bg-red-50 text-red-600 rounded-lg" title="Delete"><i class="ri-delete-bin-line"></i></button>
+            </div></td>
+        </tr>`;
+    }).join('');
 }
 
 
@@ -1993,7 +2087,143 @@ function renderSeasons(seasons) {
 // ------------------------------------------------------------
 // 14. LOGOUT
 // ------------------------------------------------------------
-async function logout() {
+async 
+async function loadAgentPerformance() {
+    const res = await fetch(`${API_BASE_URL}/agent-performance`, { headers: { 'Authorization': `Bearer ${token}` }});
+    if (!res.ok) return;
+    const data = await res.json();
+    const rows = data.agents || [];
+    const chart = document.getElementById('performance-chart');
+    const max = Math.max(...rows.map(x => x.total), 1);
+    chart.innerHTML = `<div class="flex items-center justify-between mb-4"><h3 class="font-black text-gray-800">Recruitment Leaderboard</h3><span class="text-xs text-gray-400">Highest → lowest</span></div>
+    <div class="space-y-3">${rows.slice(0, 10).map((x,i) => `<div><div class="flex justify-between text-xs font-bold mb-1"><span>#${i+1} ${escapeClient(x.agent.fullName)}</span><span>${x.total}</span></div><div class="h-3 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-indigo-600 rounded-full" style="width:${Math.max(3, x.total/max*100)}%"></div></div></div>`).join('') || '<p class="text-gray-400">No agent data yet.</p>'}</div>`;
+    document.getElementById('performance-table-body').innerHTML = rows.map((x,i) => `
+      <tr class="border-b"><td class="p-3"><b>#${i+1} ${escapeClient(x.agent.fullName)}</b><div class="text-xs text-gray-400">${escapeClient(x.agent.agentId || '')}</div></td>
+      <td class="p-3 text-center font-black">${x.total}</td><td class="p-3 text-center text-green-600 font-bold">${x.approved}</td><td class="p-3 text-center text-amber-600">${x.pending}</td>
+      <td class="p-3 text-center">${x.conversionRate}%</td><td class="p-3 text-center font-bold">R ${Number(x.commission).toFixed(2)}</td>
+      <td class="p-3 text-center"><button onclick="toggleHeadAgent('${x.agent._id}', ${!x.agent.isHeadAgent})" class="px-3 py-1 rounded-lg text-xs font-bold ${x.agent.isHeadAgent ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-700'}">${x.agent.isHeadAgent ? 'HEAD AGENT' : 'Make Head'}</button></td></tr>`).join('');
+}
+
+function escapeClient(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+
+async function toggleHeadAgent(id, value) {
+    const res = await fetch(`${API_BASE_URL}/agents/${id}/leadership`, {
+        method:'PATCH', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+        body:JSON.stringify({isHeadAgent:value})
+    });
+    if (!res.ok) return alert((await res.json()).message || 'Could not update leadership');
+    await loadAgentPerformance(); await loadTeams();
+}
+
+async function runReferralReconciliation() {
+    if (!confirm('Scan unmatched referral names and automatically assign only high-confidence matches?')) return;
+    const res = await fetch(`${API_BASE_URL}/referrals/reconcile`, {method:'POST',headers:{'Authorization':`Bearer ${token}`}});
+    const data = await res.json();
+    if (!res.ok) return alert(data.message || 'Matching failed');
+    const box = document.getElementById('referral-match-summary');
+    box.classList.remove('hidden');
+    box.innerHTML = `<b>Referral scan complete:</b> ${data.scanned} scanned · ${data.matched.length} matched · ${data.ambiguous.length} ambiguous · ${data.unmatched.length} unmatched.`;
+    fetchRecruits();
+    loadAgentPerformance();
+}
+
+async function openRecruitInfo(id) {
+    const res = await fetch(`${API_BASE_URL}/recruits/${id}/details`, {headers:{'Authorization':`Bearer ${token}`}});
+    const data = await res.json();
+    if (!res.ok) return alert(data.message || 'Unable to load recruit');
+    const r=data.recruit, st=data.student || {};
+    document.getElementById('recruit-info-content').innerHTML = `
+      <div class="grid md:grid-cols-2 gap-3">
+        ${[['Full Name',`${r.studentName||''} ${r.studentSurname||''}`],['Email',r.studentEmail],['Phone',r.studentPhone],['Accommodation',r.accommodation],['Move-in Date',r.moveInDate ? new Date(r.moveInDate).toLocaleDateString():'N/A'],['Status',r.status],['Institution',r.institution || st.institution || 'N/A'],['Funding',r.funding || st.funding || 'Not recorded'],['Bursary',r.bursaryName || st.bursaryName || 'N/A'],['Student Number',st.studentNumber || 'N/A'],['Assigned Agent',r.agent?.fullName || 'Unassigned'],['Referenced By',r.referencedByName || 'N/A'],['Season',r.season?.name || r.seasonName || 'N/A'],['Commission',`R ${Number(r.commissionEarned||0).toFixed(2)}`]].map(([k,v])=>`<div class="p-3 bg-gray-50 rounded-xl"><div class="text-[10px] uppercase font-black text-gray-400">${escapeClient(k)}</div><div class="font-bold text-gray-800 mt-1">${escapeClient(v)}</div></div>`).join('')}
+      </div>
+      <div class="flex gap-2 mt-5">
+        <a href="mailto:${encodeURIComponent(r.studentEmail||'')}" class="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold"><i class="ri-mail-line"></i> Email</a>
+        ${r.studentPhone ? `<a target="_blank" href="https://wa.me/${String(r.studentPhone).replace(/\D/g,'').replace(/^0/,'27')}" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold"><i class="ri-whatsapp-line"></i> WhatsApp</a>` : ''}
+      </div>`;
+    const modal=document.getElementById('recruit-info-modal'); modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+
+function closeRecruitModal(){ const m=document.getElementById('recruit-info-modal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+let assignRecruitId = null;
+let assignAgents = [];
+function openAssignRecruit(id) {
+    assignRecruitId=id;
+    assignAgents=allUsers.filter(u=>u.role==='Agent');
+    renderAssignAgents(assignAgents);
+    const current=allRecruits.find(r=>r._id===id);
+    const currentId=current?.agent?._id || current?.agent;
+    const sel=document.getElementById('assign-agent-select');
+    setTimeout(()=>{ if(currentId) sel.value=currentId; },0);
+    document.getElementById('assign-search').value='';
+    const m=document.getElementById('assign-recruit-modal'); m.classList.remove('hidden'); m.classList.add('flex');
+}
+function renderAssignAgents(list){
+    document.getElementById('assign-agent-select').innerHTML=`<option value="">Unassigned</option>`+list.map(a=>`<option value="${a._id}">${escapeClient(a.fullName)} — ${escapeClient(a.agentId||a.email||'')}</option>`).join('');
+}
+function filterAssignAgents(){
+    const q=document.getElementById('assign-search').value.toLowerCase();
+    renderAssignAgents(assignAgents.filter(a=>(a.fullName||'').toLowerCase().includes(q)||(a.agentId||'').toLowerCase().includes(q)||(a.email||'').toLowerCase().includes(q)));
+}
+async function saveRecruitAssignment(){
+    const agentId=document.getElementById('assign-agent-select').value;
+    const res=await fetch(`${API_BASE_URL}/recruits/${assignRecruitId}/assign-agent`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({agentId:agentId||null})});
+    const data=await res.json(); if(!res.ok)return alert(data.message||'Assignment failed');
+    closeAssignModal(); fetchRecruits(); loadAgentPerformance();
+}
+function closeAssignModal(){const m=document.getElementById('assign-recruit-modal');m.classList.add('hidden');m.classList.remove('flex');}
+
+async function loadTeams(){
+    const res=await fetch(`${API_BASE_URL}/teams`,{headers:{'Authorization':`Bearer ${token}`}});
+    if(!res.ok)return;
+    const data=await res.json(), teams=data.teams||[], agents=data.agents||[];
+    const heads=agents.filter(a=>a.isHeadAgent);
+    document.getElementById('team-head').innerHTML='<option value="">Select Head Agent</option>'+heads.map(a=>`<option value="${a._id}">${escapeClient(a.fullName)}</option>`).join('');
+    document.getElementById('announcement-team').innerHTML='<option value="">Select team</option>'+teams.map(t=>`<option value="${t._id}">${escapeClient(t.name)}</option>`).join('');
+    document.getElementById('announcement-agent').innerHTML='<option value="">Select agent</option>'+agents.map(a=>`<option value="${a._id}">${escapeClient(a.fullName)} — ${escapeClient(a.agentId||'')}</option>`).join('');
+    document.getElementById('team-agent-table').innerHTML=agents.map(a=>`<tr class="border-b"><td class="p-3 font-bold">${escapeClient(a.fullName)}</td><td class="p-3">${escapeClient(a.headAgent?.fullName||'—')}</td><td class="p-3">${escapeClient(a.team?.name||'—')}</td><td class="p-3"><select onchange="assignAgentTeam('${a._id}',this.value)" class="p-2 border rounded-lg text-xs"><option value="">Remove team</option>${teams.map(t=>`<option value="${t._id}" ${String(a.team?._id||a.team)===String(t._id)?'selected':''}>${escapeClient(t.name)}</option>`).join('')}</select></td></tr>`).join('');
+    const perf=await fetch(`${API_BASE_URL}/teams/performance`,{headers:{'Authorization':`Bearer ${token}`}}).then(r=>r.json());
+    document.getElementById('team-performance-list').innerHTML=(perf||[]).map(t=>`<div class="p-4 border rounded-xl bg-slate-50"><div class="flex justify-between"><b>${escapeClient(t.team.name)}</b><b>${t.recruitCount} recruits</b></div><div class="text-xs text-gray-500 mt-1">${t.memberCount} members · ${t.approved} approved · ${t.conversionRate}% conversion · R ${Number(t.commission).toFixed(2)}</div></div>`).join('')||'<p class="text-gray-400">No teams yet.</p>';
+}
+async function createTeam(e){
+    e.preventDefault();
+    const res=await fetch(`${API_BASE_URL}/teams`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({name:document.getElementById('team-name').value,headAgent:document.getElementById('team-head').value,description:document.getElementById('team-description').value})});
+    const data=await res.json(); if(!res.ok)return alert(data.message||'Could not create team');
+    e.target.reset(); loadTeams();
+}
+async function assignAgentTeam(agentId,teamId){
+    const res=await fetch(`${API_BASE_URL}/agents/${agentId}/team`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({teamId})});
+    const data=await res.json(); if(!res.ok)alert(data.message||'Could not assign agent'); else loadTeams();
+}
+function toggleAnnouncementTarget(){
+    const t=document.getElementById('announcement-target').value;
+    document.getElementById('announcement-team').classList.toggle('hidden',t!=='team');
+    document.getElementById('announcement-agent').classList.toggle('hidden',t!=='individual');
+}
+async function sendAnnouncement(e){
+    e.preventDefault();
+    const target=document.getElementById('announcement-target').value;
+    const body={target,subject:document.getElementById('announcement-subject').value,message:document.getElementById('announcement-message').value};
+    if(target==='team')body.teamId=document.getElementById('announcement-team').value;
+    if(target==='individual')body.agentId=document.getElementById('announcement-agent').value;
+    const res=await fetch(`${API_BASE_URL}/announcements`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)});
+    const data=await res.json(); if(!res.ok)return alert(data.message||'Announcement failed');
+    alert(data.message); e.target.reset(); toggleAnnouncementTarget();
+}
+function downloadWordFile(filename, title, rows){
+    const html=`<html><head><meta charset="utf-8"><title>${title}</title></head><body><h1>Campus Collective</h1><h2>${title}</h2><p>Generated: ${new Date().toLocaleString()}</p><table border="1" cellspacing="0" cellpadding="6"><tr><th>#</th><th>Student</th><th>Phone</th><th>Accommodation</th><th>Agent</th><th>Status</th><th>Date</th></tr>${rows.map((r,i)=>`<tr><td>${i+1}</td>${r.map(x=>`<td>${escapeClient(x)}</td>`).join('')}</tr>`).join('')}</table><p><b>Total: ${rows.length}</b></p></body></html>`;
+    const blob=new Blob(['\ufeff',html],{type:'application/msword'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function downloadAccommodationWord(){
+    const selected=document.getElementById('acc-filter').value;
+    if(!selected)return alert('Please select an accommodation first.');
+    const rows=allRecruits.filter(r=>r.accommodation===selected).map(r=>[`${r.studentName||''} ${r.studentSurname||''}`,r.studentPhone||'N/A',r.accommodation||'',r.agent?.fullName||allUsers.find(u=>u._id===(r.agent?._id||r.agent))?.fullName||'Direct/System',r.status||'Pending',r.createdAt?new Date(r.createdAt).toLocaleDateString():'']);
+    downloadWordFile(`${selected.replace(/\s+/g,'_')}_Recruit_List.doc`,`${selected} Recruit List`,rows);
+}
+function logout() {
     localStorage.clear();
     window.location.href = 'Admin.html';
 }
@@ -2014,10 +2244,39 @@ window.onload = async () => {
         ]);
 
         resetTimer();
+        // Keep referral assignments fresh while the admin command centre is open.
+        setInterval(async () => {
+            try {
+                await fetch(`${API_BASE_URL}/referrals/reconcile`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch (e) {
+                console.debug('Background referral reconciliation skipped:', e.message);
+            }
+        }, 10 * 60 * 1000);
     }
 };
 </script>
 
+
+<!-- Recruit information modal -->
+<div id="recruit-info-modal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center p-4">
+  <div class="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6">
+    <div class="flex justify-between items-center mb-5"><h3 class="text-xl font-black">Recruit Information</h3><button onclick="closeRecruitModal()" class="text-2xl">&times;</button></div>
+    <div id="recruit-info-content"></div>
+  </div>
+</div>
+
+<!-- Recruit assignment modal -->
+<div id="assign-recruit-modal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center p-4">
+  <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6">
+    <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-black">Assign Recruit</h3><button onclick="closeAssignModal()" class="text-2xl">&times;</button></div>
+    <input id="assign-search" oninput="filterAssignAgents()" class="w-full p-3 border rounded-lg mb-3" placeholder="Search agent by name, ID or email">
+    <select id="assign-agent-select" size="7" class="w-full p-3 border rounded-lg"></select>
+    <button onclick="saveRecruitAssignment()" class="w-full mt-4 bg-blue-600 text-white p-3 rounded-lg font-black">Save Assignment</button>
+  </div>
+</div>
 </body>
 </html>
 
