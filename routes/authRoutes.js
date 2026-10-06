@@ -839,16 +839,15 @@ router.post('/reset-password', async (req, res) => {
 
 router.post('/submit-recruit', auth, async (req, res) => {
     try {
-        console.log("Payload received:", req.body); // Check this in your logs!
+        console.log("Payload received:", req.body);
 
-        const { 
-            studentName, 
-            studentSurname, 
-            studentEmail, 
-            studentPhone, 
-            accommodation, 
-            moveInDate 
+        const {
+            studentName, studentSurname, studentEmail, studentPhone, gender, studentNumber,
+            accommodation, moveInDate, funding, bursaryName
         } = req.body;
+        const Season = require('../models/Season');
+        const activeSeason = await Season.findOne({ isActive: true });
+        if (!activeSeason) return res.status(400).json({ message: 'No active recruitment season. Contact admin.' });
 
         // Validation check before attempting to save to Mongoose
         if (!studentPhone) {
@@ -862,9 +861,15 @@ router.post('/submit-recruit', auth, async (req, res) => {
             studentSurname,
             studentEmail,
             studentPhone,
+            gender: gender || '',
+            studentNumber: studentNumber || '',
             accommodation,
+            funding: funding || '',
+            bursaryName: bursaryName || '',
             institution: req.user.institution || 'Other',
             moveInDate,
+            season: activeSeason._id,
+            seasonName: activeSeason.name,
             status: 'Pending'
         });
 
@@ -1549,9 +1554,14 @@ router.post('/apply-for-accommodation', async (req, res) => {
             studentSurname,
             studentEmail,
             studentPhone,
+            gender,
+            studentNumber,
+            institution,
             accommodation,
             moveInDate,
-            referencedBy
+            referencedBy,
+            funding,
+            bursaryName
         } = req.body;
 
         // Validate required fields
@@ -1591,6 +1601,9 @@ router.post('/apply-for-accommodation', async (req, res) => {
             studentSurname: studentSurname.trim(),
             studentEmail: studentEmail.toLowerCase(),
             studentPhone: studentPhone.trim(),
+            gender: gender || '',
+            studentNumber: studentNumber || '',
+            institution: institution || 'Other',
             accommodation: accommodation.trim(),
             moveInDate: new Date(moveInDate),
             agent: linkedAgent,
@@ -1599,8 +1612,8 @@ router.post('/apply-for-accommodation', async (req, res) => {
             seasonName: activeSeason.name,
             referencedByName: referencedBy ? referencedBy.trim() : '',
             referencedByAgentId: referencedByAgentId,
-            funding: req.body.funding || '',
-            bursaryName: req.body.bursaryName || '',
+            funding: funding || '',
+            bursaryName: bursaryName || '',
             status: 'Pending',
             commissionEarned: 0,
             commissionRate: 150

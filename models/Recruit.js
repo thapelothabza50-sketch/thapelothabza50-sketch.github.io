@@ -50,6 +50,16 @@ const RecruitSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    gender: {
+        type: String,
+        default: '',
+        trim: true
+    },
+    studentNumber: {
+        type: String,
+        default: '',
+        trim: true
+    },
     accommodation: {
         type: String,
         required: true
@@ -58,6 +68,16 @@ const RecruitSchema = new mongoose.Schema({
         type: String,
         enum: ['UMP', 'TUT', 'VUT', 'Other'],
         default: 'Other',
+        trim: true
+    },
+    funding: {
+        type: String,
+        default: '',
+        trim: true
+    },
+    bursaryName: {
+        type: String,
+        default: '',
         trim: true
     },
     moveInDate: {

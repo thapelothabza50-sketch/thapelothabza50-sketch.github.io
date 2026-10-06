@@ -43,6 +43,21 @@ const AgentSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    // Leadership / team hierarchy used by the admin command centre
+    isHeadAgent: {
+        type: Boolean,
+        default: false,
+    },
+    headAgent: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Agent',
+        default: null,
+    },
+    team: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Team',
+        default: null,
+    },
     balance: {
         type: Number,
         default: 0,
