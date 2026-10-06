@@ -15,6 +15,75 @@ require('dotenv').config();
 
 const { auth, hasRole } = require('../middleware/auth'); 
 const multer = require('multer');
+
+// --------------------------------------------------------------------------
+// Referral matching helpers: typo-tolerant first/last-name matching
+// --------------------------------------------------------------------------
+const normaliseReferralName = (value = '') => String(value)
+    .toLowerCase().normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+
+const referralDistance = (a, b) => {
+    a = normaliseReferralName(a); b = normaliseReferralName(b);
+    const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 0; i < a.length; i++) {
+        const cur = [i + 1];
+        for (let j = 0; j < b.length; j++) {
+            cur[j + 1] = Math.min(
+                cur[j] + 1,
+                prev[j + 1] + 1,
+                prev[j] + (a[i] === b[j] ? 0 : 1)
+            );
+        }
+        for (let j = 0; j < cur.length; j++) prev[j] = cur[j];
+    }
+    return prev[b.length];
+};
+
+const referralSimilarity = (input, fullName) => {
+    const a = normaliseReferralName(input);
+    const b = normaliseReferralName(fullName);
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    const at = a.split(' ');
+    const bt = b.split(' ');
+    const tokenScores = at.map(token => Math.max(...bt.map(x =>
+        1 - referralDistance(token, x) / Math.max(token.length, x.length, 1)
+    )));
+    const tokenScore = tokenScores.reduce((s, x) => s + x, 0) / tokenScores.length;
+    const wholeScore = 1 - referralDistance(a, b) / Math.max(a.length, b.length, 1);
+    return tokenScore * 0.65 + wholeScore * 0.35;
+};
+
+const findReferralAgent = async (reference) => {
+    const cleaned = String(reference || '').trim();
+    if (!cleaned) return { agent: null, score: 0, ambiguous: false, candidates: [] };
+
+    const agents = await Agent.find({ role: 'Agent', status: 'active' })
+        .select('_id fullName agentId email');
+
+    const direct = agents.find(a =>
+        cleaned.toLowerCase() === String(a.agentId || '').toLowerCase() ||
+        cleaned.toLowerCase() === String(a.email || '').toLowerCase()
+    );
+    if (direct) return { agent: direct, score: 1, ambiguous: false, candidates: [direct] };
+
+    const ranked = agents.map(agent => ({
+        agent,
+        score: referralSimilarity(cleaned, agent.fullName)
+    })).sort((a, b) => b.score - a.score);
+
+    const top = ranked[0];
+    const second = ranked[1];
+    if (!top || top.score < 0.72) return { agent: null, score: top?.score || 0, ambiguous: false, candidates: ranked.slice(0, 3) };
+    if (top.score < 0.84 && second && top.score - second.score < 0.08) {
+        return { agent: null, score: top.score, ambiguous: true, candidates: ranked.slice(0, 3) };
+    }
+    return { agent: top.agent, score: top.score, ambiguous: false, candidates: ranked.slice(0, 3) };
+};
+
 const fs = require('fs');
 const Signature = require('../models/Signature');
 
@@ -1505,23 +1574,15 @@ router.post('/apply-for-accommodation', async (req, res) => {
         let linkedAgent = null;
         let referencedByAgentId = null;
 
-        // If agent reference provided, try to find matching agent
+        // Typo-tolerant referral matching. Low-confidence/ambiguous references
+        // remain unassigned for admin review rather than being guessed.
+        let referralMatch = null;
         if (referencedBy && referencedBy.trim()) {
-            const cleanedReference = referencedBy.trim();
-            const regex = new RegExp(cleanedReference, 'i');
-            const agent = await Agent.findOne({
-                $or: [
-                    { fullName: regex },
-                    { agentId: cleanedReference },
-                    { email: cleanedReference.toLowerCase() }
-                ]
-            });
-
-            if (agent) {
-                linkedAgent = agent._id;
-                referencedByAgentId = agent._id;
+            referralMatch = await findReferralAgent(referencedBy.trim());
+            if (referralMatch.agent) {
+                linkedAgent = referralMatch.agent._id;
+                referencedByAgentId = referralMatch.agent._id;
             }
-            // If agent not found, still create recruit but log the reference name
         }
 
         // Create the recruit record
@@ -1538,6 +1599,8 @@ router.post('/apply-for-accommodation', async (req, res) => {
             seasonName: activeSeason.name,
             referencedByName: referencedBy ? referencedBy.trim() : '',
             referencedByAgentId: referencedByAgentId,
+            funding: req.body.funding || '',
+            bursaryName: req.body.bursaryName || '',
             status: 'Pending',
             commissionEarned: 0,
             commissionRate: 150

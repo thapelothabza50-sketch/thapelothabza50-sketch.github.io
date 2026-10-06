@@ -3,6 +3,9 @@ const router = express.Router();
 const { auth, hasRole } = require('../middleware/auth');
 const Seller = require('../models/Seller');
 const Agent = require('../models/Agent');
+const Team = require('../models/Team');
+const Student = require('../models/Student');
+const User = require('../models/User');
 const Recruit = require('../models/Recruit');
 const nodemailer = require('nodemailer');
 const Season = require('../models/Season');
@@ -856,6 +859,371 @@ router.get('/uploads', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, 
     } catch (err) {
         console.error('Fetch Uploads Error:', err.message);
         res.status(500).json({ message: 'Error fetching uploads' });
+    }
+});
+
+
+// ========================================================================
+// AGENT PERFORMANCE / RECRUIT COMMAND CENTRE
+// ========================================================================
+
+const escapeHtml = (value = '') => String(value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
+const normaliseName = (value = '') =>
+    String(value).toLowerCase().normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ').trim();
+
+const levenshtein = (a, b) => {
+    a = normaliseName(a); b = normaliseName(b);
+    if (!a) return b.length;
+    if (!b) return a.length;
+    const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 0; i < a.length; i++) {
+        let cur = [i + 1];
+        for (let j = 0; j < b.length; j++) {
+            cur[j + 1] = Math.min(
+                cur[j] + 1,
+                prev[j + 1] + 1,
+                prev[j] + (a[i] === b[j] ? 0 : 1)
+            );
+        }
+        for (let j = 0; j < cur.length; j++) prev[j] = cur[j];
+    }
+    return prev[b.length];
+};
+
+const nameSimilarity = (input, agentName) => {
+    const a = normaliseName(input);
+    const b = normaliseName(agentName);
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    const at = a.split(' ');
+    const bt = b.split(' ');
+    const tokenScores = at.map(token => {
+        if (!token) return 0;
+        return Math.max(...bt.map(x => {
+            const d = levenshtein(token, x);
+            return 1 - d / Math.max(token.length, x.length, 1);
+        }));
+    });
+    const tokenAvg = tokenScores.reduce((x, y) => x + y, 0) / tokenScores.length;
+    const whole = 1 - levenshtein(a, b) / Math.max(a.length, b.length);
+    const firstLastBoost = at.length >= 2 && bt.length >= 2
+        ? (Math.max(
+            1 - levenshtein(at[0], bt[0]) / Math.max(at[0].length, bt[0].length, 1),
+            1 - levenshtein(at.at(-1), bt.at(-1)) / Math.max(at.at(-1).length, bt.at(-1).length, 1)
+        ) * 0.15) : 0;
+    return Math.min(1, tokenAvg * 0.55 + whole * 0.30 + firstLastBoost);
+};
+
+router.get('/agent-performance', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
+    try {
+        const agents = await Agent.find({ role: 'Agent' })
+            .select('-password').populate('team', 'name').populate('headAgent', 'fullName');
+        const recruits = await Recruit.find().select('agent referencedByAgentId status commissionEarned createdAt');
+        const rows = agents.map(agent => {
+            const mine = recruits.filter(r => {
+                const ids = [r.agent, r.referencedByAgentId].filter(Boolean).map(String);
+                return ids.includes(String(agent._id));
+            });
+            const approved = mine.filter(r => r.status === 'Approved').length;
+            const pending = mine.filter(r => r.status === 'Pending').length;
+            const cancelled = mine.filter(r => r.status === 'Cancelled').length;
+            return {
+                agent: agent,
+                total: mine.length,
+                approved,
+                pending,
+                cancelled,
+                conversionRate: mine.length ? Math.round((approved / mine.length) * 1000) / 10 : 0,
+                commission: mine.reduce((sum, r) => sum + (Number(r.commissionEarned) || 0), 0)
+            };
+        }).sort((a, b) => b.total - a.total || b.approved - a.approved);
+        res.json({ agents: rows });
+    } catch (err) {
+        console.error('Agent performance error:', err);
+        res.status(500).json({ message: 'Unable to calculate agent performance' });
+    }
+});
+
+router.get('/recruits/:id/details', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
+    try {
+        const recruit = await Recruit.findById(req.params.id)
+            .populate('agent', 'fullName email phone agentId role isHeadAgent')
+            .populate('referencedByAgentId', 'fullName email phone agentId')
+            .populate('season', 'name semester year');
+        if (!recruit) return res.status(404).json({ message: 'Recruit not found' });
+        const student = await Student.findOne({
+            $or: [
+                { email: recruit.studentEmail },
+                { phone: recruit.studentPhone }
+            ]
+        }).sort({ createdAt: -1 });
+        res.json({ recruit, student });
+    } catch (err) {
+        console.error('Recruit details error:', err);
+        res.status(500).json({ message: 'Unable to load recruit details' });
+    }
+});
+
+router.put('/recruits/:id/assign-agent', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const { agentId } = req.body;
+        const recruit = await Recruit.findById(req.params.id);
+        if (!recruit) return res.status(404).json({ message: 'Recruit not found' });
+        const agent = agentId ? await Agent.findOne({ _id: agentId, role: 'Agent' }) : null;
+        if (agentId && !agent) return res.status(404).json({ message: 'Agent not found' });
+
+        recruit.agent = agent ? agent._id : null;
+        recruit.agentId = agent ? agent.agentId : '';
+        if (agent) {
+            recruit.referencedByAgentId = agent._id;
+            recruit.referencedByName = recruit.referencedByName || agent.fullName;
+        }
+        await recruit.save();
+        res.json({ message: agent ? `Recruit assigned to ${agent.fullName}` : 'Recruit unassigned', recruit });
+    } catch (err) {
+        console.error('Assign recruit error:', err);
+        res.status(500).json({ message: 'Unable to assign recruit' });
+    }
+});
+
+router.post('/referrals/reconcile', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const agents = await Agent.find({ role: 'Agent', status: 'active' }).select('_id fullName agentId email');
+        const recruits = await Recruit.find({
+            $or: [
+                { referencedByAgentId: null },
+                { referencedByAgentId: { $exists: false } },
+                { referencedByAgentId: '' }
+            ],
+            referencedByName: { $nin: ['', null] }
+        });
+
+        const matched = [], ambiguous = [], unmatched = [];
+        for (const recruit of recruits) {
+            const input = recruit.referencedByName;
+            const ranked = agents.map(agent => ({
+                agent,
+                score: nameSimilarity(input, agent.fullName),
+                exactId: normaliseName(input) === normaliseName(agent.agentId),
+                exactEmail: normaliseName(input) === normaliseName(agent.email)
+            })).sort((a, b) =>
+                (b.exactId || b.exactEmail ? 1 : 0) - (a.exactId || a.exactEmail ? 1 : 0) ||
+                b.score - a.score
+            );
+            const top = ranked[0];
+            const second = ranked[1];
+            if (!top || top.score < 0.72) {
+                unmatched.push({ recruitId: recruit._id, referencedByName: input, score: top?.score || 0 });
+                continue;
+            }
+            if (top.score < 0.84 && second && (top.score - second.score) < 0.08) {
+                ambiguous.push({
+                    recruitId: recruit._id, referencedByName: input,
+                    candidates: ranked.slice(0, 3).map(x => ({ agent: x.agent, score: Math.round(x.score * 100) / 100 }))
+                });
+                continue;
+            }
+            recruit.referencedByAgentId = top.agent._id;
+            if (!recruit.agent) {
+                recruit.agent = top.agent._id;
+                recruit.agentId = top.agent.agentId || '';
+            }
+            await recruit.save();
+            matched.push({
+                recruitId: recruit._id,
+                referencedByName: input,
+                matchedAgent: top.agent.fullName,
+                score: Math.round(top.score * 100) / 100
+            });
+        }
+        res.json({ scanned: recruits.length, matched, ambiguous, unmatched });
+    } catch (err) {
+        console.error('Referral reconciliation error:', err);
+        res.status(500).json({ message: 'Referral reconciliation failed' });
+    }
+});
+
+router.patch('/agents/:id/leadership', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const { isHeadAgent } = req.body;
+        const agent = await Agent.findById(req.params.id);
+        if (!agent || agent.role !== 'Agent') return res.status(404).json({ message: 'Agent not found' });
+        agent.isHeadAgent = Boolean(isHeadAgent);
+        if (!agent.isHeadAgent) agent.headAgent = null;
+        await agent.save();
+        res.json({ message: agent.isHeadAgent ? 'Agent promoted to Head Agent' : 'Head Agent status removed', agent });
+    } catch (err) {
+        res.status(500).json({ message: 'Unable to update agent leadership' });
+    }
+});
+
+router.get('/teams', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
+    try {
+        const teams = await Team.find().populate('headAgent', 'fullName email agentId').sort({ createdAt: -1 });
+        const agents = await Agent.find({ role: 'Agent' }).select('-password').populate('headAgent', 'fullName').populate('team', 'name');
+        res.json({ teams, agents });
+    } catch (err) {
+        res.status(500).json({ message: 'Unable to load teams' });
+    }
+});
+
+router.post('/teams', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const { name, headAgent, description } = req.body;
+        if (!name || !headAgent) return res.status(400).json({ message: 'Team name and Head Agent are required' });
+        const leader = await Agent.findOne({ _id: headAgent, role: 'Agent', isHeadAgent: true });
+        if (!leader) return res.status(400).json({ message: 'Selected agent must be a Head Agent' });
+        const team = await Team.create({ name, headAgent, description });
+        leader.team = team._id;
+        await leader.save();
+        res.status(201).json({ message: 'Team created', team });
+    } catch (err) {
+        res.status(500).json({ message: 'Unable to create team: ' + err.message });
+    }
+});
+
+router.put('/teams/:id', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const { name, headAgent, description, isActive } = req.body;
+        const team = await Team.findById(req.params.id);
+        if (!team) return res.status(404).json({ message: 'Team not found' });
+        if (headAgent) {
+            const leader = await Agent.findOne({ _id: headAgent, role: 'Agent', isHeadAgent: true });
+            if (!leader) return res.status(400).json({ message: 'Selected agent must be a Head Agent' });
+            team.headAgent = leader._id;
+        }
+        if (name !== undefined) team.name = name;
+        if (description !== undefined) team.description = description;
+        if (isActive !== undefined) team.isActive = Boolean(isActive);
+        await team.save();
+        res.json({ message: 'Team updated', team });
+    } catch (err) {
+        res.status(500).json({ message: 'Unable to update team' });
+    }
+});
+
+router.post('/agents/:id/team', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const { teamId, headAgentId } = req.body;
+        const agent = await Agent.findById(req.params.id);
+        if (!agent || agent.role !== 'Agent') return res.status(404).json({ message: 'Agent not found' });
+
+        if (teamId) {
+            const team = await Team.findById(teamId);
+            if (!team) return res.status(404).json({ message: 'Team not found' });
+            agent.team = team._id;
+            agent.headAgent = team.headAgent;
+        } else if (headAgentId) {
+            const head = await Agent.findOne({ _id: headAgentId, role: 'Agent', isHeadAgent: true });
+            if (!head) return res.status(404).json({ message: 'Head Agent not found' });
+            agent.headAgent = head._id;
+        } else {
+            agent.team = null;
+            agent.headAgent = null;
+        }
+        await agent.save();
+        res.json({ message: 'Agent team assignment updated', agent });
+    } catch (err) {
+        res.status(500).json({ message: 'Unable to assign agent' });
+    }
+});
+
+router.get('/teams/performance', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
+    try {
+        const teams = await Team.find({ isActive: true }).populate('headAgent', 'fullName email agentId');
+        const agents = await Agent.find({ role: 'Agent' }).select('_id fullName team');
+        const recruits = await Recruit.find().select('agent referencedByAgentId status commissionEarned');
+        const data = teams.map(team => {
+            const members = agents.filter(a => String(a.team) === String(team._id));
+            const memberIds = new Set(members.map(a => String(a._id)));
+            const mine = recruits.filter(r => [r.agent, r.referencedByAgentId].filter(Boolean).some(id => memberIds.has(String(id))));
+            const approved = mine.filter(r => r.status === 'Approved').length;
+            return {
+                team,
+                memberCount: members.length,
+                recruitCount: mine.length,
+                approved,
+                pending: mine.filter(r => r.status === 'Pending').length,
+                conversionRate: mine.length ? Math.round(approved / mine.length * 1000) / 10 : 0,
+                commission: mine.reduce((sum, r) => sum + (Number(r.commissionEarned) || 0), 0)
+            };
+        }).sort((a, b) => b.recruitCount - a.recruitCount);
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ message: 'Unable to calculate team performance' });
+    }
+});
+
+router.post('/announcements', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const { target = 'allAgents', teamId, agentId, subject, message } = req.body;
+        if (!subject || !message) return res.status(400).json({ message: 'Subject and message are required' });
+
+        const agents = await Agent.find({ role: 'Agent', status: 'active' }).select('email fullName team');
+        let recipients = [];
+        if (target === 'individual' && agentId) {
+            recipients = agents.filter(a => String(a._id) === String(agentId));
+        } else if (target === 'team' && teamId) {
+            recipients = agents.filter(a => String(a.team) === String(teamId));
+        } else if (target === 'allUsers') {
+            const sellers = await Seller.find({ email: { $exists: true, $ne: '' } }).select('email businessName fullName');
+            const customers = await User.find({ email: { $exists: true, $ne: '' } }).select('email firstName surname');
+            recipients = [...agents, ...sellers, ...customers];
+        } else {
+            recipients = agents;
+        }
+        recipients = [...new Map(recipients.filter(x => x.email).map(x => [x.email.toLowerCase(), x])).values()];
+        if (!recipients.length) return res.status(404).json({ message: 'No recipients found' });
+
+        const transporter = nodemailer.createTransport({
+            host: process.env.EMAIL_HOST,
+            port: Number(process.env.EMAIL_PORT),
+            secure: Number(process.env.EMAIL_PORT) === 465,
+            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+            tls: { rejectUnauthorized: false }
+        });
+        const html = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto;padding:28px;color:#1e293b">
+            <h2 style="color:#2563eb">Campus Collective</h2>
+            <div style="white-space:pre-wrap;line-height:1.7">${escapeHtml(message)}</div>
+            <hr><small>This announcement was sent by Campus Collective Management.</small>
+        </div>`;
+        const results = await Promise.allSettled(recipients.map(r => transporter.sendMail({
+            from: '"Campus Collective" <info@mycampuscollective.me>',
+            to: r.email,
+            subject,
+            html
+        })));
+        const sent = results.filter(r => r.status === 'fulfilled').length;
+        const failed = results.length - sent;
+        res.json({ message: `Announcement processed: ${sent} sent, ${failed} failed`, sent, failed, total: results.length });
+    } catch (err) {
+        console.error('Announcement broadcast error:', err);
+        res.status(500).json({ message: 'Unable to send announcement' });
+    }
+});
+
+router.get('/communication/contacts', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const [agents, sellers, customers] = await Promise.all([
+            Agent.find().select('fullName email phone agentId role status'),
+            Seller.find().select('businessName fullName email phoneNumber phone'),
+            User.find().select('firstName surname email phone')
+        ]);
+        res.json({
+            contacts: [
+                ...agents.map(a => ({ id: a._id, name: a.fullName, email: a.email, phone: a.phone, type: a.role })),
+                ...sellers.map(s => ({ id: s._id, name: s.businessName || s.fullName || 'Seller', email: s.email, phone: s.phoneNumber || s.phone, type: 'Seller' })),
+                ...customers.map(c => ({ id: c._id, name: `${c.firstName || ''} ${c.surname || ''}`.trim() || 'Customer', email: c.email, phone: c.phone, type: 'Customer' }))
+            ]
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Unable to load communication contacts' });
     }
 });
 

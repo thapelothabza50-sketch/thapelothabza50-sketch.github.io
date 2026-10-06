@@ -34,7 +34,7 @@ router.get('/current-season', auth, hasRole(['Agent']), async (req, res) => {
  */
 router.post('/submit-recruit', auth, hasRole(['Agent']), async (req, res) => {
     try {
-        const { studentName, studentSurname, studentEmail, studentPhone, accommodation, moveInDate } = req.body;
+        const { studentName, studentSurname, studentEmail, studentPhone, accommodation, moveInDate, funding, bursaryName } = req.body;
 
         const activeSeason = await Season.findOne({ isActive: true });
         if (!activeSeason) {
@@ -51,6 +51,8 @@ router.post('/submit-recruit', auth, hasRole(['Agent']), async (req, res) => {
             studentEmail,
             studentPhone,
             accommodation,
+            funding: funding || '',
+            bursaryName: bursaryName || '',
             institution: req.user.institution || 'Other',
             moveInDate,
             agent: req.user.id,
