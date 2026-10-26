@@ -446,12 +446,13 @@
             }
         }
     </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/cc-theme.css">
 </head>
 <body>
 
     <!-- NAVIGATION -->
     <nav>
-        <div class="nav-logo-text">
+        <div class="nav-logo-text"><span class="cc-logo" role="img" aria-label="Campus Collective logo"></span>
             CAMPUS COLLECTIVE
         </div>
         
@@ -493,9 +494,10 @@
     <h1 style="text-align: center; color: white; margin: 30px 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Available Accommodations</h1>
 
     <div style="width: 90%; max-width: 1200px; margin: 0 auto 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-        <button onclick="filterByInstitution('UMP')" class="institution-tab active" data-institution="UMP" style="padding: 12px 30px; border: none; background: #ff6600; color: white; border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s;">UMP</button>
-        <button onclick="filterByInstitution('TUT')" class="institution-tab" data-institution="TUT" style="padding: 12px 30px; border: none; background: rgba(255,255,255,0.3); color: white; border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s;">TUT</button>
-        <button onclick="filterByInstitution('VUT')" class="institution-tab" data-institution="VUT" style="padding: 12px 30px; border: none; background: rgba(255,255,255,0.3); color: white; border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s;">VUT</button>
+        <button onclick="filterByInstitution('UMP')" class="institution-tab active" data-institution="UMP" style="padding: 12px 30px; border: none; background: #ff6600; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s;">UMP</button>
+        <button onclick="filterByInstitution('TUT')" class="institution-tab" data-institution="TUT" style="padding: 12px 30px; border: none; background: rgba(255,255,255,0.3); text-shadow: 2px 2px 4px rgba(0,0,0,0.5); border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s;">TUT</button>
+        <button onclick="filterByInstitution('VUT')" class="institution-tab" data-institution="VUT" style="padding: 12px 30px; border: none; background: rgba(255,255,255,0.3); text-shadow: 2px 2px 4px rgba(0,0,0,0.5); border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s;">VUT</button>
+        <button onclick="filterByInstitution('EWC')" class="institution-tab" data-institution="EWC" style="padding: 12px 30px; border: none; background: rgba(255,255,255,0.3); text-shadow: 2px 2px 4px rgba(0,0,0,0.5); border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s;">EWC</button>
     </div>
 
     <div class="search-container">
@@ -730,6 +732,25 @@
                 <a href="chief-toto.html"><button class="more-details">View Full Profile</button></a>
             </div>
         </div>
+        <div class="accommodation" data-institution="UMP">
+            <div class="slideshow-container">
+                <img src="Images/Munye lomndeni ext1.jpeg" class="active">
+                <img src="Images/munye ext window.jpeg">
+                <img src="Images/munye pool table.jpeg">
+                <img src="Images/munye unit frige.jpeg">
+                <img src="Images/munye room-bathroom.jpeg">
+            </div>
+            <div class="details">
+                <h2>Munye Lomndeni Residence</h2>
+                <p>📍 Location: Kanyamazane</p>
+                <p>🛏️ Rooms: Single and sharing</p>
+                <p>💰 Price: R 3,800.00</p>
+                <p>✔️Accreditation: NSFAS Accredited</p>
+                <div class="rating-stars">★★★★★★</div>
+                <a href="munye-lomndeni.html"><button class="more-details">View Full Profile</button></a>
+            </div>
+        </div>
+
     </div>
 </main>
 
@@ -823,27 +844,27 @@
         async function filterByInstitution(institution) {
             currentInstitution = institution;
             
-            // Update active tab
+            // Update active tab styles correctly
             document.querySelectorAll('.institution-tab').forEach(btn => {
                 if (btn.dataset.institution === institution) {
                     btn.style.background = '#ff6600';
                     btn.style.color = 'white';
+                    btn.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';
                 } else {
-                    btn.style.background = 'rgba(255,255,255,0.3)';
-                    btn.style.color = 'white';
+                    btn.style.background = 'rgba(255,255,255,0.85)';
+                    btn.style.color = '#121212';
+                    btn.style.textShadow = 'none';
                 }
             });
 
             const grid = document.getElementById('accommGrid');
 
-            // If UMP, restore hardcoded accommodation cards
             if (institution === 'UMP') {
                 grid.innerHTML = umpMarkup;
                 initializeSlideshows();
                 return;
             }
 
-            // For TUT and VUT, fetch from API
             await fetchAccommodationsByInstitution(institution);
         }
 
@@ -893,10 +914,10 @@
         function renderEmptyState() {
             const grid = document.getElementById('accommGrid');
             grid.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.1); border-radius: 20px; backdrop-filter: blur(10px);">
-                    <h2 style="color: white; font-size: 1.8rem; margin-bottom: 15px;">🏢 Coming Soon!</h2>
-                    <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-bottom: 10px;">Accommodations for <strong>${currentInstitution}</strong> are being added.</p>
-                    <p style="color: rgba(255,255,255,0.7); font-size: 0.95rem;">Check back soon for available properties or explore other institutions above.</p>
+                <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: rgba(255, 255, 255, 0.9); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <h2 style="color: #121212; font-size: 1.8rem; margin-bottom: 15px;">🏢 Coming Soon!</h2>
+                    <p style="color: #1f2937; font-size: 1.1rem; margin-bottom: 10px;">Accommodations for <strong>${currentInstitution}</strong> are being added.</p>
+                    <p style="color: #4b5563; font-size: 0.95rem;">Check back soon for available properties or explore other institutions above.</p>
                     <div style="margin-top: 20px; font-size: 3rem;">⏳</div>
                 </div>
             `;
@@ -948,5 +969,6 @@
             initializeSlideshows();
         });
     </script>
+<script src="assets/cc-ui.js" defer></script>
 </body>
 </html>

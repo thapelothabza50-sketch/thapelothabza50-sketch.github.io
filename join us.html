@@ -235,7 +235,7 @@
         }
 
         h1 { color: var(--primary); font-size: 1.8rem; margin-bottom: 15px; }
-        .subtitle { color: #666; margin-bottom: 40px; }
+        .subtitle { color: #666666; margin-bottom: 40px; }
 
         /* --- OPTION CARDS --- */
         .option-cards {
@@ -266,7 +266,7 @@
         }
 
         .card h2 { font-size: 1.4rem; margin-bottom: 10px; }
-        .card p { font-size: 0.95rem; opacity: 0.9; line-height: 1.4; color: #fff; }
+        .card p { font-size: 0.95rem; opacity: 0.9; line-height: 1.4; color: #666666; }
 
         @media (max-width: 650px) {
             .option-cards { grid-template-columns: 1fr; }
@@ -365,12 +365,13 @@
             }
         }
     </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/cc-theme.css">
 </head>
 <body>
 
     <!-- NAVIGATION -->
     <nav>
-        <div class="nav-logo-text">
+        <div class="nav-logo-text"><span class="cc-logo" role="img" aria-label="Campus Collective logo"></span>
             CAMPUS COLLECTIVE
         </div>
         
@@ -508,5 +509,6 @@
         }
     });
 </script>
+<script src="assets/cc-ui.js" defer></script>
 </body>
 </html>
