@@ -288,7 +288,7 @@
 
         /* --- ACCOMMODATION GRID --- */
         main { 
-            width: 90%; 
+            width: 95%; 
             max-width: 1200px; 
             margin: 0 auto; 
             flex-grow: 1; 
@@ -296,20 +296,22 @@
 
         .accommodation-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 25px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
             padding-bottom: 60px;
         }
 
         @media (min-width: 768px) {
             .accommodation-grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 25px;
             }
         }
 
         @media (min-width: 1024px) {
             .accommodation-grid {
                 grid-template-columns: repeat(3, 1fr);
+                gap: 25px;
             }
         }
 
@@ -323,9 +325,21 @@
             flex-direction: column;
         }
 
-        .accommodation:hover { transform: translateY(-10px); }
+        .accommodation:hover { transform: translateY(-5px); }
 
-        .slideshow-container { position: relative; height: 250px; background: #eee; overflow: hidden; }
+        .slideshow-container { 
+            position: relative; 
+            height: 140px; 
+            background: #eee; 
+            overflow: hidden; 
+        }
+
+        @media (min-width: 768px) {
+            .slideshow-container {
+                height: 250px;
+            }
+        }
+
         .slideshow-container img {
             width: 100%; height: 100%;
             object-fit: cover;
@@ -335,21 +349,64 @@
         }
         .slideshow-container img.active { opacity: 1; }
 
-        .details { padding: 25px; display: flex; flex-direction: column; flex-grow: 1; }
-        .details h2 { font-size: 1.4rem; color: var(--primary); margin-bottom: 12px; border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 5px; }
-        .details p { font-size: 0.95rem; color: #444; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .details { 
+            padding: 12px; 
+            display: flex; 
+            flex-direction: column; 
+            flex-grow: 1; 
+        }
+
+        .details h2 { 
+            font-size: 0.95rem; 
+            color: var(--primary); 
+            margin-bottom: 8px; 
+            border-bottom: 2px solid var(--accent); 
+            display: inline-block; 
+            padding-bottom: 3px; 
+            line-height: 1.2;
+        }
+
+        .details p { 
+            font-size: 0.75rem; 
+            color: #444; 
+            margin-bottom: 5px; 
+            display: flex; 
+            align-items: center; 
+            gap: 4px; 
+        }
+
+        .rating-stars {
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        @media (min-width: 768px) {
+            .details { padding: 25px; }
+            .details h2 { font-size: 1.4rem; margin-bottom: 12px; padding-bottom: 5px; }
+            .details p { font-size: 0.95rem; margin-bottom: 8px; gap: 8px; }
+            .rating-stars { font-size: 1rem; }
+        }
 
         .more-details {
             width: 100%;
             background: var(--primary);
             color: white;
             border: none;
-            padding: 14px;
-            border-radius: 12px;
+            padding: 8px 5px;
+            font-size: 0.8rem;
+            border-radius: 8px;
             font-weight: 700;
             cursor: pointer;
             margin-top: auto;
             transition: 0.3s;
+        }
+
+        @media (min-width: 768px) {
+            .more-details {
+                padding: 14px;
+                font-size: 1rem;
+                border-radius: 12px;
+            }
         }
 
         .more-details:hover { background: var(--accent); transform: scale(1.02); }
@@ -813,38 +870,29 @@
     closeBtn.addEventListener('click', () => { navLinks.classList.remove('active'); });
 
     dropdowns.forEach(dropdown => {
-        // Target the main toggle link inside the dropdown item
         const dropdownLink = dropdown.querySelector('a');
 
         dropdownLink.addEventListener('click', (e) => {
             if (window.innerWidth <= 850) {
-                // Prevent the browser from navigating immediately on mobile
                 e.preventDefault();
-                
-                // Close other open dropdowns (optional, keeps UI clean)
                 dropdowns.forEach(other => {
                     if (other !== dropdown) other.classList.remove('active');
                 });
-
-                // Toggle the tapped dropdown
                 dropdown.classList.toggle('active');
             }
         });
     });
 
-    // Close mobile nav when clicking outside
     document.addEventListener('click', (event) => {
         if (!navLinks.contains(event.target) && !hamburger.contains(event.target)) {
             navLinks.classList.remove('active');
         }
     });
 
-
         // Institution filter function
         async function filterByInstitution(institution) {
             currentInstitution = institution;
             
-            // Update active tab styles correctly
             document.querySelectorAll('.institution-tab').forEach(btn => {
                 if (btn.dataset.institution === institution) {
                     btn.style.background = '#ff6600';

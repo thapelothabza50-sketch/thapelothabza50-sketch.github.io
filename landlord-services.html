@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landlord Services | Campus Collective</title>
+    <link rel="icon" type="image/x-icon" href="Images/campus collective icon.ico">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700&display=swap">
+    <!-- FontAwesome icons for modern UI elements -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.92);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --primary: #121212;
+            --accent: #ff6600;
+            --primary-accent: #ffb703;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 8px;
+            --shadow-subtle: 0 10px 30px rgba(0, 0, 0, 0.15);
+            --shadow-hover: 0 15px 35px rgba(0, 0, 0, 0.25);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)), 
+                        url('Images/Campus collective logo origin.jpg') no-repeat center center fixed;
+            background-size: cover;
+            padding-top: 100px;
+            width: 100%;
+        }
+
+        /* --- NAVIGATION --- */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 75px;
+            background: rgba(18, 18, 18, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 8%;
+            z-index: 2000;
+        }
+
+        .nav-logo-text { 
+            color: white; 
+            font-weight: 800; 
+            font-size: 1.25rem; 
+            letter-spacing: 1.5px; 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links { 
+            display: flex; 
+            list-style: none; 
+            gap: 24px; 
+            align-items: center; 
+        }
+
+        .nav-links li { position: relative; }
+
+        .nav-links li a {
+            color: #e5e7eb;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.92rem;
+            transition: var(--transition);
+            position: relative;
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-links li a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0%;
+            height: 2px;
+            background-color: var(--primary-accent);
+            transition: var(--transition);
+        }
+
+        .nav-links li a:hover { color: white; }
+        .nav-links li a:hover::after { width: 100%; }
+
+        /* --- DROPDOWN STYLES --- */
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(16px);
+            min-width: 180px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            list-style: none;
+            padding: 8px 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: var(--transition);
+        }
+
+        .dropdown:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-menu li { width: 100%; }
+
+        .dropdown-menu li a {
+            padding: 10px 16px;
+            font-size: 0.88rem;
+            display: block;
+            color: #d1d5db;
+        }
+
+        .dropdown-menu li a::after { display: none; }
+
+        .dropdown-menu li a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--primary-accent);
+        }
+
+        .nav-links li a.nav-btn {
+            background: var(--primary-accent);
+            color: #121212;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+
+        .nav-links li a.nav-btn::after { display: none; }
+        .nav-links li a.nav-btn:hover { background: #ffa200; transform: translateY(-2px); }
+
+        .hamburger { display: none; cursor: pointer; flex-direction: column; gap: 6px; }
+        .hamburger span { width: 28px; height: 3px; background: white; border-radius: 4px; transition: var(--transition); }
+        .close-btn { display: none; position: absolute; top: 25px; right: 25px; font-size: 1.8rem; color: white; cursor: pointer; }
+
+        @media (max-width: 850px) {
+            nav { padding: 0 6%; }
+
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 80%;
+                max-width: 320px;
+                height: 100vh;
+                background: rgba(18, 18, 18, 0.98);
+                backdrop-filter: blur(20px);
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 90px 30px 30px;
+                transition: right 0.4s cubic-bezier(0.77, 0, 0.175, 1);
+                box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+                gap: 0;
+                overflow-y: auto;
+            }
+
+            .nav-links.active { right: 0; }
+            .hamburger { display: flex; }
+            .close-btn { display: block; }
+
+            .nav-links li { 
+                width: 100%;
+                margin: 0; 
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+            }
+
+            .nav-links li a { 
+                display: flex;
+                justify-content: space-between;
+                padding: 16px 0;
+                font-size: 1rem; 
+            }
+
+            .nav-links li a::after { display: none; }
+
+            .dropdown-menu {
+                position: static;
+                opacity: 1;
+                visibility: visible;
+                transform: none;
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                padding-left: 15px;
+                display: none;
+            }
+
+            .dropdown.active .dropdown-menu { display: block; }
+
+            .nav-links li a.nav-btn { 
+                margin-top: 20px; 
+                text-align: center; 
+                justify-content: center;
+            }
+        }
+
+        /* --- MAIN WRAPPER & HERO CONTAINER --- */
+        .main-wrapper { 
+            flex: 1; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 40px 20px; 
+        }
+
+        .container {
+            width: 100%; 
+            max-width: 1050px; 
+            margin: 0 auto;
+            padding: 50px 35px; 
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .header-eyebrow {
+            display: inline-block;
+            background: rgba(255, 102, 0, 0.15);
+            color: var(--accent);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        h1 { 
+            color: var(--primary); 
+            font-size: 2.2rem; 
+            font-weight: 800; 
+            margin-bottom: 12px; 
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle { 
+            color: #4b5563; 
+            font-size: 1.05rem; 
+            max-width: 700px; 
+            margin: 0 auto 30px; 
+            line-height: 1.6;
+        }
+
+        /* CONTRACT ACTION BAR */
+        .contract-action-bar {
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .btn-download-contract {
+            background: #121212;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: var(--transition);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-download-contract:hover {
+            background: var(--accent);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 102, 0, 0.3);
+        }
+
+        /* --- SERVICES GRID --- */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 45px;
+        }
+
+        .service-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 35px 25px;
+            border-radius: var(--radius-md);
+            text-align: left;
+            border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .service-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-hover);
+            border-color: rgba(255, 102, 0, 0.3);
+        }
+
+        .service-icon {
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg, #ff6600, #ffb703);
+            color: white;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 18px rgba(255, 102, 0, 0.25);
+        }
+
+        /* Collective Care Brand Header inside Card */
+        .service-brand-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .service-brand-header img {
+            width: 45px;
+            height: 45px;
+            object-fit: contain;
+            border-radius: 10px;
+            background: #f3f4f6;
+            padding: 4px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .service-card h2 {
+            font-size: 1.3rem;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .service-card p {
+            color: #6b7280;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .service-card ul {
+            list-style: none;
+            padding: 0;
+            margin-top: auto;
+        }
+
+        .service-card ul li {
+            font-size: 0.88rem;
+            color: #374151;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .service-card ul li i {
+            color: #10b981;
+        }
+
+        .cleaning-link-wrapper {
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px solid #f3f4f6;
+            text-align: center;
+        }
+
+        .cleaning-link-wrapper a {
+            color: var(--accent);
+            font-size: 0.88rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+        }
+
+        .cleaning-link-wrapper a:hover {
+            color: #e05b00;
+            text-decoration: underline;
+        }
+
+        /* --- CTA SECTION --- */
+        .cta-box {
+            background: linear-gradient(135deg, #121212 0%, #2a2a2a 100%);
+            border-radius: var(--radius-md);
+            padding: 35px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .cta-box h3 {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        .cta-box p {
+            color: #d1d5db;
+            max-width: 600px;
+            font-size: 0.95rem;
+        }
+
+        .btn-proceed {
+            background: var(--accent);
+            color: white;
+            padding: 16px 40px;
+            border-radius: 35px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 6px 20px rgba(255, 102, 0, 0.4);
+        }
+
+        .btn-proceed:hover {
+            background: #ffa200;
+            color: #121212;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 162, 0, 0.5);
+        }
+
+        /* --- MODERN FOOTER --- */
+        footer {
+            background: rgba(18, 18, 18, 0.92);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #a1a1aa;
+            padding: 50px 8% 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: auto;
+            width: 100%;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+            text-align: left;
+        }
+
+        .footer-column h3 {
+            color: white;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            position: relative;
+            padding-bottom: 8px;
+        }
+
+        .footer-column h3::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 30px;
+            height: 2px;
+            background-color: var(--primary-accent);
+        }
+
+        .footer-column ul { list-style: none; }
+        .footer-column ul li { margin-bottom: 10px; }
+
+        .footer-column ul li a {
+            color: #a1a1aa;
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .footer-column ul li a:hover {
+            color: white;
+            padding-left: 5px;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .social-icons a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 50%;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .social-icons a:hover {
+            background: var(--primary-accent);
+            color: #121212;
+            transform: translateY(-3px);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 850px) {
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .container { padding: 30px 18px; }
+            h1 { font-size: 1.7rem; }
+        }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/cc-theme.css">
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="nav-logo-text"><span class="cc-logo" role="img" aria-label="Campus Collective logo"></span>
+            CAMPUS COLLECTIVE
+        </div>
+        
+        <ul class="nav-links" id="navLinks">
+            <span class="close-btn" id="closeBtn"><i class="fa-solid fa-xmark"></i></span>
+            <li><a href="index.html">Home</a></li>
+            
+            <li class="dropdown">
+                <a href="czra more about us.html">About Us <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem;"></i></a>
+                <ul class="dropdown-menu">
+                    <li><a href="czra more about us.html">About Us</a></li>
+                    <li><a href="version.html">Our Vision</a></li>
+                    <li><a href="team.html">Our Team</a></li>
+                </ul>
+            </li>
+
+            <li><a href="Learn More.html">Accommodations</a></li>
+
+            <li class="dropdown">
+                <a href="#">Services <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem;"></i></a>
+                <ul class="dropdown-menu">
+                    <li><a href="choose _application.html">Apply@Institutions</a></li>
+                    <li><a href="campus shop.html">Campus Shop</a></li>
+                </ul>
+            </li>
+
+            <li><a href="czra contact.html">Contact Us</a></li>
+            <li><a href="join us.html">Join Us</a></li>
+            <li><a href="choose login.html" class="nav-btn">Login</a></li>
+        </ul>
+
+        <div class="hamburger" id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-wrapper">
+        <div class="container">
+            <span class="header-eyebrow"><i class="fa-solid fa-house-circle-check"></i> Property Solutions</span>
+            <h1>Partner With Campus Collective</h1>
+            <p class="subtitle">We connect property owners with thousands of students, offering end-to-end management, professional cleaning, and guaranteed bed fill services.</p>
+
+            <!-- DOWNLOAD RECRUITMENT CONTRACT BUTTON -->
+            <div class="contract-action-bar">
+                <a href="Documents/STUDENT RECRUITMENT SERVICE AGREEMENT(1).pdf" download class="btn-download-contract">
+                    <i class="fa-solid fa-file-arrow-down"></i> Download Student Recruitment Contract
+                </a>
+            </div>
+
+            <div class="services-grid">
+                
+                <!-- SERVICE 1: FILLING BEDS -->
+                <div class="service-card">
+                    <div>
+                        <div class="service-icon"><i class="fa-solid fa-bed"></i></div>
+                        <h2>Bed Filling & Lead Generation</h2>
+                        <p>Say goodbye to vacant rooms. We actively direct verified student leads and applicants straight to your listing.</p>
+                    </div>
+                    <ul>
+                        <li><i class="fa-solid fa-circle-check"></i> Direct student placement</li>
+                        <li><i class="fa-solid fa-circle-check"></i> NSFAS & private tenant focus</li>
+                        <li><i class="fa-solid fa-circle-check"></i> Maximum occupancy year-round</li>
+                    </ul>
+                </div>
+
+                <!-- SERVICE 2: ACCOMMODATION MANAGEMENT -->
+                <div class="service-card">
+                    <div>
+                        <div class="service-icon"><i class="fa-solid fa-list-check"></i></div>
+                        <h2>Accommodation Management</h2>
+                        <p>Hassle-free management solutions tailored for student residences, ensuring smooth day-to-day operations.</p>
+                    </div>
+                    <ul>
+                        <li><i class="fa-solid fa-circle-check"></i> Tenant intake & queries</li>
+                        <li><i class="fa-solid fa-circle-check"></i> Property rule enforcement</li>
+                        <li><i class="fa-solid fa-circle-check"></i> Smooth maintenance tracking</li>
+                    </ul>
+                </div>
+
+                <!-- SERVICE 3: PROPERTY CLEANING (COLLECTIVE CARE) -->
+                <div class="service-card">
+                    <div>
+                        <div class="service-brand-header">
+                            <img src="Images/Collective Care.png" alt="Collective Care Logo">
+                            <div>
+                                <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--accent); letter-spacing: 0.5px;">Internal Branch</span>
+                                <h2 style="font-size: 1.15rem; margin-bottom: 0;">Collective Care</h2>
+                            </div>
+                        </div>
+                        <p>Maintain pristine living standards with our specialized internal cleaning branch, delivering scheduled hygiene services for communal areas and rooms.</p>
+                    </div>
+                    <ul>
+                        <li><i class="fa-solid fa-circle-check"></i> Deep cleaning before intake</li>
+                        <li><i class="fa-solid fa-circle-check"></i> Regular communal area upkeep</li>
+                        <li><i class="fa-solid fa-circle-check"></i> Hygienic & student-ready spaces</li>
+                    </ul>
+                    <div class="cleaning-link-wrapper">
+                        <a href="cleaning-tiers.html">View Cleaning Tiers & Packages <i class="fa-solid fa-arrow-right" style="font-size: 0.75rem;"></i></a>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- PROCEED TO REGISTRATION CTA -->
+            <div class="cta-box">
+                <h3>Ready to List Your Property?</h3>
+                <p>Fill out our simple registration form to get started and start filling your available beds today.</p>
+                <a href="landlord.html" class="btn-proceed">Proceed to Registration Form <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODERN FOOTER -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-column">
+                <h3>Campus Collective</h3>
+                <p style="font-size: 0.9rem; line-height: 1.6; color: #a1a1aa; margin-top: 10px;">
+                    Your ultimate hub for student accommodations, institutional applications, and peer-to-peer campus shopping.
+                </p>
+                <div class="social-icons">
+                    <a href="https://www.facebook.com/profile.php?id=61581821286904"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://www.instagram.com/campuscollective_sa?igsh=dXN4NGNkM3B1Y3A3"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="https://www.tiktok.com/@campus.collective2"><i class="fa-brands fa-tiktok"></i></a>
+                    <a href="mailto:info@mycampuscollective.me" style="text-decoration: none;">
+                        <i class="fa-solid fa-envelope"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="footer-column">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="czra more about us.html">About Us</a></li>
+                    <li><a href="version.html">Our Vision</a></li>
+                    <li><a href="czra contact.html">Contact Us</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h3>Services</h3>
+                <ul>
+                    <li><a href="Learn More.html">Student Accommodations</a></li>
+                    <li><a href="choose _application.html">Apply @ Institutions</a></li>
+                    <li><a href="campus shop.html">Campus Shop</a></li>
+                    <li><a href="landlord-services.html">List Your Property</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2025 Campus Collective. All rights reserved | Developed with 🧡 in SA.</p>
+        </div>
+    </footer>
+
+    <script>
+    // HAMBURGER & DROPDOWN LOGIC
+    const hamburger = document.getElementById('hamburger');
+    const closeBtn = document.getElementById('closeBtn');
+    const navLinks = document.getElementById('navLinks');
+    const dropdowns = document.querySelectorAll('.dropdown');
+
+    hamburger.addEventListener('click', () => { navLinks.classList.add('active'); });
+    closeBtn.addEventListener('click', () => { navLinks.classList.remove('active'); });
+
+    dropdowns.forEach(dropdown => {
+        const dropdownLink = dropdown.querySelector('a');
+
+        dropdownLink.addEventListener('click', (e) => {
+            if (window.innerWidth <= 850) {
+                e.preventDefault();
+                
+                dropdowns.forEach(other => {
+                    if (other !== dropdown) other.classList.remove('active');
+                });
+
+                dropdown.classList.toggle('active');
+            }
+        });
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!navLinks.contains(event.target) && !hamburger.contains(event.target)) {
+            navLinks.classList.remove('active');
+        }
+    });
+</script>
+<script src="assets/cc-ui.js" defer></script>
+</body>
+</html>
