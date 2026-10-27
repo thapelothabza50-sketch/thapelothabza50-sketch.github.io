@@ -1650,7 +1650,7 @@ function closeMobileMenu() {
     const sidebar = document.getElementById('mobileSidebar');
     sidebar.classList.remove('open');
 }
-// --- RESTORED SEARCH LOGIC ---
+// --- SEARCH LOGIC ---
 document.getElementById('agentSearch')?.addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     const rows = document.querySelectorAll('#agent-table-body tr');
@@ -2130,19 +2130,48 @@ async function runReferralReconciliation() {
 }
 
 async function openRecruitInfo(id) {
-    const res = await fetch(`${API_BASE_URL}/recruits/${id}/details`, {headers:{'Authorization':`Bearer ${token}`}});
+    const res = await fetch(`${API_BASE_URL}/recruits/${id}/details`, { headers: { 'Authorization': `Bearer ${token}` }});
     const data = await res.json();
     if (!res.ok) return alert(data.message || 'Unable to load recruit');
-    const r=data.recruit, st=data.student || {};
+    
+    const r = data.recruit || {};
+    const st = data.student || {};
+
+    const fields = [
+        ['Full Name', `${r.studentName || ''} ${r.studentSurname || ''}`],
+        ['Email', r.studentEmail],
+        ['Phone', r.studentPhone],
+        ['Gender', r.gender || st.gender || 'Not recorded'],
+        ['Accommodation', r.accommodation],
+        ['Move-in Date', r.moveInDate ? new Date(r.moveInDate).toLocaleDateString() : 'N/A'],
+        ['Status', r.status],
+        ['Institution', r.institution || st.institution || 'N/A'],
+        ['Funding', r.funding || st.funding || 'Not recorded'],
+        ['Bursary', r.bursaryName || st.bursaryName || st.bursary || 'N/A'],
+        ['Student Number', r.studentNumber || st.studentNumber || 'N/A'],
+        ['Assigned Agent', r.agent?.fullName || 'Unassigned'],
+        ['Referenced By', r.referencedByName || 'N/A'],
+        ['Season', r.season?.name || r.seasonName || 'N/A'],
+        ['Commission', `R ${Number(r.commissionEarned || 0).toFixed(2)}`]
+    ];
+
     document.getElementById('recruit-info-content').innerHTML = `
       <div class="grid md:grid-cols-2 gap-3">
-        ${[['Full Name',`${r.studentName||''} ${r.studentSurname||''}`],['Email',r.studentEmail],['Phone',r.studentPhone],['Accommodation',r.accommodation],['Move-in Date',r.moveInDate ? new Date(r.moveInDate).toLocaleDateString():'N/A'],['Status',r.status],['Institution',r.institution || st.institution || 'N/A'],['Funding',r.funding || st.funding || 'Not recorded'],['Bursary',r.bursaryName || st.bursaryName || 'N/A'],['Student Number',st.studentNumber || 'N/A'],['Assigned Agent',r.agent?.fullName || 'Unassigned'],['Referenced By',r.referencedByName || 'N/A'],['Season',r.season?.name || r.seasonName || 'N/A'],['Commission',`R ${Number(r.commissionEarned||0).toFixed(2)}`]].map(([k,v])=>`<div class="p-3 bg-gray-50 rounded-xl"><div class="text-[10px] uppercase font-black text-gray-400">${escapeClient(k)}</div><div class="font-bold text-gray-800 mt-1">${escapeClient(v)}</div></div>`).join('')}
+        ${fields.map(([k, v]) => `
+          <div class="p-3 bg-gray-50 rounded-xl">
+            <div class="text-[10px] uppercase font-black text-gray-400">${escapeClient(k)}</div>
+            <div class="font-bold text-gray-800 mt-1">${escapeClient(v)}</div>
+          </div>
+        `).join('')}
       </div>
       <div class="flex gap-2 mt-5">
-        <a href="mailto:${encodeURIComponent(r.studentEmail||'')}" class="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold"><i class="ri-mail-line"></i> Email</a>
-        ${r.studentPhone ? `<a target="_blank" href="https://wa.me/${String(r.studentPhone).replace(/\D/g,'').replace(/^0/,'27')}" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold"><i class="ri-whatsapp-line"></i> WhatsApp</a>` : ''}
+        <a href="mailto:${encodeURIComponent(r.studentEmail || '')}" class="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold"><i class="ri-mail-line"></i> Email</a>
+        ${r.studentPhone ? `<a target="_blank" href="https://wa.me/${String(r.studentPhone).replace(/\D/g, '').replace(/^0/, '27')}" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold"><i class="ri-whatsapp-line"></i> WhatsApp</a>` : ''}
       </div>`;
-    const modal=document.getElementById('recruit-info-modal'); modal.classList.remove('hidden'); modal.classList.add('flex');
+      
+    const modal = document.getElementById('recruit-info-modal'); 
+    modal.classList.remove('hidden'); 
+    modal.classList.add('flex');
 }
 
 function closeRecruitModal(){ const m=document.getElementById('recruit-info-modal'); m.classList.add('hidden'); m.classList.remove('flex'); }
@@ -2150,30 +2179,70 @@ function closeRecruitModal(){ const m=document.getElementById('recruit-info-moda
 let assignRecruitId = null;
 let assignAgents = [];
 function openAssignRecruit(id) {
-    assignRecruitId=id;
-    assignAgents=allUsers.filter(u=>u.role==='Agent');
+    assignRecruitId = id;
+    // Safely filter agents (case-insensitive check)
+    assignAgents = allUsers.filter(u => u.role && u.role.toLowerCase() === 'agent');
     renderAssignAgents(assignAgents);
-    const current=allRecruits.find(r=>r._id===id);
-    const currentId=current?.agent?._id || current?.agent;
-    const sel=document.getElementById('assign-agent-select');
-    setTimeout(()=>{ if(currentId) sel.value=currentId; },0);
-    document.getElementById('assign-search').value='';
-    const m=document.getElementById('assign-recruit-modal'); m.classList.remove('hidden'); m.classList.add('flex');
+    
+    const current = allRecruits.find(r => r._id === id);
+    const currentId = current?.agent?._id || current?.agent;
+    const sel = document.getElementById('assign-agent-select');
+    
+    setTimeout(() => { 
+        if (currentId) sel.value = currentId; 
+    }, 0);
+    
+    document.getElementById('assign-search').value = '';
+    const m = document.getElementById('assign-recruit-modal'); 
+    m.classList.remove('hidden'); 
+    m.classList.add('flex');
 }
-function renderAssignAgents(list){
-    document.getElementById('assign-agent-select').innerHTML=`<option value="">Unassigned</option>`+list.map(a=>`<option value="${a._id}">${escapeClient(a.fullName)} — ${escapeClient(a.agentId||a.email||'')}</option>`).join('');
+
+function renderAssignAgents(list) {
+    const selectEl = document.getElementById('assign-agent-select');
+    if (!selectEl) return;
+    selectEl.innerHTML = `<option value="">Unassigned</option>` + list.map(a => `
+        <option value="${a._id}">${escapeClient(a.fullName)} — ${escapeClient(a.agentId || a.email || '')}</option>
+    `).join('');
 }
-function filterAssignAgents(){
-    const q=document.getElementById('assign-search').value.toLowerCase();
-    renderAssignAgents(assignAgents.filter(a=>(a.fullName||'').toLowerCase().includes(q)||(a.agentId||'').toLowerCase().includes(q)||(a.email||'').toLowerCase().includes(q)));
+
+function filterAssignAgents() {
+    const q = document.getElementById('assign-search').value.toLowerCase();
+    renderAssignAgents(assignAgents.filter(a => 
+        (a.fullName || '').toLowerCase().includes(q) || 
+        (a.agentId || '').toLowerCase().includes(q) || 
+        (a.email || '').toLowerCase().includes(q)
+    ));
 }
-async function saveRecruitAssignment(){
-    const agentId=document.getElementById('assign-agent-select').value;
-    const res=await fetch(`${API_BASE_URL}/recruits/${assignRecruitId}/assign-agent`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({agentId:agentId||null})});
-    const data=await res.json(); if(!res.ok)return alert(data.message||'Assignment failed');
-    closeAssignModal(); fetchRecruits(); loadAgentPerformance();
+
+async function saveRecruitAssignment() {
+    const agentId = document.getElementById('assign-agent-select').value;
+    try {
+        const res = await fetch(`${API_BASE_URL}/recruits/${assignRecruitId}/assign-agent`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ agentId: agentId || null })
+        });
+        const data = await res.json(); 
+        if (!res.ok) return alert(data.message || 'Assignment failed');
+        
+        closeAssignModal(); 
+        fetchRecruits(); 
+        loadAgentPerformance();
+    } catch (err) {
+        console.error('Assignment Error:', err);
+        alert('Failed to connect to server for assignment.');
+    }
 }
-function closeAssignModal(){const m=document.getElementById('assign-recruit-modal');m.classList.add('hidden');m.classList.remove('flex');}
+
+function closeAssignModal() {
+    const m = document.getElementById('assign-recruit-modal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+}
 
 async function loadTeams(){
     const res=await fetch(`${API_BASE_URL}/teams`,{headers:{'Authorization':`Bearer ${token}`}});
