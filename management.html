@@ -2177,8 +2177,8 @@ async function openRecruitInfo(id) {
 function closeRecruitModal(){ const m=document.getElementById('recruit-info-modal'); m.classList.add('hidden'); m.classList.remove('flex'); }
 
 // Ensure these global variables are defined at the top scope of your script
-let assignRecruitId = null;
-let assignAgents = [];
+var assignRecruitId = null;
+var assignAgents = [];
 
 function openAssignRecruit(id) {
     assignRecruitId = id;
