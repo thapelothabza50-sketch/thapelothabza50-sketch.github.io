@@ -2180,9 +2180,23 @@ function closeRecruitModal(){ const m=document.getElementById('recruit-info-moda
 var assignRecruitId = null;
 var assignAgents = [];
 
-function openAssignRecruit(id) {
+async function openAssignRecruit(id) {
     assignRecruitId = id;
     
+    // Ensure we fetch profiles/agents if allUsers is empty
+    if (!allUsers || allUsers.length === 0) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/profiles`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                allUsers = await res.json();
+            }
+        } catch (e) {
+            console.error("Failed to fetch profiles for assignment:", e);
+        }
+    }
+
     // Safely filter agents (case-insensitive check)
     assignAgents = allUsers.filter(u => u.role && u.role.toLowerCase() === 'agent');
     renderAssignAgents(assignAgents);
@@ -2204,7 +2218,6 @@ function openAssignRecruit(id) {
         m.classList.add('flex');
     }
 }
-
 function renderAssignAgents(list) {
     const selectEl = document.getElementById('assign-agent-select');
     if (!selectEl) return;
