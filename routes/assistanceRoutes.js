@@ -17,7 +17,8 @@ const assistanceStorage = multer.diskStorage({
         cb(null, `${Date.now()}-${sanitized}`);
     }
 });
-const assistanceUpload = multer({ storage: assistanceStorage });
+const uploadLib = require('../lib/upload');
+const assistanceUpload = multer({ storage: assistanceStorage, limits: uploadLib.limits(8, 2), fileFilter: uploadLib.fileFilter('doc') });
 
 router.post('/submit-assistance', assistanceUpload.fields([
     { name: 'File_ID', maxCount: 1 },
@@ -77,16 +78,9 @@ router.post('/submit-assistance', assistanceUpload.fields([
         await newApp.save();
 
         // 2. Transporter Setup (Using your existing environment variables)
-        const transporter = nodemailer.createTransport({
-            host: process.env.EMAIL_HOST,
-            port: Number(process.env.EMAIL_PORT),
-            secure: true,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-            tls: { rejectUnauthorized: false }
-        });
+        // Notification e-mails are sent in the background: a saved request is never reported as failed because of SMTP.
+        const mailer = require('../lib/mailer');
+        const transporter = { sendMail: (o) => { mailer.sendMailBackground(o, 'assistance e-mail'); return Promise.resolve(); } };
 
         // 3. The Tabulated Content (Shared for both emails)
         const detailsTable = `

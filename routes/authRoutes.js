@@ -2,7 +2,13 @@
 
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs'); 
+const pw = require('../lib/password');
+const { reserveRoom, releaseRoom } = require('../lib/rooms');
+const logger = require('../lib/logger');
+const { issueSession, revokeSession, revokeAllForUser } = require('../lib/session');
+const Season = require('../models/Season');
+const FormOtp = require('../models/FormOtp');
+const uploadLib = require('../lib/upload');
 const jwt = require('jsonwebtoken'); 
 const crypto = require('crypto');
 const nodemailer = require('nodemailer'); 
@@ -13,7 +19,7 @@ const Recruit = require('../models/Recruit');
 const path = require('path');
 require('dotenv').config();
 
-const { auth, hasRole } = require('../middleware/auth'); 
+const { auth, authAllowReset, hasRole } = require('../middleware/auth'); 
 const multer = require('multer');
 
 // --------------------------------------------------------------------------
@@ -98,26 +104,15 @@ const landlordStorage = multer.diskStorage({
         cb(null, `${Date.now()}-${sanitized}`);
     }
 });
-const landlordUpload = multer({ storage: landlordStorage });
+const landlordUpload = multer({ storage: landlordStorage, limits: uploadLib.limits(8, 10), fileFilter: uploadLib.fileFilter('image') });
 
 
 
 // --------------------------------------------------------------------------
 // NODEMAILER CONFIGURATION 
 // --------------------------------------------------------------------------
-const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT),
-    secure: true, // MUST be true for port 465
-    auth: {
-        user: process.env.EMAIL_USER, // Ensure this is 9eeab8001@smtp-brevo.com
-        pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-        rejectUnauthorized: false // This helps bypass Azure's network restrictions
-    },
-    connectionTimeout: 10000 // Wait 10 seconds for the greeting
-});
+const mailer_ = require('../lib/mailer');
+const transporter = { sendMail: (opts) => mailer_.sendMail(opts) };
 
 // =========================================================================
 // 1. ADMIN & AGENT MANAGEMENT ROUTES
@@ -236,60 +231,42 @@ try {
  * @desc    Login for Admin and Agents using AgentID/StudentID
  */
 router.post('/admin-agent/login', async (req, res) => {
-    const { agentId, password } = req.body; 
+    const agentId = typeof req.body.agentId === 'string' ? req.body.agentId.trim() : '';
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
 
     try {
         if (!agentId || !password) {
             return res.status(400).json({ message: 'Agent ID and password are required' });
         }
 
-        const agent = await Agent.findOne({ agentId: agentId.trim() });
-
-        if (!agent) {
-            return res.status(400).json({ message: 'Invalid Agent ID' });
-        }
-
-        // --- THE MISSING GATEKEEPER STEP START ---
-        const isMatch = await bcrypt.compare(password, agent.password);
-        if (!isMatch) {
+        const agent = await Agent.findOne({ agentId });
+        // Same response + same work for "unknown ID" and "wrong password" (no account enumeration / timing hint)
+        const isMatch = agent ? await pw.compare(password, agent.password) : await pw.burn(password);
+        if (!agent || !isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-        // --- THE MISSING GATEKEEPER STEP END ---
 
-        // 4. Handle first-time login (Mandatory Reset)
+        if (agent.status === 'locked') {
+            return res.status(403).json({ message: 'Your account is locked. Please contact administration.' });
+        }
+
+        // First-time login: short-lived token that is ONLY accepted by the password-setup endpoints
         if (agent.mustChangePassword) {
-            const tempToken = jwt.sign(
-                { id: agent._id, role: agent.role, agentId: agent.agentId },
-                process.env.JWT_SECRET,
-                { expiresIn: '15m' }
-            );
-            return res.status(200).json({ 
-                action: 'MANDATORY_RESET', 
+            const { token: tempToken } = await issueSession({ id: agent._id, role: agent.role, agentId: agent.agentId }, { scope: 'reset' });
+            return res.status(200).json({
+                action: 'MANDATORY_RESET',
                 token: tempToken,
-                message: 'First login detected. Please reset your password.' 
+                message: 'First login detected. Please reset your password.'
             });
         }
 
-    
-        if (agent.status === 'locked') { 
-            return res.status(403).json({ 
-                message: 'Your account is locked. Please contact administration.' 
-            });
-        } 
-    
-
-        // 5. Normal Login: Create the full Token
-        const token = jwt.sign(
-            {
-                id: agent._id,
-                role: agent.role,
-                agentId: agent.agentId,
-                institution: agent.institution || 'Other',
-                fullName: agent.fullName
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: '1d' }
-        );
+        const { token } = await issueSession({
+            id: agent._id,
+            role: agent.role,
+            agentId: agent.agentId,
+            institution: agent.institution || 'Other',
+            fullName: agent.fullName
+        });
 
         res.json({
             token,
@@ -309,9 +286,22 @@ router.post('/admin-agent/login', async (req, res) => {
         });
 
     } catch (err) {
-        // Handling exceptions as per Lab Work 5.4 
-        console.error("AGENT LOGIN ERROR:", err);
+        logger.error('agent login failed', { reqId: req.id, ...logger.errMeta(err) });
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Ends the current session on the server (token stops working immediately)
+ */
+router.post('/logout', auth, async (req, res) => {
+    try {
+        await revokeSession(req.user.jti, 'logout');
+        res.json({ success: true, message: 'Logged out.' });
+    } catch (err) {
+        logger.error('logout failed', { reqId: req.id, ...logger.errMeta(err) });
+        res.status(500).json({ message: 'Could not log out. Please try again.' });
     }
 });
 
@@ -343,6 +333,12 @@ router.post('/customer/register', async (req, res) => {
     if (!firstName || !surname || !phone || !email || !password) {
         return res.status(400).json({ message: 'Please provide your first name, surname, phone, email, and password.' });
     }
+    if ([firstName, surname, phone, email, password].some(x => typeof x !== 'string')) {
+        return res.status(400).json({ message: 'Invalid input.' });
+    }
+    if (password.length < 8 || password.length > 128) {
+        return res.status(400).json({ message: 'Password must be between 8 and 128 characters.' });
+    }
 
     try {
         const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -361,7 +357,7 @@ router.post('/customer/register', async (req, res) => {
 
         await newUser.save();
 
-        const token = jwt.sign({ id: newUser._id, role: 'Customer' }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        const { token } = await issueSession({ id: newUser._id, role: 'Customer' });
 
         res.status(201).json({
             token,
@@ -381,24 +377,21 @@ router.post('/customer/register', async (req, res) => {
 });
 
 router.post('/customer/login', async (req, res) => {
-    const { email, password } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
 
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required.' });
     }
 
     try {
-        const user = await User.findOne({ email: email.toLowerCase(), role: 'Customer' });
-        if (!user) {
+        const user = await User.findOne({ email, role: 'Customer' });
+        const isMatch = user ? await pw.compare(password, user.password) : await pw.burn(password);
+        if (!user || !isMatch) {
             return res.status(400).json({ message: 'Invalid credentials.' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid credentials.' });
-        }
-
-        const token = jwt.sign({ id: user._id, role: 'Customer' }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        const { token } = await issueSession({ id: user._id, role: 'Customer' });
 
         res.json({
             token,
@@ -412,7 +405,7 @@ router.post('/customer/login', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Customer Login Error:', err.message);
+        logger.error('customer login failed', { reqId: req.id, ...logger.errMeta(err) });
         res.status(500).json({ message: 'Server error during login.' });
     }
 });
@@ -538,20 +531,20 @@ router.get('/products', async (req, res) => {
  * @route   POST /api/auth/seller/login
  */
 router.post('/seller/login', async (req, res) => {
-    const { email, password } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
     try {
+        if (!email || !password) return res.status(400).json({ message: 'Email and password are required.' });
         const user = await Seller.findOne({ email });
-        if (!user) return res.status(400).json({ message: 'Invalid Credentials' });
+        const isMatch = user ? await pw.compare(password, user.password) : await pw.burn(password);
+        if (!user || !isMatch) return res.status(400).json({ message: 'Invalid Credentials' });
 
         const userStatus = user.status || 'active';
         if (userStatus === 'locked') {
             return res.status(403).json({ message: 'Account Locked. Contact Administration.' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ message: 'Invalid Credentials' });
-
-        const token = jwt.sign({ id: user._id, role: 'seller' }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        const { token } = await issueSession({ id: user._id, role: 'seller' });
 
         res.json({
             token,
@@ -562,6 +555,7 @@ router.post('/seller/login', async (req, res) => {
             }
         });
     } catch (err) {
+        logger.error('seller login failed', { reqId: req.id, ...logger.errMeta(err) });
         res.status(500).send('Server Error');
     }
 });
@@ -626,38 +620,50 @@ router.post('/mark-paid', auth, hasRole(['Admin']), async (req, res) => {
  * @desc    Update agent profile and set permanent password on first login
  * @access  Private
  */
-router.post('/complete-agent-setup', auth, async (req, res) => {
+router.post('/complete-agent-setup', authAllowReset, async (req, res) => {
     const { firstName, surname, password } = req.body;
 
     try {
+        if (typeof firstName !== 'string' || typeof surname !== 'string' || !firstName.trim() || !surname.trim()) {
+            return res.status(400).json({ message: 'First name and surname are required.' });
+        }
+        if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
+            return res.status(400).json({ message: 'Password must be between 8 and 128 characters.' });
+        }
+
         // 1. Find the agent by their ID from the token
         const agent = await Agent.findById(req.user.id);
         if (!agent) return res.status(404).json({ message: 'Agent not found' });
 
-        // 2. Hash the new permanent password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // 3. Update the agent's details
-        agent.fullName = `${firstName} ${surname}`;
-        agent.password = hashedPassword;
+        // 2. Assign the PLAIN password: the model's pre-save hook hashes it exactly once.
+        //    (Hashing here as well made the stored hash unusable, so agents could never log in after first setup.)
+        agent.fullName = `${firstName.trim()} ${surname.trim()}`;
+        agent.password = password;
         agent.mustChangePassword = false; // This prevents being redirected here again
 
         await agent.save();
 
-       res.json({ 
+        // 3. End every earlier session (including the temporary one) and start a normal one
+        await revokeAllForUser(agent._id, agent.role, 'password_setup');
+        const { token } = await issueSession({
+            id: agent._id, role: agent.role, agentId: agent.agentId,
+            institution: agent.institution || 'Other', fullName: agent.fullName
+        });
+
+        res.json({
             message: 'Profile updated successfully!',
+            token,
             user: {
                 fullName: agent.fullName,
                 agentId: agent.agentId
             }
         });
     } catch (err) {
-        console.error("SETUP ERROR:", err.message);
+        logger.error('agent setup failed', { reqId: req.id, ...logger.errMeta(err) });
         res.status(500).json({ message: 'Server Error during setup' });
     }
 });
-router.get('/current-user', auth, async (req, res) => {
+router.get('/current-user', authAllowReset, async (req, res) => {
     try {
         const agent = await Agent.findById(req.user.id).select('-password');
         res.json(agent);
@@ -678,7 +684,7 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage, limits: uploadLib.limits(8, 1), fileFilter: uploadLib.fileFilter('image') });
 
 // --------------------------------------------------------------------------
 // 2. THE ANNOUNCEMENT ROUTE (Fixed: Added Agent Loop & Broadcast Logic)
@@ -749,30 +755,31 @@ router.post('/announce-residence', auth, hasRole(['Admin']), upload.single('resI
  * @desc    Generate a 6-digit code and send a professional HTML email
  */
 router.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
-
+    const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
     try {
+        if (!email) return res.status(400).json({ message: 'Email is required.' });
         // Find user across all possible models
         const user = await Seller.findOne({ email }) || 
                      await Agent.findOne({ email }) || 
                      await User.findOne({ email });
 
-        if (!user) {
-            return res.status(404).json({ message: "No account found with this email address." });
-        }
+        // Same answer whether or not the account exists (prevents account enumeration)
+        const generic = { message: "If an account exists for that email, a verification code has been sent." };
+        if (!user) return res.json(generic);
 
-        // 1. Generate 6-digit verification code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        // 2. Save code to the user document (expires in 1 hour)
-        user.resetCode = code;
-        user.resetCodeExpire = Date.now() + 3600000; 
-        await user.save();
+        // 1. Generate a 6-digit verification code (cryptographically random)
+        const code = String(crypto.randomInt(100000, 1000000));
+
+        // 2. Store only a hash of the code (expires in 30 minutes, max 5 attempts)
+        user.resetCode = crypto.createHash('sha256').update(code).digest('hex');
+        user.resetCodeExpire = Date.now() + 30 * 60 * 1000;
+        user.resetAttempts = 0;
+        await user.save({ validateBeforeSave: false });
 
         // 3. Define the professional HTML email
         const mailOptions = {
             from: '"Campus Collective Support" <no-reply@mycampuscollective.me>',
-            to: email,
+            to: user.email,
             subject: "Password Reset Verification Code",
             html: `
             <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #f8fafc;">
@@ -799,40 +806,59 @@ router.post('/forgot-password', async (req, res) => {
             </div>`
         };
 
-        await transporter.sendMail(mailOptions);
-        res.json({ message: "Verification code sent to your email!" });
-
+        try {
+            await transporter.sendMail(mailOptions);
+        } catch (mailErr) {
+            logger.error('reset e-mail failed', logger.errMeta(mailErr));
+            return res.status(500).json({ message: "An error occurred while sending the email." });
+        }
+        res.json(generic);
     } catch (err) {
-        console.error("FORGOT PASSWORD ERROR:", err.message);
+        logger.error('forgot-password failed', { reqId: req.id, ...logger.errMeta(err) });
         res.status(500).json({ message: "An error occurred while sending the email." });
     }
 });
 
 /**
  * @route   POST /api/auth/reset-password
- * @desc    Verify code and update the password (THIS WAS MISSING!)
+ * @desc    Verify the e-mailed code and update the password
  */
 router.post('/reset-password', async (req, res) => {
-    const { email, code, newPassword } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+    const code = typeof req.body.code === 'string' || typeof req.body.code === 'number' ? String(req.body.code).trim() : '';
+    const newPassword = req.body.newPassword;
+    const BAD = { message: "Invalid or expired verification code." };
     try {
-        const user = await User.findOne({ email }) || 
-                     await Agent.findOne({ email }) || 
-                     await Seller.findOne({ email });
+        if (!email || !code) return res.status(400).json(BAD);
+        if (typeof newPassword !== 'string' || newPassword.length < 8 || newPassword.length > 128) {
+            return res.status(400).json({ message: 'Password must be between 8 and 128 characters.' });
+        }
+        const codeHash = crypto.createHash('sha256').update(code).digest('hex');
 
-        if (!user) return res.status(404).json({ message: "User not found." });
+        // The account that actually holds this (unexpired) code - an e-mail can exist in more than one collection
+        let user = null;
+        for (const Model of [User, Agent, Seller]) {
+            const candidate = await Model.findOne({ email, resetCodeExpire: { $gt: new Date() } });
+            if (!candidate || !candidate.resetCode) continue;
+            if ((candidate.resetAttempts || 0) >= 5) continue;
+            const a = Buffer.from(candidate.resetCode), b = Buffer.from(codeHash);
+            if (a.length === b.length && crypto.timingSafeEqual(a, b)) { user = candidate; break; }
+            await Model.updateOne({ _id: candidate._id }, { $inc: { resetAttempts: 1 } });
+        }
+        if (!user) return res.status(400).json(BAD);
 
-        // Logic for code verification...
-
-        // Simply set the plain text password here. 
-        // user.save() will trigger the hashing middleware in User.js/Agent.js/Seller.js
-        user.password = newPassword; 
-        
+        // Plain password: the model's pre-save hook hashes it once
+        user.password = newPassword;
         user.resetCode = undefined;
         user.resetCodeExpire = undefined;
+        user.resetAttempts = 0;
+        if ('mustChangePassword' in user.schema.paths) user.mustChangePassword = false;
         await user.save();
+        await revokeAllForUser(user._id, user.role || (user.constructor.modelName === 'Seller' ? 'seller' : 'Customer'), 'password_reset');
 
         res.json({ message: "Password updated successfully!" });
     } catch (err) {
+        logger.error('reset-password failed', { reqId: req.id, ...logger.errMeta(err) });
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -911,11 +937,12 @@ router.delete('/recruit/:id', auth, async (req, res) => {
         }
 
         // Security: Ensure only the agent who created it (or an Admin) can delete it
-        if (recruit.agent.toString() !== req.user.id && req.user.role !== 'Admin') {
-            return res.status(401).json({ message: 'User not authorized to delete this record' });
+        if (String(recruit.agent || '') !== String(req.user.id) && req.user.role !== 'Admin') {
+            return res.status(403).json({ message: 'User not authorized to delete this record' });
         }
 
         await recruit.deleteOne();
+        await releaseRoom(recruit.roomReservation);
         res.json({ message: 'Recruit removed successfully' });
     } catch (err) {
         console.error(err.message);
@@ -926,7 +953,8 @@ router.delete('/recruit/:id', auth, async (req, res) => {
 // --- DELETE RECRUIT ROUTE ---
 router.delete('/delete-recruit/:id', auth, hasRole(['Admin']), async (req, res) => {
     try {
-        await Recruit.findByIdAndDelete(req.params.id);
+        const removed = await Recruit.findByIdAndDelete(req.params.id);
+        if (removed) await releaseRoom(removed.roomReservation);
         res.json({ message: "Recruit deleted successfully" });
     } catch (err) {
         res.status(500).json({ message: "Server Error" });
@@ -948,6 +976,7 @@ router.post('/update-status', auth, hasRole(['Admin']), async (req, res) => {
         }
 
         // Update the fields
+        const wasCancelled = recruit.status === 'Cancelled';
         recruit.status = status;
         
         // If price was sent from the prompt, save it as the commission
@@ -956,6 +985,7 @@ router.post('/update-status', auth, hasRole(['Admin']), async (req, res) => {
         }
 
         await recruit.save();
+        if (status === 'Cancelled' && !wasCancelled) await releaseRoom(recruit.roomReservation);
         res.json({ message: 'Status updated successfully', recruit });
     } catch (err) {
         console.error("UPDATE STATUS ERROR:", err.message);
@@ -978,8 +1008,8 @@ router.put('/recruit/:id', auth, async (req, res) => {
         }
 
         // Security Check
-        if (recruit.agent.toString() !== req.user.id && req.user.role !== 'Admin') {
-            return res.status(401).json({ message: 'User not authorized' });
+        if (String(recruit.agent || '') !== String(req.user.id) && req.user.role !== 'Admin') {
+            return res.status(403).json({ message: 'User not authorized' });
         }
 
         // Update fields
@@ -1321,7 +1351,7 @@ router.post('/student-apply', async (req, res) => {
             `
         };
 
-        await transporter.sendMail(mailOptions);
+        mailer_.sendMailBackground(mailOptions, 'student-apply confirmation e-mail');
 
         res.status(201).json({ message: "Application submitted and confirmation email sent!" });
 
@@ -1332,22 +1362,25 @@ router.post('/student-apply', async (req, res) => {
 });
 
 // Route to toggle room availability
-router.post('/admin/toggle-room/:id', async (req, res) => {
+router.post('/admin/toggle-room/:id', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
     try {
         const { roomType, status } = req.body; // roomType: 'single' or 'shared'
         const update = {};
-        if (roomType === 'single') update.isSingleRoomFull = status;
-        if (roomType === 'shared') update.isSharedRoomFull = status;
+        if (roomType === 'single') update.isSingleRoomFull = status === true || status === 'true';
+        else if (roomType === 'shared') update.isSharedRoomFull = status === true || status === 'true';
+        else return res.status(400).json({ message: "roomType must be 'single' or 'shared'" });
 
-        await Landlord.findByIdAndUpdate(req.params.id, update);
+        const updated = await Landlord.findByIdAndUpdate(req.params.id, update, { new: true });
+        if (!updated) return res.status(404).json({ message: 'Accommodation not found' });
         res.json({ message: "Availability updated" });
     } catch (err) {
-        res.status(500).send(err);
+        console.error('toggle-room failed:', err.message);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 
 // 3. ADMIN: FETCH ALL LANDLORDS (For your Tracker)
-router.get('/admin/landlords', async (req, res) => {
+router.get('/admin/landlords', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
     try {
         const data = await Landlord.find().sort({ createdAt: -1 });
         res.json(data);
@@ -1356,8 +1389,27 @@ router.get('/admin/landlords', async (req, res) => {
     }
 });
 
+// PUBLIC: availability flags only (used by apply.html). No personal data.
+router.get('/availability', async (req, res) => {
+    try {
+        const name = typeof req.query.name === 'string' ? req.query.name.trim().slice(0, 200) : '';
+        if (!name) return res.status(400).json({ message: 'name is required' });
+        const l = await Landlord.findOne({ accommodationName: name }).select('accommodationName isSingleRoomFull isSharedRoomFull singleRoomsAvailable sharedRoomsAvailable').lean();
+        if (!l) return res.json({ found: false, isSingleRoomFull: false, isSharedRoomFull: false });
+        res.json({
+            found: true,
+            accommodationName: l.accommodationName,
+            isSingleRoomFull: !!l.isSingleRoomFull || l.singleRoomsAvailable === 0,
+            isSharedRoomFull: !!l.isSharedRoomFull || l.sharedRoomsAvailable === 0
+        });
+    } catch (err) {
+        console.error('availability failed:', err.message);
+        res.status(500).json({ message: 'Error' });
+    }
+});
+
 // 4. ADMIN: FETCH ALL STUDENTS (For your Tracker)
-router.get('/admin/students', async (req, res) => {
+router.get('/admin/students', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
     try {
         const data = await Student.find().sort({ createdAt: -1 });
         res.json(data);
@@ -1376,7 +1428,7 @@ const RoomCheck = require('../models/RoomCheck');
  * @route   POST /api/room-check/submit
  * @desc    Save a new room inspection to the database
  */
-router.post('/room-check/submit', async (req, res) => {
+router.post('/room-check/submit', auth, hasRole(['Admin', 'RestrictedAdmin', 'Agent']), async (req, res) => {
     try {
         const newCheck = new RoomCheck(req.body);
         await newCheck.save();
@@ -1398,7 +1450,7 @@ router.post('/room-check/submit', async (req, res) => {
  * @route   GET /api/room-check/all
  * @desc    Fetch all inspections for the tracker and spreadsheet
  */
-router.get('/room-check/all', async (req, res) => {
+router.get('/room-check/all', auth, hasRole(['Admin', 'RestrictedAdmin', 'Agent']), async (req, res) => {
     try {
         // Sorts by newest date first, then by room number
         const data = await RoomCheck.find().sort({ inspectionDate: -1, roomNumber: 1 });
@@ -1433,6 +1485,12 @@ router.post('/save-signature', async (req, res) => {
     const { ownerId, ownerType, signatureData, purpose } = req.body;
 
     try {
+        if (typeof signatureData !== 'string' || !signatureData.startsWith('data:image/') || signatureData.length > 1500000) {
+            return res.status(400).json({ message: 'A valid signature image is required.' });
+        }
+        if ((ownerId !== undefined && typeof ownerId !== 'string') || (ownerType !== undefined && typeof ownerType !== 'string') || (purpose !== undefined && typeof purpose !== 'string')) {
+            return res.status(400).json({ message: 'Invalid input.' });
+        }
         const newSignature = new Signature({
             ownerId,
             ownerModel: ownerType, // e.g., 'Student'
@@ -1453,7 +1511,7 @@ router.post('/save-signature', async (req, res) => {
     }
 });
 
-router.get('/signatures/all', auth, async (req, res) => {
+router.get('/signatures/all', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
     try {
         const signatures = await Signature.find().sort({ createdAt: -1 });
         res.json(signatures);
@@ -1466,7 +1524,7 @@ router.get('/signatures/all', auth, async (req, res) => {
  * @route   GET /api/auth/signatures/:ownerId
  * @desc    Fetch all signatures associated with a specific ID
  */
-router.get('/signatures/:ownerId', async (req, res) => {
+router.get('/signatures/:ownerId', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
     try {
         const signatures = await Signature.find({ ownerId: req.params.ownerId })
             .sort({ createdAt: -1 }); // Newest first
@@ -1484,7 +1542,7 @@ router.get('/signatures/:ownerId', async (req, res) => {
 
 const Assistance = require('../models/Assistance');
 
-router.get('/admin/assistance', async (req, res) => {
+router.get('/admin/assistance', auth, hasRole(['Admin', 'RestrictedAdmin']), async (req, res) => {
     try {
         const data = await Assistance.find().sort({ submittedAt: -1 });
         res.json(data);
@@ -1501,13 +1559,7 @@ router.post('/submit-assistance', async (req, res) => {
         await newApp.save();
 
         // 2. Setup Email Transporter (Use your SMTP details)
-        const transporter = nodemailer.createTransport({
-            service: 'gmail', // or your host
-            auth: {
-                user: 'your-system-email@gmail.com',
-                pass: 'your-app-password'
-            }
-        });
+        const transporter = { sendMail: (opts) => mailer_.sendMail(opts) };
 
         // 3. Create Tabulated Email Content
         const emailContent = `
@@ -1540,210 +1592,190 @@ router.post('/submit-assistance', async (req, res) => {
 });
 
 // ========================================================================
-// 🏆 NEW: ACCOMMODATION APPLICATION → RECRUIT CONVERSION
+// ACCOMMODATION APPLICATION -> RECRUIT CONVERSION
 // ========================================================================
+// ------------------------------------------------------------------------
+// Application helpers (validation, e-mail templates)
+// ------------------------------------------------------------------------
+const crypto_ = require('crypto');
+
+const escHtml = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const str = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : (typeof v === 'number' ? String(v) : ''));
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Postgraduate'];
+const FUNDING = ['NSFAS', 'Bursary', 'Self-Funded'];
+
+const normaliseInstitution = (text) => {
+    const t = String(text || '').toLowerCase();
+    if (/\bump\b|mpumalanga/.test(t)) return 'UMP';
+    if (/\btut\b|tshwane/.test(t)) return 'TUT';
+    if (/\bvut\b|vaal/.test(t)) return 'VUT';
+    return 'Other';
+};
+
+const applicationRow = (k, v) => `<tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">${escHtml(k)}</td><td style="padding: 10px; border: 1px solid #ddd;">${escHtml(v)}</td></tr>`;
+const emailShell = (title, body) => `
+    <div style="max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+        <div style="background-color: #2563eb; padding: 20px; text-align: center;"><h1 style="color: white; margin: 0;">${escHtml(title)}</h1></div>
+        <div style="padding: 30px; color: #334155; line-height: 1.6;">${body}</div>
+    </div>`;
+const tableHead = '<tr style="background-color: #2563eb; color: white;"><th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Field</th><th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Details</th></tr>';
+
+function validateApplication(body) {
+    const b = body || {};
+    const d = {
+        studentName: str(b.studentName, 100), studentSurname: str(b.studentSurname, 100),
+        studentEmail: str(b.studentEmail, 150).toLowerCase(), studentPhone: str(b.studentPhone, 30),
+        gender: str(b.gender, 30), studentNumber: str(b.studentNumber, 40),
+        institutionName: str(b.institution, 150), accommodation: str(b.accommodation, 200),
+        referencedBy: str(b.referencedBy, 150), funding: str(b.funding, 30), bursaryName: str(b.bursaryName, 150),
+        yearOfStudy: str(b.yearOfStudy, 30), roomType: str(b.roomType, 20), nsfasStatus: str(b.nsfasStatus, 60),
+    };
+    if (!d.studentName || !d.studentSurname || !d.studentEmail || !d.studentPhone || !d.accommodation || !b.moveInDate) {
+        return { error: 'All student details are required (name, surname, email, phone, accommodation, move-in date)' };
+    }
+    if (!EMAIL_RE.test(d.studentEmail)) return { error: 'Please enter a valid email address.' };
+    if (d.studentPhone.replace(/\D/g, '').length < 9) return { error: 'Please enter a valid phone number.' };
+    const when = new Date(typeof b.moveInDate === 'string' ? b.moveInDate : NaN);
+    if (isNaN(when.getTime()) || when.getFullYear() < 2000 || when.getFullYear() > 2100) return { error: 'Please enter a valid move-in date.' };
+    d.moveInDate = when;
+    if (d.roomType && !['Single', 'Sharing'].includes(d.roomType)) return { error: 'Invalid room type.' };
+    if (d.funding && !FUNDING.includes(d.funding)) return { error: 'Invalid funding type.' };
+    if (d.yearOfStudy && !YEARS.includes(d.yearOfStudy)) return { error: 'Invalid year of study.' };
+    if (d.funding === 'NSFAS' && b.nsfasStatus !== undefined && !d.nsfasStatus) return { error: 'Please select your NSFAS status.' };
+    if (d.funding === 'Bursary' && b.bursaryName !== undefined && !d.bursaryName) return { error: 'Please enter your bursary provider.' };
+    d.institution = normaliseInstitution(d.institutionName);
+    return { data: d };
+}
+
+const publicApplication = (r) => ({
+    _id: r._id, status: r.status, accommodation: r.accommodation, roomType: r.roomType || '',
+    moveInDate: r.moveInDate, createdAt: r.createdAt,
+});
+
 /**
  * @route   POST /api/auth/apply-for-accommodation
  * @desc    Student submits accommodation application - links to agent by reference
  * @access  Public
+ * Success is only reported after the application is stored in MongoDB. E-mails are sent in the background.
  */
 router.post('/apply-for-accommodation', async (req, res) => {
+    const v = validateApplication(req.body);
+    if (v.error) return res.status(400).json({ success: false, message: v.error });
+    const d = v.data;
+    let reservation = null;
+
     try {
-        const {
-            studentName,
-            studentSurname,
-            studentEmail,
-            studentPhone,
-            gender,
-            studentNumber,
-            institution,
-            accommodation,
-            moveInDate,
-            referencedBy,
-            funding,
-            bursaryName
-        } = req.body;
-
-        // Validate required fields
-        if (!studentName || !studentSurname || !studentEmail || !studentPhone || !accommodation || !moveInDate) {
-            return res.status(400).json({
-                message: 'All student details are required (name, surname, email, phone, accommodation, move-in date)'
-            });
-        }
-
-        // Get the current active season - REQUIRED
-        const Season = require('../models/Season');
         const activeSeason = await Season.findOne({ isActive: true });
-
         if (!activeSeason) {
-            return res.status(400).json({
-                message: 'No active recruitment season at this time. Please contact admin.'
-            });
+            return res.status(400).json({ success: false, message: 'No active recruitment season at this time. Please contact admin.' });
         }
 
-        let linkedAgent = null;
-        let referencedByAgentId = null;
-
-        // Typo-tolerant referral matching. Low-confidence/ambiguous references
-        // remain unassigned for admin review rather than being guessed.
-        let referralMatch = null;
-        if (referencedBy && referencedBy.trim()) {
-            referralMatch = await findReferralAgent(referencedBy.trim());
-            if (referralMatch.agent) {
-                linkedAgent = referralMatch.agent._id;
-                referencedByAgentId = referralMatch.agent._id;
-            }
+        // Idempotency: the same student/season/accommodation maps to the same key (double-click, retry, slow network)
+        const dedupeKey = crypto_.createHash('sha256').update(`${d.studentEmail}|${activeSeason._id}|${d.accommodation.toLowerCase()}`).digest('hex');
+        const existing = await Recruit.findOne({ dedupeKey }).select('status accommodation roomType moveInDate createdAt');
+        if (existing) {
+            return res.status(200).json({ success: true, duplicate: true, message: 'Your application was already received.', recruit: publicApplication(existing), season: { name: activeSeason.name }, agentLinked: false });
         }
 
-        // Create the recruit record
+        // Referral matching (typo tolerant; ambiguous references stay unassigned for admin review)
+        let linkedAgentDoc = null;
+        if (d.referencedBy) {
+            const match = await findReferralAgent(d.referencedBy);
+            if (match.agent) linkedAgentDoc = match.agent;
+        }
+
+        // Atomic room reservation: the last room can only be taken by one applicant
+        const room = await reserveRoom(d.accommodation, d.roomType);
+        if (!room.ok) {
+            return res.status(409).json({ success: false, code: 'ROOM_FULL', message: `${d.roomType === 'Single' ? 'Single' : 'Sharing'} rooms at ${d.accommodation} are currently full. Please choose another room type or accommodation.` });
+        }
+        reservation = room.reservation;
+
         const newRecruit = new Recruit({
-            studentName: studentName.trim(),
-            studentSurname: studentSurname.trim(),
-            studentEmail: studentEmail.toLowerCase(),
-            studentPhone: studentPhone.trim(),
-            gender: gender ? gender.trim() : '',
-            studentNumber: studentNumber || '',
-            institution: institution || '',
-            accommodation: accommodation.trim(),
-            moveInDate: new Date(moveInDate),
-            agent: linkedAgent,
-            agentId: linkedAgent ? (await Agent.findById(linkedAgent)).agentId : '',
-            season: activeSeason._id,
-            seasonName: activeSeason.name,
-            referencedByName: referencedBy ? referencedBy.trim() : '',
-            referencedByAgentId: referencedByAgentId,
-            funding: funding || '',
-            bursaryName: bursaryName || '',
-            status: 'Pending',
-            commissionEarned: 0,
-            commissionRate: 150
+            studentName: d.studentName, studentSurname: d.studentSurname, studentEmail: d.studentEmail, studentPhone: d.studentPhone,
+            gender: d.gender, studentNumber: d.studentNumber, institution: d.institution, institutionName: d.institutionName,
+            accommodation: d.accommodation, moveInDate: d.moveInDate,
+            yearOfStudy: d.yearOfStudy, roomType: d.roomType, nsfasStatus: d.nsfasStatus,
+            funding: d.funding, bursaryName: d.bursaryName,
+            agent: linkedAgentDoc ? linkedAgentDoc._id : null,
+            agentId: linkedAgentDoc ? (linkedAgentDoc.agentId || '') : '',
+            season: activeSeason._id, seasonName: activeSeason.name,
+            referencedByName: d.referencedBy, referencedByAgentId: linkedAgentDoc ? linkedAgentDoc._id : undefined,
+            roomReservation: reservation || undefined, dedupeKey,
+            status: 'Pending', commissionEarned: 0, commissionRate: 150,
         });
-
-        await newRecruit.save();
-
-        // Update season statistics
-        await Season.findByIdAndUpdate(activeSeason._id, {
-            $inc: { totalRecruits: 1, pendingRecruits: 1 }
-        });
-
-        // Send confirmation email to student
-        const confirmationEmail = `
-            <div style="max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
-                <div style="background-color: #2563eb; padding: 20px; text-align: center;">
-                    <h1 style="color: white; margin: 0;">Application Confirmed!</h1>
-                </div>
-                <div style="padding: 30px; color: #334155; line-height: 1.6;">
-                    <p>Hello <strong>${studentName} ${studentSurname}</strong>,</p>
-                    <p>Thank you for your accommodation application with Campus Collective. We have successfully received and recorded your application.</p>
-
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-family: Arial, sans-serif;">
-                        <tr style="background-color: #2563eb; color: white;">
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Field</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Details</th>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Accommodation</td>
-                            <td style="padding: 10px; border: 1px solid #ddd;">${accommodation}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Move-in Date</td>
-                            <td style="padding: 10px; border: 1px solid #ddd;">${new Date(moveInDate).toLocaleDateString()}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Recruitment Season</td>
-                            <td style="padding: 10px; border: 1px solid #ddd;">${activeSeason.name}</td>
-                        </tr>
-                        ${linkedAgent ? `<tr>
-                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Referred By Agent</td>
-                            <td style="padding: 10px; border: 1px solid #ddd;">${referencedBy}</td>
-                        </tr>` : ''}
-                    </table>
-
-                    <p style="margin-top: 20px;">Your application is being reviewed and you will be contacted within 24-48 hours with updates.</p>
-                    <p style="color: #666; font-size: 12px; margin-top: 20px;">Campus Collective Management System</p>
-                </div>
-            </div>
-        `;
 
         try {
-            await transporter.sendMail({
-                from: '"Campus Collective" <no-reply@mycampuscollective.me>',
-                to: studentEmail,
-                subject: 'Application Received - Campus Collective Accommodation',
-                html: confirmationEmail
-            });
-        } catch (emailErr) {
-            console.error('Email send error:', emailErr);
-            // Don't fail the request if email fails
-        }
-
-        // If agent was linked, send them a notification
-        if (linkedAgent) {
-            try {
-                const agent = await Agent.findById(linkedAgent);
-                const agentEmail = `
-                    <div style="max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
-                        <div style="background-color: #2563eb; padding: 20px; text-align: center;">
-                            <h1 style="color: white; margin: 0;">New Recruit Referral</h1>
-                        </div>
-                        <div style="padding: 30px; color: #334155; line-height: 1.6;">
-                            <p>Hello <strong>${agent.fullName}</strong>,</p>
-                            <p>A student has applied using your name as a reference! Here are the details:</p>
-
-                            <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-family: Arial, sans-serif;">
-                                <tr style="background-color: #2563eb; color: white;">
-                                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Field</th>
-                                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Details</th>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Student Name</td>
-                                    <td style="padding: 10px; border: 1px solid #ddd;">${studentName} ${studentSurname}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Accommodation</td>
-                                    <td style="padding: 10px; border: 1px solid #ddd;">${accommodation}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Status</td>
-                                    <td style="padding: 10px; border: 1px solid #ddd;">Pending Review</td>
-                                </tr>
-                            </table>
-
-                            <p style="margin-top: 20px;">Check your agent dashboard for more details.</p>
-                        </div>
-                    </div>
-                `;
-
-                await transporter.sendMail({
-                    from: '"Campus Collective" <no-reply@mycampuscollective.me>',
-                    to: agent.email,
-                    subject: 'New Recruit Referral - Check Your Dashboard',
-                    html: agentEmail
-                });
-            } catch (agentEmailErr) {
-                console.error('Agent email error:', agentEmailErr);
+            await newRecruit.save();
+        } catch (saveErr) {
+            await releaseRoom(reservation);
+            reservation = null;
+            if (saveErr && saveErr.code === 11000) {   // a concurrent identical submission won the race
+                const winner = await Recruit.findOne({ dedupeKey }).select('status accommodation roomType moveInDate createdAt');
+                if (winner) return res.status(200).json({ success: true, duplicate: true, message: 'Your application was already received.', recruit: publicApplication(winner), season: { name: activeSeason.name }, agentLinked: false });
             }
+            throw saveErr;
         }
 
-        res.status(201).json({
-            message: 'Application submitted successfully!',
-            recruit: newRecruit,
-            season: activeSeason,
-            agentLinked: !!linkedAgent
-        });
+        // Season counters are statistics only; a failure here must not fail a saved application
+        Season.findByIdAndUpdate(activeSeason._id, { $inc: { totalRecruits: 1, pendingRecruits: 1 } })
+            .catch(e => logger.warn('season counter update failed', logger.errMeta(e)));
 
+        // E-mails never delay or fail the response
+        mailer_.sendMailBackground({
+            from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+            to: d.studentEmail,
+            subject: 'Application Received - Campus Collective Accommodation',
+            html: emailShell('Application Confirmed!', `
+                <p>Hello <strong>${escHtml(d.studentName)} ${escHtml(d.studentSurname)}</strong>,</p>
+                <p>Thank you for your accommodation application with Campus Collective. We have successfully received and recorded your application.</p>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-family: Arial, sans-serif;">${tableHead}
+                    ${applicationRow('Accommodation', d.accommodation)}
+                    ${d.roomType ? applicationRow('Room Type', d.roomType) : ''}
+                    ${applicationRow('Move-in Date', d.moveInDate.toLocaleDateString('en-ZA'))}
+                    ${applicationRow('Recruitment Season', activeSeason.name)}
+                    ${linkedAgentDoc ? applicationRow('Referred By Agent', d.referencedBy) : ''}
+                </table>
+                <p style="margin-top: 20px;">Your application is being reviewed and you will be contacted within 24-48 hours with updates.</p>
+                <p style="color: #666; font-size: 12px; margin-top: 20px;">Campus Collective Management System</p>`)
+        }, 'student confirmation e-mail');
+
+        if (linkedAgentDoc && linkedAgentDoc.email) {
+            mailer_.sendMailBackground({
+                from: '"Campus Collective" <no-reply@mycampuscollective.me>',
+                to: linkedAgentDoc.email,
+                subject: 'New Recruit Referral - Check Your Dashboard',
+                html: emailShell('New Recruit Referral', `
+                    <p>Hello <strong>${escHtml(linkedAgentDoc.fullName)}</strong>,</p>
+                    <p>A student has applied using your name as a reference! Here are the details:</p>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-family: Arial, sans-serif;">${tableHead}
+                        ${applicationRow('Student Name', d.studentName + ' ' + d.studentSurname)}
+                        ${applicationRow('Accommodation', d.accommodation)}
+                        ${applicationRow('Status', 'Pending Review')}
+                    </table>
+                    <p style="margin-top: 20px;">Check your agent dashboard for more details.</p>`)
+            }, 'agent referral e-mail');
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: 'Application submitted successfully!',
+            recruit: publicApplication(newRecruit),
+            season: { name: activeSeason.name },
+            agentLinked: !!linkedAgentDoc,
+        });
     } catch (err) {
-        console.error('Apply for Accommodation Error:', err.message);
-        res.status(500).json({ message: 'Server error: ' + err.message });
+        if (reservation) await releaseRoom(reservation);
+        logger.error('apply-for-accommodation failed', { reqId: req.id, ...logger.errMeta(err) });
+        const dbDown = err && (err.name === 'MongoNetworkError' || err.name === 'MongooseServerSelectionError' || /buffering timed out|ECONNREFUSED|server selection/i.test(err.message || ''));
+        return res.status(dbDown ? 503 : 500).json({ success: false, message: 'We could not save your application. Please try again in a moment.' });
     }
 });
 
 // =========================================================================
 // FORM & REGISTRATION EMAIL OTP VERIFICATION SYSTEM
 // =========================================================================
-
-// Temporary storage for form/registration OTP codes
-const formEmailOtpStore = new Map();
 
 /**
  * @route   POST /api/auth/send-form-email-otp
@@ -1752,17 +1784,21 @@ const formEmailOtpStore = new Map();
 router.post('/send-form-email-otp', async (req, res) => {
     const { email } = req.body;
     
-    if (!email) {
+    if (!email || typeof email !== 'string') {
         return res.status(400).json({ message: 'Email address is required.' });
     }
 
     try {
         // 1. Generate 6-digit verification code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = Date.now() + 10 * 60 * 1000; // Expires in 10 minutes
+        const code = String(crypto.randomInt(100000, 1000000));
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // Expires in 10 minutes
 
-        // 2. Save to temporary store
-        formEmailOtpStore.set(email.toLowerCase().trim(), { code, expiresAt });
+        // 2. Save (hashed) to MongoDB so it works across instances/restarts
+        await FormOtp.findOneAndUpdate(
+            { email: String(email).toLowerCase().trim() },
+            { codeHash: crypto.createHash('sha256').update(code).digest('hex'), attempts: 0, expiresAt },
+            { upsert: true, new: true }
+        );
 
         // 3. Define the professional HTML email using your existing no-reply address
         const mailOptions = {
@@ -1808,32 +1844,37 @@ router.post('/send-form-email-otp', async (req, res) => {
  * @route   POST /api/auth/verify-form-email-otp
  * @desc    Verifies the OTP code entered by the user
  */
-router.post('/verify-form-email-otp', (req, res) => {
+router.post('/verify-form-email-otp', async (req, res) => {
     const { email, code } = req.body;
-    const cleanEmail = email?.toLowerCase().trim();
+    const cleanEmail = typeof email === 'string' ? email.toLowerCase().trim() : '';
+    const cleanCode = (typeof code === 'string' || typeof code === 'number') ? String(code).trim() : '';
 
-    if (!cleanEmail || !code) {
+    if (!cleanEmail || !cleanCode) {
         return res.status(400).json({ message: 'Email and verification code are required.' });
     }
 
-    const record = formEmailOtpStore.get(cleanEmail);
-
-    if (!record) {
-        return res.status(400).json({ message: 'Verification code not requested or has expired.' });
+    try {
+        const record = await FormOtp.findOne({ email: cleanEmail });
+        if (!record || record.expiresAt < new Date()) {
+            return res.status(400).json({ message: 'Verification code not requested or has expired.' });
+        }
+        if (record.attempts >= 5) {
+            await FormOtp.deleteOne({ _id: record._id });
+            return res.status(400).json({ message: 'Too many incorrect attempts. Please request a new code.' });
+        }
+        const given = Buffer.from(crypto.createHash('sha256').update(cleanCode).digest('hex'));
+        const stored = Buffer.from(record.codeHash);
+        if (given.length !== stored.length || !crypto.timingSafeEqual(given, stored)) {
+            await FormOtp.updateOne({ _id: record._id }, { $inc: { attempts: 1 } });
+            return res.status(400).json({ message: 'Invalid verification code.' });
+        }
+        // Code is correct, remove it so it cannot be reused
+        await FormOtp.deleteOne({ _id: record._id });
+        res.json({ success: true, message: 'Email verified successfully!' });
+    } catch (err) {
+        logger.error('verify-form-email-otp failed', { reqId: req.id, ...logger.errMeta(err) });
+        res.status(500).json({ message: 'Server error while verifying the code.' });
     }
-
-    if (Date.now() > record.expiresAt) {
-        formEmailOtpStore.delete(cleanEmail);
-        return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
-    }
-
-    if (record.code !== code.trim()) {
-        return res.status(400).json({ message: 'Invalid verification code.' });
-    }
-
-    // Code is correct, remove it from store so it cannot be reused
-    formEmailOtpStore.delete(cleanEmail);
-    res.json({ success: true, message: 'Email verified successfully!' });
 });
 
 // Middleware to check if seller account is approved by admin
@@ -1884,7 +1925,7 @@ router.post('/create', auth, requireApprovedSeller, async (req, res) => {
 });
 
 // POST /api/admin/approve-seller/:id
-router.post('/admin/approve-seller/:id', async (req, res) => {
+router.post('/admin/approve-seller/:id', auth, hasRole(['Admin']), async (req, res) => {
     try {
         const sellerId = req.params.id;
 

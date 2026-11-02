@@ -80,6 +80,18 @@ const RecruitSchema = new mongoose.Schema({
         default: '',
         trim: true
     },
+    // Free-text institution exactly as the student typed it (the enum above only holds the normalised value)
+    institutionName: { type: String, default: '', trim: true },
+    yearOfStudy: { type: String, default: '', trim: true },
+    roomType: { type: String, enum: ['', 'Single', 'Sharing'], default: '' },
+    nsfasStatus: { type: String, default: '', trim: true },
+    // Room reserved for this application (released again if the application is cancelled or removed)
+    roomReservation: {
+        landlord: { type: mongoose.Schema.Types.ObjectId, ref: 'Landlord' },
+        field: { type: String }
+    },
+    // sha256(email|season|accommodation) - makes repeat submissions (double click / retry) idempotent
+    dedupeKey: { type: String },
     moveInDate: {
         type: Date,
         required: true
@@ -115,5 +127,10 @@ const RecruitSchema = new mongoose.Schema({
     default: 150
 }
 });
+
+RecruitSchema.index({ dedupeKey: 1 }, { unique: true, sparse: true });
+RecruitSchema.index({ agent: 1, createdAt: -1 });
+RecruitSchema.index({ season: 1, status: 1 });
+RecruitSchema.index({ studentEmail: 1 });
 
 module.exports = mongoose.model('Recruit', RecruitSchema);

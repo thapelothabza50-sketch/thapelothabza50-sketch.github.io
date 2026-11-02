@@ -1,35 +1,71 @@
-// db.js (FINAL & CORRECTED)
-
-// 1. Load environment variables from the .env file
-require('dotenv').config(); 
+// db.js - MongoDB connection with sane pool/timeouts, event logging and bounded start-up retries.
+require('dotenv').config();
 const mongoose = require('mongoose');
+const logger = require('./lib/logger');
 
-// 2. Access the connection string securely from the environment
-const dbURI = process.env.MONGODB_URI; 
+const num = (v, d) => (Number.isFinite(parseInt(v, 10)) ? parseInt(v, 10) : d);
+
+function connectionOptions() {
+    return {
+        // Pool is per server instance. Total = instances x maxPoolSize must stay below the cluster's connection limit
+        // (Atlas M0 = 500). 20 comfortably serves 1,000 concurrent applicants because each request holds a connection
+        // for only a few milliseconds. Tune with MONGO_MAX_POOL_SIZE after measuring.
+        maxPoolSize: num(process.env.MONGO_MAX_POOL_SIZE, 20),
+        minPoolSize: num(process.env.MONGO_MIN_POOL_SIZE, 2),
+        maxIdleTimeMS: 60000,
+        serverSelectionTimeoutMS: num(process.env.MONGO_SERVER_SELECTION_MS, 8000),
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+        bufferTimeoutMS: 5000,       // fail fast instead of hanging requests when the DB is unreachable
+        heartbeatFrequencyMS: 10000,
+    };
+}
+
+let listenersAttached = false;
+function attachListeners() {
+    if (listenersAttached) return;
+    listenersAttached = true;
+    const c = mongoose.connection;
+    c.on('connected', () => logger.info('mongodb connected'));
+    c.on('disconnected', () => logger.warn('mongodb disconnected (driver will keep trying to reconnect)'));
+    c.on('reconnected', () => logger.info('mongodb reconnected'));
+    c.on('error', (err) => logger.error('mongodb connection error', logger.errMeta(err)));
+}
+
+const isReady = () => mongoose.connection.readyState === 1;
+
+async function ping(timeoutMs = 2000) {
+    if (!isReady()) return false;
+    try {
+        await Promise.race([
+            mongoose.connection.db.admin().ping(),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('ping timeout')), timeoutMs)),
+        ]);
+        return true;
+    } catch (_) { return false; }
+}
 
 const connectDB = async () => {
-    // Check if the URI was loaded successfully
-    if (!dbURI) {
-        console.error("❌ MONGODB_URI not defined in .env file!");
-        process.exit(1);
+    const dbURI = process.env.MONGODB_URI;
+    if (!dbURI) throw new Error('MONGODB_URI is not defined');
+    attachListeners();
+    const attempts = num(process.env.MONGO_CONNECT_ATTEMPTS, 4);
+    let lastErr;
+    for (let i = 1; i <= attempts; i++) {
+        try {
+            await mongoose.connect(dbURI, connectionOptions());
+            logger.info('mongodb connection successful', { db: mongoose.connection.name });
+            return;
+        } catch (err) {
+            lastErr = err;
+            logger.error(`mongodb connection attempt ${i}/${attempts} failed`, logger.errMeta(err));
+            if (i < attempts) await new Promise(r => setTimeout(r, 1500 * i));
+        }
     }
+    throw lastErr; // caller decides (server.js exits non-zero so Azure restarts the instance)
+};
 
-    try {
-        // 3. Connect to MongoDB using Mongoose
-        // CRITICAL FIX: Increase Mongoose timeouts for better stability
-        await mongoose.connect(dbURI);
-        
-        // Use the connection object to confirm success
-        const dbName = mongoose.connection.name;
-        console.log(`✅ MongoDB connection successful! Connected to database: ${dbName}`);
-        
-    } catch (error) {
-        console.error('❌ MongoDB connection failed:', error.message);
-        // Exit process with failure
-        process.exit(1); 
-    }
-    
-}; // <--- THIS IS THE MISSING BRACE THAT CAUSED THE ERROR!
-
-// 4. Export the connection function to be used by your main server file
 module.exports = connectDB;
+module.exports.isReady = isReady;
+module.exports.ping = ping;
+module.exports.disconnect = () => mongoose.connection.close(false);

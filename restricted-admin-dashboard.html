@@ -239,7 +239,16 @@
             return localStorage.getItem('jwtToken');
         }
 
+        async function openPrivateFile(storedPath) {
+            try {
+                const r = await fetch('/api/auth/private-file-link?path=' + encodeURIComponent(storedPath), { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('jwtToken') || '') } });
+                const j = await r.json();
+                if (j.url) window.open(j.url, '_blank'); else alert(j.message || 'Could not open file.');
+            } catch (e) { alert('Could not open file.'); }
+        }
+        
         function logout() {
+        try { fetch('/api/auth/logout', { method: 'POST', keepalive: true, headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('jwtToken') || '') } }); } catch (e) {}
             localStorage.clear();
             window.location.href = 'agent login.html';
         }
@@ -436,7 +445,7 @@
                                 <p class="font-bold text-gray-800">${upload.category}</p>
                                 <p class="text-xs text-gray-500">Uploaded on ${new Date(upload.createdAt).toLocaleDateString()}</p>
                             </div>
-                            <a href="${upload.url}" target="_blank" class="text-blue-600 font-bold text-sm">View</a>
+                            <a href="#" onclick="openPrivateFile('${upload.url}'); return false;" class="text-blue-600 font-bold text-sm">View</a>
                         </div>
                     `).join('');
                 }

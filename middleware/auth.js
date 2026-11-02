@@ -1,62 +1,73 @@
-// middleware/auth.js (FINAL AND CORRECTED VERSION)
+// middleware/auth.js
+// Verifies the JWT signature AND that its server-side session is active AND that the account is still allowed in.
+const { verifyToken, isSessionActive, kindFor, revokeSession } = require('../lib/session');
+const logger = require('../lib/logger');
+const Agent = require('../models/Agent');
+const Seller = require('../models/Seller');
+const User = require('../models/User');
 
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const MODELS = { Agent, Seller, User };
 
-// --------------------------------------------------------
-// 1. Authentication Middleware
-// --------------------------------------------------------
-function auth(req, res, next) {
-    // Safely extract token and remove "Bearer " prefix
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-        return res.status(401).json({ message: 'No token, authorization denied.' });
-    }
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
-        // The decoded payload ({ id: '...', role: '...' }) is assigned directly to req.user.
-        req.user = decoded; 
-        
-        if (!req.user || !req.user.role || !req.user.id) {
-             return res.status(401).json({ message: 'Token is valid, but missing required user details (id or role).' });
-        }
-        
-        next();
-
-    } catch (err) {
-        // Catches invalid signature, expiration, etc.
-        res.status(401).json({ message: 'Token is not valid or has expired.' });
-    }
+function extractToken(req) {
+    const h = req.header('Authorization');
+    if (!h) return null;
+    const m = /^Bearer\s+(\S+)$/i.exec(h.trim());
+    return m ? m[1] : null;
 }
 
+function build({ allowReset }) {
+    return async function authMiddleware(req, res, next) {
+        const token = extractToken(req);
+        if (!token) return res.status(401).json({ message: 'No token, authorization denied.' });
 
-// --------------------------------------------------------
-// 2. Generic Role-Based Access Control Middleware (CASE-INSENSITIVE FIX)
-// --------------------------------------------------------
-function hasRole(requiredRoles) {
-    // Convert the list of required roles to lowercase once
-    const lowerRequiredRoles = requiredRoles.map(role => role.toLowerCase());
-
-    // Return the actual Express middleware function
-    return (req, res, next) => {
-        if (!req.user || !req.user.role) {
-            return res.status(403).json({ message: 'Access denied. User role could not be verified.' });
+        let decoded;
+        try {
+            decoded = verifyToken(token);
+        } catch (err) {
+            return res.status(401).json({ message: 'Token is not valid or has expired.' });
         }
-        
-        // Convert the user's role to lowercase for comparison
-        const userRoleLower = req.user.role.toLowerCase();
-        
-        // Check if the user's lowercase role is in the list of lowercase required roles
-        if (lowerRequiredRoles.includes(userRoleLower)) {
-            next(); // Role is authorized, proceed
-        } else {
-            // 403 Forbidden - Insufficient privileges
-            return res.status(403).json({ message: 'Access denied. Insufficient privileges.' });
+        if (!decoded || !decoded.id || !decoded.role || !decoded.jti) {
+            return res.status(401).json({ message: 'Token is not valid or has expired.' });
+        }
+        if (decoded.scope === 'reset' && !allowReset) {
+            return res.status(403).json({ message: 'Please complete your password setup first.' });
+        }
+
+        try {
+            if (!(await isSessionActive(decoded.jti))) {
+                return res.status(401).json({ message: 'Session has ended. Please log in again.' });
+            }
+            const kind = kindFor(decoded.role);
+            const account = await MODELS[kind].findById(decoded.id).select('role status isDeleted').lean();
+            if (!account || account.isDeleted) {
+                return res.status(401).json({ message: 'Account no longer exists.' });
+            }
+            if (account.status === 'locked') {
+                await revokeSession(decoded.jti, 'account_locked').catch(() => {});
+                return res.status(403).json({ message: 'Your account is locked. Please contact administration.' });
+            }
+            // Role always comes from the database, so demotions/promotions apply immediately.
+            req.user = { ...decoded, role: account.role || decoded.role };
+            next();
+        } catch (err) {
+            logger.error('auth check failed', { reqId: req.id, ...logger.errMeta(err) });
+            res.status(503).json({ message: 'Authentication is temporarily unavailable. Please retry.' });
         }
     };
 }
 
-module.exports = { auth, hasRole };
+const auth = build({ allowReset: false });
+const authAllowReset = build({ allowReset: true });
+
+function hasRole(requiredRoles) {
+    const lowerRequiredRoles = requiredRoles.map(role => role.toLowerCase());
+    return (req, res, next) => {
+        if (!req.user || !req.user.role) {
+            return res.status(403).json({ message: 'Access denied. User role could not be verified.' });
+        }
+        if (lowerRequiredRoles.includes(String(req.user.role).toLowerCase())) return next();
+        return res.status(403).json({ message: 'Access denied. Insufficient privileges.' });
+    };
+}
+
+module.exports = { auth, authAllowReset, hasRole };

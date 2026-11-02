@@ -140,6 +140,7 @@ const data = await res.json();
 
 if (res.ok) {
     // --- FIXED: Save the new user data to localStorage right here ---
+    if (data.token) localStorage.setItem('jwtToken', data.token);
     localStorage.setItem('userData', JSON.stringify(data.user));
     
     alert("✅ Success! Profile activated. Redirecting...");

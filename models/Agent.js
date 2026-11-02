@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const pw = require('../lib/password');
 
 const AgentSchema = new mongoose.Schema({
     agentId: { // Student Number
@@ -77,6 +77,7 @@ const AgentSchema = new mongoose.Schema({
     },
     resetCode: { type: String },
     resetCodeExpire: { type: Date },
+    resetAttempts: { type: Number, default: 0 },
     banking: {
         bankName: { type: String, default: '' },
         accHolder: { type: String, default: '' },
@@ -93,8 +94,7 @@ const AgentSchema = new mongoose.Schema({
 AgentSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
     try {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
+        this.password = await pw.hash(this.password);
         next();
     } catch (err) {
         next(err);
@@ -103,7 +103,7 @@ AgentSchema.pre('save', async function (next) {
 
 // --- HELPER: COMPARE PASSWORD ---
 AgentSchema.methods.comparePassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
+    return await pw.compare(enteredPassword, this.password);
 };
 
 module.exports = mongoose.model('Agent', AgentSchema);

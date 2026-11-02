@@ -856,7 +856,7 @@
                             <p class="font-bold text-gray-800">${upload.category}</p>
                             <p class="text-xs text-gray-500">${upload.institution}</p>
                         </div>
-                        <a href="${upload.url}" target="_blank" class="text-blue-600 text-sm font-bold">View</a>
+                        <a href="#" onclick="openPrivateFile('${upload.url}'); return false;" class="text-blue-600 text-sm font-bold">View</a>
                     </div>
                     <p class="text-xs text-gray-500 mt-2">Uploaded by ${upload.uploadedByName} on ${new Date(upload.createdAt).toLocaleDateString()}</p>
                 </div>
@@ -2318,7 +2318,16 @@ function downloadAccommodationWord(){
     const rows=allRecruits.filter(r=>r.accommodation===selected).map(r=>[`${r.studentName||''} ${r.studentSurname||''}`,r.studentPhone||'N/A',r.accommodation||'',r.agent?.fullName||allUsers.find(u=>u._id===(r.agent?._id||r.agent))?.fullName||'Direct/System',r.status||'Pending',r.createdAt?new Date(r.createdAt).toLocaleDateString():'']);
     downloadWordFile(`${selected.replace(/\s+/g,'_')}_Recruit_List.doc`,`${selected} Recruit List`,rows);
 }
+async function openPrivateFile(storedPath) {
+    try {
+        const r = await fetch('/api/auth/private-file-link?path=' + encodeURIComponent(storedPath), { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('jwtToken') || '') } });
+        const j = await r.json();
+        if (j.url) window.open(j.url, '_blank'); else alert(j.message || 'Could not open file.');
+    } catch (e) { alert('Could not open file.'); }
+}
+
 function logout() {
+    try { fetch('/api/auth/logout', { method: 'POST', keepalive: true, headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('jwtToken') || '') } }); } catch (e) {}
     localStorage.clear();
     window.location.href = 'Admin.html';
 }

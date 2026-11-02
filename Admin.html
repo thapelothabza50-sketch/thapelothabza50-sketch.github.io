@@ -166,6 +166,12 @@
 
             const data = await response.json();
 
+            if (response.ok && data.action === 'MANDATORY_RESET') {
+                localStorage.setItem('jwtToken', data.token);
+                window.location.href = 'agent-first-login-reset.html';
+                return;
+            }
+
             if (!response.ok) {
                 // Hide loader to show error
                 loader.style.visibility = 'hidden';

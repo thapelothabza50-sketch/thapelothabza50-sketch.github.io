@@ -66,19 +66,19 @@
                     <input type="text" name="studentSurname" required class="input-field">
                 </div>
             </div>
-            <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700">Gender</label>
-                <select name="gender" required class="input-field">
-                    <option value="" disabled selected>Select your gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div class="space-y-2">
-                <label class="block text-sm font-semibold text-slate-700 ml-1">Institution / University</label>
-                <input type="text" name="institution" placeholder="e.g. University of Mpumalanga" required class="input-field">
-            </div>
+             <div class="space-y-2">
+    <label class="block text-sm font-semibold text-gray-700">Gender</label>
+    <select name="gender" required class="input-field">
+        <option value="" disabled selected>Select your gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+    </select>
+</div>
+<div class="space-y-2">
+    <label class="block text-sm font-semibold text-slate-700 ml-1">Institution / University</label>
+    <input type="text" name="institution" placeholder="e.g. University of Mpum" required class="input-field">
+</div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="label-text">Student Number</label>
@@ -103,14 +103,14 @@
             </div>
 
             <div>
-                <label class="label-text">Room Type Preference</label>
-                <select name="roomType" id="room-type-select" required class="input-field">
-                    <option value="">-- Select Room Type --</option>
-                    <option id="opt-single" value="Single">Single Room</option>
-                    <option id="opt-sharing" value="Sharing">Sharing Room</option>
-                </select>
-                <p id="room-warning" class="text-red-500 text-[10px] mt-1 hidden font-bold">* Single rooms are currently at capacity.</p>
-            </div>
+    <label class="label-text">Room Type Preference</label>
+    <select name="roomType" id="room-type-select" required class="input-field">
+        <option value="">-- Select Room Type --</option>
+        <option id="opt-single" value="Single">Single Room</option>
+        <option id="opt-sharing" value="Sharing">Sharing Room</option>
+    </select>
+    <p id="room-warning" class="text-red-500 text-[10px] mt-1 hidden font-bold">* Single rooms are currently at capacity.</p>
+</div>
 
             <p class="section-title">Financial Information</p>
             <div>
@@ -149,16 +149,19 @@
     </div>
 
     <script>
-        function toggleFundingFields() {
-            const funding = document.getElementById('funding-select').value;
-            const nsfasGroup = document.getElementById('nsfas-group');
-            const bursaryGroup = document.getElementById('bursary-group');
+        // ---------- helpers ----------
+        var urlParams = new URLSearchParams(window.location.search);
+        var selectedRes = urlParams.get('res');
+        document.getElementById('display-acc').value = selectedRes || "General Residence";
 
+        function toggleFundingFields() {
+            var funding = document.getElementById('funding-select').value;
+            var nsfasGroup = document.getElementById('nsfas-group');
+            var bursaryGroup = document.getElementById('bursary-group');
             nsfasGroup.classList.add('hidden');
             bursaryGroup.classList.add('hidden');
             document.getElementById('nsfas-status').required = false;
             document.getElementById('bursary-name').required = false;
-
             if (funding === 'NSFAS') {
                 nsfasGroup.classList.remove('hidden');
                 document.getElementById('nsfas-status').required = true;
@@ -168,62 +171,100 @@
             }
         }
 
-        window.onload = () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const selectedRes = urlParams.get('res');
-            const accInput = document.getElementById('display-acc');
-            
-            if (accInput) {
-                accInput.value = selectedRes || "General Residence";
-            }
-        };
+        // One submission key per page load: retries after a slow/failed network reuse it, so they can never create duplicates.
+        var submitting = false;
 
-        document.getElementById('formalAppForm').addEventListener('submit', async (e) => {
+        function postWithTimeout(url, body, ms) {
+            var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+            var timer = controller ? setTimeout(function () { controller.abort(); }, ms) : null;
+            return fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                signal: controller ? controller.signal : undefined
+            }).then(function (r) { if (timer) clearTimeout(timer); return r; },
+                    function (e) { if (timer) clearTimeout(timer); throw e; });
+        }
+
+        function resetButton(btn) { btn.innerText = "SUBMIT APPLICATION"; btn.disabled = false; submitting = false; }
+
+        document.getElementById('formalAppForm').addEventListener('submit', async function (e) {
             e.preventDefault();
-            const btn = e.target.querySelector('button');
+            if (submitting) return;            // ignore double taps
+            submitting = true;
+            var btn = e.target.querySelector('button[type="submit"]') || e.target.querySelector('button');
             btn.innerText = "SUBMITTING...";
             btn.disabled = true;
 
-            const formData = new FormData(e.target);
-            const rawData = Object.fromEntries(formData.entries());
-
-            // Payload structured precisely to match your Google Sheet columns and email script
-            const payload = {
+            var f = e.target.elements;
+            var val = function (n) { return f[n] ? String(f[n].value || '').trim() : ''; };
+            // Every field the form collects is sent (nothing is dropped)
+            var processedData = {
+                studentName: val('studentName'),
+                studentSurname: val('studentSurname'),
+                studentEmail: val('email'),
+                studentPhone: val('phone'),
+                gender: val('gender'),
+                studentNumber: val('studentNumber'),
+                institution: val('institution'),
+                yearOfStudy: val('yearOfStudy'),
                 accommodation: document.getElementById('display-acc').value,
-                moveInDate: rawData.moveInDate,
-                yearOfStudy: rawData.yearOfStudy,
-                studentName: rawData.studentName,
-                studentSurname: rawData.studentSurname,
-                gender: rawData.gender || '',
-                institution: rawData.institution || '',
-                studentNumber: rawData.studentNumber,
-                phone: rawData.phone,
-                email: rawData.email,
-                referencedBy: rawData.referencedBy || '',
-                roomType: rawData.roomType,
-                funding: rawData.funding,
-                nsfasStatus: rawData.nsfasStatus || '',
-                bursaryName: rawData.bursaryName || ''
+                roomType: val('roomType'),
+                moveInDate: val('moveInDate'),
+                funding: val('funding'),
+                nsfasStatus: val('funding') === 'NSFAS' ? val('nsfasStatus') : '',
+                bursaryName: val('funding') === 'Bursary' ? val('bursaryName') : '',
+                referencedBy: val('referencedBy')
             };
 
-            // TODO: Replace with your actual deployed Google Apps Script Web App URL
-            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyLr5OY-9zfL652zxal1R8KLWGD2JiTqoLPtzZ6llryzL0XVNVHDUaXoyNKCRQm31Zvsw/exec";
+            // Slow mobile networks: up to 3 tries. The server treats repeats as the same application.
+            var lastErr = null, response = null, result = null;
+            for (var attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    response = await postWithTimeout('/api/auth/apply-for-accommodation', processedData, 25000);
+                    try { result = await response.json(); } catch (_) { result = {}; }
+                    if (response.status < 500 && response.status !== 429) break;     // definitive answer
+                    lastErr = new Error('server busy');
+                } catch (err) {
+                    lastErr = err; response = null;
+                }
+                if (attempt < 3) await new Promise(function (r) { setTimeout(r, 1500 * attempt); });
+            }
 
-            try {
-                await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                alert('Application submitted successfully! Check your email for confirmation.');
+            if (response && response.ok && result && result.success !== false) {
+                alert(result.duplicate ? 'We already have your application. Check your email for confirmation.'
+                                       : 'Application submitted successfully! Check your email for confirmation.');
                 window.location.reload();
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Network error. Please try again.');
-                btn.innerText = "SUBMIT APPLICATION";
-                btn.disabled = false;
+            } else if (response && result && result.message) {
+                alert('Submission Failed: ' + result.message);
+                resetButton(btn);
+            } else {
+                alert('We could not reach the server. Your application has NOT been submitted. Please check your connection and try again.');
+                resetButton(btn);
+            }
+        });
+
+        // ---------- availability (single onload, real data from the server) ----------
+        window.addEventListener('load', async function () {
+            if (!selectedRes) return;
+            var accInput = document.getElementById('display-acc');
+            accInput.value = selectedRes;
+            accInput.readOnly = true;
+            try {
+                var res = await fetch('/api/auth/availability?name=' + encodeURIComponent(selectedRes));
+                if (!res.ok) return;
+                var a = await res.json();
+                if (a.isSingleRoomFull) {
+                    document.getElementById('opt-single').disabled = true;
+                    var w = document.getElementById('room-warning');
+                    w.classList.remove('hidden');
+                    w.innerText = "Note: Single rooms are currently at capacity.";
+                }
+                if (a.isSharedRoomFull) {
+                    document.getElementById('opt-sharing').disabled = true;
+                }
+            } catch (err) {
+                console.error("Error checking availability:", err);   // form stays usable; the server re-checks on submit
             }
         });
     </script>

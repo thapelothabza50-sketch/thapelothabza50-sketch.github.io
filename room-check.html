@@ -203,9 +203,9 @@
         };
 
         // Save to Database via your Route
-        const response = await fetch('/api/room-check/submit', {
+        const response = await fetch('/api/auth/room-check/submit', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('jwtToken') || '') },
             body: JSON.stringify(data)
         });
 
@@ -229,7 +229,7 @@
         document.getElementById('formPage').style.display = 'none';
         document.getElementById('trackerPage').style.display = 'block';
 
-        const res = await fetch('/api/room-check/all');
+        const res = await fetch('/api/auth/room-check/all', { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('jwtToken') || '') } });
         const data = await res.json();
         const body = document.getElementById('summaryBody');
         body.innerHTML = '';

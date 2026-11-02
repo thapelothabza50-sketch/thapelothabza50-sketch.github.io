@@ -538,7 +538,7 @@ function toggleSection(sectionId) {
     function triggerLoader(t) { document.getElementById('loader-text').innerText = t; loader.style.visibility = 'visible'; loader.style.opacity = '1'; }
     function hideLoader() { loader.style.opacity = '0'; setTimeout(() => { loader.style.visibility = 'hidden'; }, 500); }
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); }
-    function logout() { localStorage.clear(); window.location.href = 'agent login.html'; }
+    function logout() { try { fetch('/api/auth/logout', { method: 'POST', keepalive: true, headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('jwtToken') || '') } }); } catch (e) {} localStorage.clear(); window.location.href = 'agent login.html'; }
     
     // --- INACTIVITY TIMER ---
     let inactivityTimer;

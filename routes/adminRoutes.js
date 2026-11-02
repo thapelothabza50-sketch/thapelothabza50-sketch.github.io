@@ -120,13 +120,7 @@ router.post('/toggle-lock', auth, hasRole(['Admin']), async (req, res) => {
         // --- AUTOMATED EMAIL UPON APPROVAL ---
         if (status.toLowerCase() === 'approved') {
             try {
-                const transporter = nodemailer.createTransport({
-                    service: 'gmail', // Or your email provider
-                    auth: {
-                        user: process.env.EMAIL_USER,
-                        pass: process.env.EMAIL_PASS
-                    }
-                });
+                const transporter = { sendMail: (opts) => require('../lib/mailer').sendMail(opts) };
 
                 const mailOptions = {
                     from: process.env.EMAIL_USER,
@@ -216,6 +210,7 @@ router.delete('/delete-recruit/:id', auth, hasRole(['Admin']), async (req, res) 
     try {
         const recruit = await Recruit.findByIdAndDelete(req.params.id);
         if (!recruit) return res.status(404).json({ message: 'Recruit not found' });
+        await require('../lib/rooms').releaseRoom(recruit.roomReservation);
         res.json({ message: 'Recruit deleted successfully' });
     } catch (err) {
         res.status(500).json({ message: 'Error deleting recruit' });
@@ -476,7 +471,8 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage });
+const uploadLib = require('../lib/upload');
+const upload = multer({ storage: storage, limits: uploadLib.limits(8, 12), fileFilter: uploadLib.fileFilter('image') });
 
 const contractStorage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -489,7 +485,7 @@ const contractStorage = multer.diskStorage({
         cb(null, `${Date.now()}-${sanitized}`);
     }
 });
-const fileUpload = multer({ storage: contractStorage });
+const fileUpload = multer({ storage: contractStorage, limits: uploadLib.limits(15, 1), fileFilter: uploadLib.fileFilter('doc') });
 
 // Helper function to generate slug from name
 function generateSlug(name) {
@@ -1253,13 +1249,7 @@ router.post('/announcements', auth, hasRole(['Admin']), async (req, res) => {
         recipients = [...new Map(recipients.filter(x => x.email).map(x => [x.email.toLowerCase(), x])).values()];
         if (!recipients.length) return res.status(404).json({ message: 'No recipients found' });
 
-        const transporter = nodemailer.createTransport({
-            host: process.env.EMAIL_HOST,
-            port: Number(process.env.EMAIL_PORT),
-            secure: Number(process.env.EMAIL_PORT) === 465,
-            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-            tls: { rejectUnauthorized: false }
-        });
+        const transporter = { sendMail: (opts) => require('../lib/mailer').sendMail(opts) };
         const html = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto;padding:28px;color:#1e293b">
             <h2 style="color:#2563eb">Campus Collective</h2>
             <div style="white-space:pre-wrap;line-height:1.7">${escapeHtml(message)}</div>
