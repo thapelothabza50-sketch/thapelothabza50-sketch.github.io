@@ -66,19 +66,19 @@
                     <input type="text" name="studentSurname" required class="input-field">
                 </div>
             </div>
-             <div class="space-y-2">
-    <label class="block text-sm font-semibold text-gray-700">Gender</label>
-    <select name="gender" required class="input-field">
-        <option value="" disabled selected>Select your gender</option>
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
-        <option value="Other">Other</option>
-    </select>
-</div>
-<div class="space-y-2">
-    <label class="block text-sm font-semibold text-slate-700 ml-1">Institution / University</label>
-    <input type="text" name="institution" placeholder="e.g. University of Mpum" required class="input-field">
-</div>
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-gray-700">Gender</label>
+                <select name="gender" required class="input-field">
+                    <option value="" disabled selected>Select your gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-slate-700 ml-1">Institution / University</label>
+                <input type="text" name="institution" placeholder="e.g. University of Mpumalanga" required class="input-field">
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="label-text">Student Number</label>
@@ -103,14 +103,14 @@
             </div>
 
             <div>
-    <label class="label-text">Room Type Preference</label>
-    <select name="roomType" id="room-type-select" required class="input-field">
-        <option value="">-- Select Room Type --</option>
-        <option id="opt-single" value="Single">Single Room</option>
-        <option id="opt-sharing" value="Sharing">Sharing Room</option>
-    </select>
-    <p id="room-warning" class="text-red-500 text-[10px] mt-1 hidden font-bold">* Single rooms are currently at capacity.</p>
-</div>
+                <label class="label-text">Room Type Preference</label>
+                <select name="roomType" id="room-type-select" required class="input-field">
+                    <option value="">-- Select Room Type --</option>
+                    <option id="opt-single" value="Single">Single Room</option>
+                    <option id="opt-sharing" value="Sharing">Sharing Room</option>
+                </select>
+                <p id="room-warning" class="text-red-500 text-[10px] mt-1 hidden font-bold">* Single rooms are currently at capacity.</p>
+            </div>
 
             <p class="section-title">Financial Information</p>
             <div>
@@ -149,9 +149,6 @@
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        document.getElementById('display-acc').value = urlParams.get('res') || "General Residence";
-
         function toggleFundingFields() {
             const funding = document.getElementById('funding-select').value;
             const nsfasGroup = document.getElementById('nsfas-group');
@@ -171,108 +168,64 @@
             }
         }
 
-        document.getElementById('formalAppForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = e.target.querySelector('button');
-    btn.innerText = "SUBMITTING...";
-    btn.disabled = true;
-
-    // 1. Get all form fields
-    const formData = new FormData(e.target);
-    const rawData = Object.fromEntries(formData.entries());
-
-    // 2. Prepare the data for the new endpoint
-    const processedData = {
-        studentName: rawData.studentName,
-        studentSurname: rawData.studentSurname,
-        studentEmail: rawData.email,
-        studentPhone: rawData.phone,
-        gender: rawData.gender || '',
-        accommodation: document.getElementById('display-acc').value,
-        moveInDate: rawData.moveInDate,
-        referencedBy: rawData.referencedBy || ''
-    };
-
-    try {
-        const response = await fetch('/api/auth/apply-for-accommodation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(processedData)
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            alert('Application submitted successfully! Check your email for confirmation.');
-            window.location.reload();
-        } else {
-            alert('Submission Failed: ' + (result.message || 'Check server logs'));
-            btn.innerText = "SUBMIT APPLICATION";
-            btn.disabled = false;
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Network error. Please try again.');
-        btn.innerText = "SUBMIT APPLICATION";
-        btn.disabled = false;
-    }
-});
-
         window.onload = () => {
-    // 1. Get the residence name from the URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const selectedRes = urlParams.get('res');
-
-    // 2. If it exists, put it in the "Accommodation" input field
-    if (selectedRes) {
-        const accInput = document.getElementById('display-acc');
-        if (accInput) {
-            accInput.value = selectedRes;
-            // Make it read-only so they don't accidentally change it
-            accInput.readOnly = true; 
-        }
-    }
-    // Inside apply.html window.onload function:
-window.onload = async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const selectedRes = urlParams.get('res');
-
-    if (selectedRes) {
-        document.getElementById('display-acc').value = selectedRes;
-
-        // FETCH AVAILABILITY FROM SERVER
-        try {
-            const res = await fetch(`/api/auth/admin/landlords`);
-            const landlords = await res.json();
-            const currentRes = landlords.find(l => l.accommodationName === selectedRes);
-
-            if (currentRes) {
-                if (currentRes.isSingleRoomFull) {
-                    document.getElementById('opt-single').disabled = true;
-                    document.getElementById('room-warning').classList.remove('hidden');
-                    document.getElementById('room-warning').innerText = "Note: Single rooms are currently at capacity.";
-                }
-                if (currentRes.isSharedRoomFull) {
-                    document.getElementById('opt-shared').disabled = true;
-                    // You can add a similar warning for shared rooms here
-                }
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedRes = urlParams.get('res');
+            const accInput = document.getElementById('display-acc');
+            
+            if (accInput) {
+                accInput.value = selectedRes || "General Residence";
             }
-        } catch (err) {
-            console.error("Error checking availability:", err);
-        }
-    }
-};
-};
+        };
 
-        // Optional: Disable single room option if capacity is full (example logic)
-        const singleRoomOption = document.getElementById('opt-single');
-        const roomWarning = document.getElementById('room-warning');
-        const singleRoomFull = true; // This would come from your backend in a real app
+        document.getElementById('formalAppForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.innerText = "SUBMITTING...";
+            btn.disabled = true;
 
-        if (singleRoomFull) {
-            singleRoomOption.disabled = true;
-            roomWarning.classList.remove('hidden');
-        }
+            const formData = new FormData(e.target);
+            const rawData = Object.fromEntries(formData.entries());
+
+            // Payload structured precisely to match your Google Sheet columns and email script
+            const payload = {
+                accommodation: document.getElementById('display-acc').value,
+                moveInDate: rawData.moveInDate,
+                yearOfStudy: rawData.yearOfStudy,
+                studentName: rawData.studentName,
+                studentSurname: rawData.studentSurname,
+                gender: rawData.gender || '',
+                institution: rawData.institution || '',
+                studentNumber: rawData.studentNumber,
+                phone: rawData.phone,
+                email: rawData.email,
+                referencedBy: rawData.referencedBy || '',
+                roomType: rawData.roomType,
+                funding: rawData.funding,
+                nsfasStatus: rawData.nsfasStatus || '',
+                bursaryName: rawData.bursaryName || ''
+            };
+
+            // TODO: Replace with your actual deployed Google Apps Script Web App URL
+            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyLr5OY-9zfL652zxal1R8KLWGD2JiTqoLPtzZ6llryzL0XVNVHDUaXoyNKCRQm31Zvsw/exec";
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                alert('Application submitted successfully! Check your email for confirmation.');
+                window.location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+                btn.innerText = "SUBMIT APPLICATION";
+                btn.disabled = false;
+            }
+        });
     </script>
 </body>
 </html>
