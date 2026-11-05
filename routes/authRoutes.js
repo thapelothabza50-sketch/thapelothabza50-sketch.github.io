@@ -1959,4 +1959,23 @@ router.post('/admin/approve-seller/:id', auth, hasRole(['Admin']), async (req, r
     }
 });
 
+/**
+ * @route   GET /api/admin/recruits/export-data
+ * @desc    Get complete recruit details for Master Excel Export
+ * @access  Private (Admin Only)
+ */
+router.get('/recruits/export-data', auth, hasRole(['Admin']), async (req, res) => {
+    try {
+        const recruits = await Recruit.find()
+            .populate('agent', 'fullName agentId email phone')
+            .populate('season', 'name')
+            .sort({ createdAt: -1 });
+
+        res.json(recruits);
+    } catch (err) {
+        console.error("Excel Export Fetch Error:", err.message);
+        res.status(500).json({ message: "Error loading export data" });
+    }
+});
+
 module.exports = router;

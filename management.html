@@ -8,6 +8,7 @@
     <title>Campus Collective – Management Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css">
 
@@ -394,8 +395,25 @@
 
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div><h2 class="text-xl font-black text-gray-700">Student Recruits</h2><p class="text-sm text-gray-500">Manage, inspect, assign and contact recruits.</p></div>
-        <div class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-xl font-black">TOTAL: <span id="recruit-total-badge">0</span></div>
+    
     </div>
+    <div class="flex items-center gap-2">
+            <!-- 🟢 Excel Download Button -->
+            <button onclick="downloadRecruitsExcel()"
+                class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-xs hover:bg-emerald-700 transition flex items-center gap-2">
+                <i class="ri-file-excel-2-line text-base"></i> Export Excel
+            </button>
+            
+            <!-- 📧 Email All Recruits Button -->
+            <button onclick="emailAllRecruits()"
+                class="bg-purple-600 text-white px-4 py-2 rounded-xl font-black text-xs hover:bg-purple-700 transition flex items-center gap-2">
+                <i class="ri-mail-send-line text-base"></i> Email All Recruits
+            </button>
+
+            <div class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-xl font-black">
+                TOTAL: <span id="recruit-total-badge">0</span>
+            </div>
+        </div>
 
     <div class="flex flex-wrap gap-3 bg-blue-50 p-4 border border-blue-100 rounded-xl">
         <span class="text-sm font-bold text-blue-800">Season:</span>
@@ -2361,6 +2379,87 @@ window.onload = async () => {
         }, 10 * 60 * 1000);
     }
 };
+
+// ------------------------------------------------------------
+// EXCEL EXPORT FOR ALL RECRUITS (MASTER LIST)
+// ------------------------------------------------------------
+function downloadRecruitsExcel() {
+    if (!allRecruits || allRecruits.length === 0) {
+        return alert("No recruit data available to export.");
+    }
+
+    // Map each recruit into a clean object with full details
+    const excelData = allRecruits.map((r, index) => {
+        const agentObj = r.agent?.fullName ? r.agent : allUsers.find(u => u._id === (r.agent?._id || r.agent));
+        return {
+            "No.": index + 1,
+            "Student Name": r.studentName || '',
+            "Student Surname": r.studentSurname || '',
+            "Email Address": r.studentEmail || '',
+            "Phone Number": r.studentPhone || '',
+            "Gender": r.gender || '',
+            "Student Number": r.studentNumber || '',
+            "Institution": r.institutionName || r.institution || '',
+            "Accommodation": r.accommodation || '',
+            "Room Type": r.roomType || '',
+            "Move-in Date": r.moveInDate ? new Date(r.moveInDate).toLocaleDateString() : '',
+            "Funding": r.funding || '',
+            "Bursary Provider": r.bursaryName || '',
+            "Assigned Agent": agentObj ? agentObj.fullName : 'Direct / Unassigned',
+            "Agent ID": r.agentId || agentObj?.agentId || '',
+            "Referenced By": r.referencedByName || '',
+            "Application Date": r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '',
+            "Status": r.status || 'Pending',
+            "Commission Earned (R)": r.commissionEarned || 0
+        };
+    });
+
+    // Create Worksheet & Workbook using SheetJS
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    
+    // Auto-fit column widths
+    const columnWidths = Object.keys(excelData[0]).map(key => ({
+        wch: Math.max(key.length, 15)
+    }));
+    worksheet['!cols'] = columnWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Master Recruit List");
+
+    // Trigger download
+    const filename = `Master_Recruit_List_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, filename);
+}
+
+// ------------------------------------------------------------
+// OPEN RECRUIT EMAILS IN DEFAULT GMAIL / MAIL CLIENT
+// ------------------------------------------------------------
+function emailAllRecruits() {
+    if (!allRecruits || allRecruits.length === 0) {
+        return alert("No recruits available to email.");
+    }
+
+    // Extract valid emails
+    const emails = allRecruits
+        .map(r => (r.studentEmail || '').trim())
+        .filter(email => email && email.includes('@'));
+
+    if (emails.length === 0) {
+        return alert("No valid email addresses found among current recruits.");
+    }
+
+    // De-duplicate emails
+    const uniqueEmails = [...new Set(emails)];
+
+    // Combine into comma-separated list for BCC/TO
+    const bccList = uniqueEmails.join(',');
+    
+    // Open system email application (e.g. Gmail) in BCC mode so recipients' privacy is protected
+    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(bccList)}&subject=${encodeURIComponent("Important Update from Campus Collective")}`;
+    
+    window.location.href = mailtoUrl;
+}
+
 </script>
 
 
